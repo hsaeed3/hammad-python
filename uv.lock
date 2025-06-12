@@ -367,7 +367,7 @@ wheels = [
 ]
 
 [[package]]
-name = "hammad"
+name = "hammad-python"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
