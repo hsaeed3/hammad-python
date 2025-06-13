@@ -35,7 +35,7 @@ from typing_inspect import (
 from typing_inspection.introspection import (
     is_union_origin,
     inspect_annotation,
-    get_literal_values
+    get_literal_values,
 )
 from dataclasses import is_dataclass
 
