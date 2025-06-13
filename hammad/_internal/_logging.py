@@ -60,6 +60,7 @@ def _set_hammad_logger_level(level: str | int) -> None:
     """Sets the logging level for the hammad logger."""
     global _hammad_logger
     if isinstance(level, str):
+        original_level = level.upper()
         level = level.upper()
         for key, value in _logger_levels.items():
             if level in value:
@@ -67,9 +68,14 @@ def _set_hammad_logger_level(level: str | int) -> None:
                 break
         else:
             raise ValueError(f"Invalid logging level: {level}")
+        settings_level = original_level
+    else:
+        # For integer input, store the integer
+        settings_level = level
+    
     if _hammad_logger is not None:
         _hammad_logger.setLevel(level)
-    _get_internal_settings_manager().set_entry("LOGGING_CURRENT_LOGGER_LEVEL", level)
+    _get_internal_settings_manager().set_entry("LOGGING_CURRENT_LOGGER_LEVEL", settings_level)
 
 
 def _get_hammad_current_logger_level() -> str | int:
@@ -83,18 +89,18 @@ def _get_hammad_logger() -> logging.Logger:
 
     if _hammad_logger is None:
         _hammad_logger = logging.getLogger("hammad")
-        _update_logger_configuration()
+        _update_hammad_logger_configuration()
     else:
         # Check if configuration has changed
         current_level = _get_internal_settings_manager().get_entry("LOGGING_LEVEL")
         current_rich_enabled = _get_internal_settings_manager().get_entry("LOGGING_RICH_ENABLED")
         if _hammad_logger.level != current_level or len(_hammad_logger.handlers) == 0 or (_hammad_logger.handlers[0].__class__.__name__ == 'RichHandler') != current_rich_enabled:
-            _update_logger_configuration()
+            _update_hammad_logger_configuration()
 
     return _hammad_logger
 
 
-def _update_logger_configuration() -> None:
+def _update_hammad_logger_configuration() -> None:
     """Updates the logger configuration based on current settings."""
     global _hammad_logger
     if _hammad_logger is None:
@@ -103,10 +109,24 @@ def _update_logger_configuration() -> None:
     # Clear existing handlers
     _hammad_logger.handlers.clear()
 
-    # Set the logging level
-    current_level = _get_internal_settings_manager().get_entry("LOGGING_LEVEL")
+    # Set the logging level - use current logger level if set, otherwise use default
+    current_logger_level = _get_internal_settings_manager().get_entry("LOGGING_CURRENT_LOGGER_LEVEL")
+    if current_logger_level is not None:
+        # If a level was explicitly set, use it
+        if isinstance(current_logger_level, str):
+            # Convert string level to integer
+            for key, value in _logger_levels.items():
+                if current_logger_level in value:
+                    current_level = value[0]
+                    break
+            else:
+                current_level = _get_internal_settings_manager().get_entry("LOGGING_LEVEL")
+        else:
+            current_level = current_logger_level
+    else:
+        current_level = _get_internal_settings_manager().get_entry("LOGGING_LEVEL")
+    
     _hammad_logger.setLevel(current_level)
-    _get_internal_settings_manager().set_entry("LOGGING_CURRENT_LOGGER_LEVEL", current_level)
 
     if _get_internal_settings_manager().get_entry("LOGGING_RICH_ENABLED"):
         handler = RichHandler(

@@ -184,7 +184,7 @@ class TestGetHammadLogger:
         
         assert logger1 is logger2
     
-    @patch('hammad._internal._logging._update_logger_configuration')
+    @patch('hammad._internal._logging._update_hammad_logger_configuration')
     def test_get_logger_updates_configuration_when_changed(self, mock_update):
         """Test that logger configuration is updated when settings change."""
         # Create logger first
@@ -215,7 +215,7 @@ class TestUpdateLoggerConfiguration:
     def test_update_configuration_with_no_logger(self):
         """Test that update does nothing when no logger exists."""
         # Should not raise an exception
-        _logging._update_logger_configuration()
+        _logging._update_hammad_logger_configuration()
     
     @patch('hammad._internal._logging.RichHandler')
     @patch('hammad._internal._logging.get_console')
@@ -229,7 +229,7 @@ class TestUpdateLoggerConfiguration:
         settings_manager.set_entry("LOGGING_RICH_ENABLED", True)
         settings_manager.set_entry("LOGGING_LEVEL", logging.INFO)
         
-        _logging._update_logger_configuration()
+        _logging._update_hammad_logger_configuration()
         
         # RichHandler should be created
         mock_rich_handler.assert_called_once()
@@ -245,7 +245,7 @@ class TestUpdateLoggerConfiguration:
         settings_manager.set_entry("LOGGING_RICH_ENABLED", False)
         settings_manager.set_entry("LOGGING_LEVEL", logging.WARNING)
         
-        _logging._update_logger_configuration()
+        _logging._update_hammad_logger_configuration()
         
         # StreamHandler should be used
         assert len(_logging._hammad_logger.handlers) == 1
@@ -260,7 +260,7 @@ class TestUpdateLoggerConfiguration:
         _logging._hammad_logger.addHandler(existing_handler)
         
         # Update configuration
-        _logging._update_logger_configuration()
+        _logging._update_hammad_logger_configuration()
         
         # Old handler should be removed
         assert existing_handler not in _logging._hammad_logger.handlers
