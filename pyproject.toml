@@ -31,7 +31,8 @@ packages = ["hammad"]
 ai = [
     "litellm",
     "openai-agents",
-    "memvid"
+    "memvid",
+    "instructor>=1.8.3",
 ]
 serve = [
     "fastapi>=0.115.8",
