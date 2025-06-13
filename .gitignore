@@ -6,6 +6,7 @@
 .cursorrules
 .claude/
 .dev/
+.__old__/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
