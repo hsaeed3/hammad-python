@@ -1,7 +1,7 @@
 import pytest
 from hammad.utils.text.converters import (
-    convert_docstring_to_string,
-    convert_type_to_string,
+    convert_docstring_to_text,
+    convert_type_to_text,
 )
 from dataclasses import dataclass
 from typing import Optional, Union, List, Dict
@@ -48,48 +48,48 @@ def example_function(param1: str, param2: int = 10) -> str:
 
 
 class TestConvertTypeToString:
-    """Test cases for convert_type_to_string function."""
+    """Test cases for convert_type_to_text function."""
 
     def test_none_type(self):
-        assert convert_type_to_string(None) == "None"
-        assert convert_type_to_string(type(None)) == "None"
+        assert convert_type_to_text(None) == "None"
+        assert convert_type_to_text(type(None)) == "None"
 
     def test_basic_types(self):
-        assert convert_type_to_string(str) == "str"
-        assert convert_type_to_string(int) == "int"
-        assert convert_type_to_string(float) == "float"
-        assert convert_type_to_string(bool) == "bool"
-        assert convert_type_to_string(list) == "list"
-        assert convert_type_to_string(dict) == "dict"
+        assert convert_type_to_text(str) == "str"
+        assert convert_type_to_text(int) == "int"
+        assert convert_type_to_text(float) == "float"
+        assert convert_type_to_text(bool) == "bool"
+        assert convert_type_to_text(list) == "list"
+        assert convert_type_to_text(dict) == "dict"
 
     def test_optional_type(self):
-        assert convert_type_to_string(Optional[str]) == "Optional[str]"
-        assert convert_type_to_string(Optional[int]) == "Optional[int]"
+        assert convert_type_to_text(Optional[str]) == "Optional[str]"
+        assert convert_type_to_text(Optional[int]) == "Optional[int]"
 
     def test_union_type(self):
-        result = convert_type_to_string(Union[str, int])
+        result = convert_type_to_text(Union[str, int])
         assert "Union[" in result
         assert "str" in result
         assert "int" in result
 
     def test_generic_types(self):
-        assert convert_type_to_string(List[str]) == "list[str]"
-        assert convert_type_to_string(Dict[str, int]) == "dict[str, int]"
+        assert convert_type_to_text(List[str]) == "list[str]"
+        assert convert_type_to_text(Dict[str, int]) == "dict[str, int]"
 
     def test_custom_class(self):
-        assert convert_type_to_string(ExampleDataclass) == "ExampleDataclass"
+        assert convert_type_to_text(ExampleDataclass) == "ExampleDataclass"
 
     def test_lambda_function(self):
         lambda_func = lambda x: x
-        result = convert_type_to_string(type(lambda_func))
+        result = convert_type_to_text(type(lambda_func))
         assert result != "<lambda>"
 
 
 class TestConvertDocstringToString:
-    """Test cases for convert_docstring_to_string function."""
+    """Test cases for convert_docstring_to_text function."""
 
     def test_function_with_docstring(self):
-        result = convert_docstring_to_string(example_function)
+        result = convert_docstring_to_text(example_function)
         assert "Test function for docstring testing." in result
         assert "param1" in result
         assert "param2" in result
@@ -100,15 +100,15 @@ class TestConvertDocstringToString:
         def no_doc_func():
             pass
 
-        result = convert_docstring_to_string(no_doc_func)
+        result = convert_docstring_to_text(no_doc_func)
         assert result == ""
 
     def test_class_with_docstring(self):
-        result = convert_docstring_to_string(ExampleDataclass)
+        result = convert_docstring_to_text(ExampleDataclass)
         assert "A test dataclass for testing purposes." in result
 
     def test_exclude_sections(self):
-        result = convert_docstring_to_string(
+        result = convert_docstring_to_text(
             example_function,
             exclude_params=True,
             exclude_returns=True,
@@ -120,7 +120,7 @@ class TestConvertDocstringToString:
         assert "Test function for docstring testing." in result
 
     def test_override_sections(self):
-        result = convert_docstring_to_string(
+        result = convert_docstring_to_text(
             example_function,
             params_override="Custom params section",
             returns_override="Custom returns section",
@@ -129,7 +129,7 @@ class TestConvertDocstringToString:
         assert "Custom returns section" in result
 
     def test_custom_prefixes(self):
-        result = convert_docstring_to_string(
+        result = convert_docstring_to_text(
             example_function, params_prefix="Arguments:", returns_prefix="Output:"
         )
         assert "Arguments:" in result
