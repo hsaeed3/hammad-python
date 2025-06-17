@@ -17,6 +17,9 @@ dependencies = [
     # Tantivy is used to implement `hammad.objects.database` at the core level.
     "tantivy>=0.24.0",
     "typing-inspect>=0.9.0",
+    "dill>=0.4.0",
+    "typing-protocol-intersection>=0.5.3",
+    "adaptix>=3.0.0b11",
 ]
 
 [build-system]
