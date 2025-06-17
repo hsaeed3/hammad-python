@@ -1,5 +1,5 @@
 import pytest
-from hammad.cli import _rich
+from hammad._internal import _rich
 from rich import print as rich_print
 
 
