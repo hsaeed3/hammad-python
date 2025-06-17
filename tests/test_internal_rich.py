@@ -3,7 +3,6 @@ from hammad._internal import _rich
 from rich import print as rich_print
 
 
-
 def test_rich_color_tuple_type():
     """Test RichColorTuple type alias."""
     # This is a type alias, so we can't directly test it
@@ -20,11 +19,7 @@ def test_rich_color_hex_type():
 
 def test_rich_style_settings():
     """Test RichStyleSettings TypedDict."""
-    style: _rich.RichStyleSettings = {
-        "color": "red",
-        "bold": True,
-        "italic": False
-    }
+    style: _rich.RichStyleSettings = {"color": "red", "bold": True, "italic": False}
     assert style["color"] == "red"
     assert style["bold"] is True
     assert style["italic"] is False
@@ -36,7 +31,7 @@ def test_rich_background_settings():
         "color": "blue",
         "box": "rounded",
         "title": "Test Title",
-        "padding": 1
+        "padding": 1,
     }
     assert bg["color"] == "blue"
     assert bg["box"] == "rounded"
@@ -47,9 +42,7 @@ def test_rich_background_settings():
 def test_wrap_renderable_with_string_style():
     """Test wrapping a renderable with string style."""
     result = _rich.wrap_renderable_with_rich_config(
-        "Hello World",
-        style="red",
-        bg="blue"
+        "Hello World", style="red", bg="blue"
     )
 
     rich_print(result)
@@ -63,7 +56,7 @@ def test_wrap_renderable_with_tuple_color():
     result = _rich.wrap_renderable_with_rich_config(
         "Hello World",
         style=(255, 0, 0),  # Red RGB
-        bg=(0, 0, 255)      # Blue RGB
+        bg=(0, 0, 255),  # Blue RGB
     )
 
     rich_print(result)
@@ -76,18 +69,16 @@ def test_wrap_renderable_with_dict_style():
     style_dict: _rich.RichStyleSettings = {
         "color": "green",
         "bold": True,
-        "italic": True
+        "italic": True,
     }
     bg_dict: _rich.RichBackgroundSettings = {
         "color": "yellow",
         "box": "double",
-        "title": "Test Panel"
+        "title": "Test Panel",
     }
-    
+
     result = _rich.wrap_renderable_with_rich_config(
-        "Hello World",
-        style=style_dict,
-        bg=bg_dict
+        "Hello World", style=style_dict, bg=bg_dict
     )
 
     rich_print(result)
@@ -104,19 +95,12 @@ def test_wrap_renderable_with_complex_background():
         "title_align": "center",
         "expand": True,
         "padding": 2,
-        "style": {
-            "color": "white"
-        },
-        "border_style": {
-            "color": "red",
-            "bold": True
-        }
+        "style": {"color": "white"},
+        "border_style": {"color": "red", "bold": True},
     }
-    
+
     result = _rich.wrap_renderable_with_rich_config(
-        "Test content",
-        style="blue",
-        bg=bg_settings
+        "Test content", style="blue", bg=bg_settings
     )
 
     rich_print(result)
@@ -129,11 +113,7 @@ def test_rich_color_names():
     # Test a few representative color names
     colors = ["red", "blue", "green", "yellow", "magenta", "cyan"]
     for color in colors:
-        result = _rich.wrap_renderable_with_rich_config(
-            "Test",
-            style=color,
-            bg="black"
-        )
+        result = _rich.wrap_renderable_with_rich_config("Test", style=color, bg="black")
 
         rich_print(result)
 
@@ -144,14 +124,9 @@ def test_rich_box_names():
     """Test that box name literals work."""
     boxes = ["ascii", "rounded", "double", "heavy", "minimal"]
     for box in boxes:
-        bg_settings: _rich.RichBackgroundSettings = {
-            "box": box,
-            "color": "white"
-        }
+        bg_settings: _rich.RichBackgroundSettings = {"box": box, "color": "white"}
         result = _rich.wrap_renderable_with_rich_config(
-            "Test",
-            style="black",
-            bg=bg_settings
+            "Test", style="black", bg=bg_settings
         )
 
         rich_print(result)
@@ -163,11 +138,9 @@ def test_empty_style_settings():
     """Test with empty style settings."""
     empty_style: _rich.RichStyleSettings = {}
     empty_bg: _rich.RichBackgroundSettings = {}
-    
+
     result = _rich.wrap_renderable_with_rich_config(
-        "Test",
-        style=empty_style,
-        bg=empty_bg
+        "Test", style=empty_style, bg=empty_bg
     )
 
     rich_print(result)
@@ -179,11 +152,7 @@ def test_non_string_renderable():
     """Test wrapping non-string renderables."""
     # Test with RichText object
     text = _rich.RichText("Rich Text Object")
-    result = _rich.wrap_renderable_with_rich_config(
-        text,
-        style="red",
-        bg="blue"
-    )
+    result = _rich.wrap_renderable_with_rich_config(text, style="red", bg="blue")
 
     rich_print(result)
 
@@ -191,7 +160,4 @@ def test_non_string_renderable():
 
 
 if __name__ == "__main__":
-    pytest.main(
-        ['-v', __file__]
-    )
-
+    pytest.main(["-v", __file__])

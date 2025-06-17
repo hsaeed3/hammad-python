@@ -14,11 +14,9 @@ from rich.console import (
     ConsoleOptions as RichConsoleOptions,
     RenderableType as RichRenderableType,
     RenderResult as RichRenderResult,
-    Segment as RichSegment
+    Segment as RichSegment,
 )
-from rich.live import (
-    Live as RichLive
-)
+from rich.live import Live as RichLive
 from rich.panel import Panel as RichPanel, AlignMethod as RichAlignMethod
 from rich.style import Style as RichStyle
 from rich.text import (
@@ -26,6 +24,33 @@ from rich.text import (
     Span as RichSpan,
 )
 from rich.box import Box as RichBox
+
+__all__ = (
+    "get_rich_console",
+    "RichColor",
+    "RichConsole",
+    "RichConsoleOptions",
+    "RichRenderableType",
+    "RichRenderResult",
+    "RichSegment",
+    "RichLive",
+    "RichPanel",
+    "RichAlignMethod",
+    "RichStyle",
+    "RichText",
+    "RichSpan",
+    "RichBox",
+    "RichJustifyMethod",
+    "RichOverflowMethod",
+    "RichColorTuple",
+    "RichColorHex",
+    "RichColorName",
+    "RichColorType",
+    "RichBoxName",
+    "RichStyleSettings",
+    "RichBackgroundSettings",
+    "wrap_renderable_with_rich_config",
+)
 
 
 RichJustifyMethod: TypeAlias = Literal["default", "left", "center", "right", "full"]
@@ -280,7 +305,7 @@ RichBoxName: TypeAlias = Literal[
 class RichStyleSettings(TypedDict, total=False):
     """Helper dictionary type used to define the 'style' of a renderable output
     or content through the `rich` library."""
-    
+
     # extended rich color type
 
     color: NotRequired[RichColorName | RichColorHex | RichColorTuple]
@@ -400,10 +425,10 @@ class RichBackgroundSettings(TypedDict, total=False):
 
 
 def wrap_renderable_with_rich_config(
-    r : RichRenderableType,
-    style : RichColorType | RichStyleSettings,
-    bg : RichColorType | RichBackgroundSettings,
-    console : RichConsole = get_rich_console(),
+    r: RichRenderableType,
+    style: RichColorType | RichStyleSettings,
+    bg: RichColorType | RichBackgroundSettings,
+    console: RichConsole = get_rich_console(),
 ) -> RichRenderableType:
     """Wraps a renderable with rich configuration.
 
@@ -418,29 +443,44 @@ def wrap_renderable_with_rich_config(
 
     Returns:
         The wrapped renderable."""
-    
+
     # Process style parameter
     if isinstance(style, dict):
         # Extract style properties from RichStyleSettings
         style_kwargs = {}
-        
+
         # Handle color separately
-        if 'color' in style:
-            color_value = style['color']
+        if "color" in style:
+            color_value = style["color"]
             if isinstance(color_value, tuple):
-                style_kwargs['color'] = f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                style_kwargs["color"] = (
+                    f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                )
             else:
-                style_kwargs['color'] = color_value
-        
+                style_kwargs["color"] = color_value
+
         # Handle all other style properties
-        style_props = ['bold', 'dim', 'italic', 'underline', 'blink', 'blink2', 
-                      'reverse', 'conceal', 'strike', 'underline2', 'frame', 
-                      'encircle', 'overline', 'link']
-        
+        style_props = [
+            "bold",
+            "dim",
+            "italic",
+            "underline",
+            "blink",
+            "blink2",
+            "reverse",
+            "conceal",
+            "strike",
+            "underline2",
+            "frame",
+            "encircle",
+            "overline",
+            "link",
+        ]
+
         for prop in style_props:
             if prop in style:
                 style_kwargs[prop] = style[prop]
-        
+
         rich_style = RichStyle(**style_kwargs)
     else:
         # Simple color style
@@ -448,7 +488,7 @@ def wrap_renderable_with_rich_config(
             rich_style = RichStyle(color=f"rgb({style[0]},{style[1]},{style[2]})")
         else:
             rich_style = RichStyle(color=style)
-    
+
     # Apply style to renderable
     if isinstance(r, str):
         styled_renderable = RichText(r, style=rich_style)
@@ -458,121 +498,156 @@ def wrap_renderable_with_rich_config(
     else:
         # For other renderables, we'll apply style through the Panel
         styled_renderable = r
-    
+
     # Process background parameter
     if isinstance(bg, dict):
         # Extract panel properties from RichBackgroundSettings
         panel_kwargs = {}
-        
+
         # Handle box style
-        if 'box' in bg:
-            box_name = bg['box']
+        if "box" in bg:
+            box_name = bg["box"]
             # Import box styles
             from rich import box as rich_box_module
+
             box_map = {
-                'ascii': rich_box_module.ASCII,
-                'ascii2': rich_box_module.ASCII2,
-                'ascii_double_head': rich_box_module.ASCII_DOUBLE_HEAD,
-                'square': rich_box_module.SQUARE,
-                'square_double_head': rich_box_module.SQUARE_DOUBLE_HEAD,
-                'minimal': rich_box_module.MINIMAL,
-                'minimal_heavy_head': rich_box_module.MINIMAL_HEAVY_HEAD,
-                'minimal_double_head': rich_box_module.MINIMAL_DOUBLE_HEAD,
-                'simple': rich_box_module.SIMPLE,
-                'simple_head': rich_box_module.SIMPLE_HEAD,
-                'simple_heavy': rich_box_module.SIMPLE_HEAVY,
-                'horizontals': rich_box_module.HORIZONTALS,
-                'rounded': rich_box_module.ROUNDED,
-                'heavy': rich_box_module.HEAVY,
-                'heavy_edge': rich_box_module.HEAVY_EDGE,
-                'heavy_head': rich_box_module.HEAVY_HEAD,
-                'double': rich_box_module.DOUBLE,
-                'double_edge': rich_box_module.DOUBLE_EDGE,
-                'markdown': getattr(rich_box_module, 'MARKDOWN', rich_box_module.ROUNDED),
+                "ascii": rich_box_module.ASCII,
+                "ascii2": rich_box_module.ASCII2,
+                "ascii_double_head": rich_box_module.ASCII_DOUBLE_HEAD,
+                "square": rich_box_module.SQUARE,
+                "square_double_head": rich_box_module.SQUARE_DOUBLE_HEAD,
+                "minimal": rich_box_module.MINIMAL,
+                "minimal_heavy_head": rich_box_module.MINIMAL_HEAVY_HEAD,
+                "minimal_double_head": rich_box_module.MINIMAL_DOUBLE_HEAD,
+                "simple": rich_box_module.SIMPLE,
+                "simple_head": rich_box_module.SIMPLE_HEAD,
+                "simple_heavy": rich_box_module.SIMPLE_HEAVY,
+                "horizontals": rich_box_module.HORIZONTALS,
+                "rounded": rich_box_module.ROUNDED,
+                "heavy": rich_box_module.HEAVY,
+                "heavy_edge": rich_box_module.HEAVY_EDGE,
+                "heavy_head": rich_box_module.HEAVY_HEAD,
+                "double": rich_box_module.DOUBLE,
+                "double_edge": rich_box_module.DOUBLE_EDGE,
+                "markdown": getattr(
+                    rich_box_module, "MARKDOWN", rich_box_module.ROUNDED
+                ),
             }
-            panel_kwargs['box'] = box_map.get(box_name, rich_box_module.ROUNDED)
-        
+            panel_kwargs["box"] = box_map.get(box_name, rich_box_module.ROUNDED)
+
         # Handle panel-specific properties
-        panel_props = ['title', 'subtitle', 'title_align', 'subtitle_align', 
-                      'safe_box', 'expand', 'width', 'height', 'padding', 'highlight']
-        
+        panel_props = [
+            "title",
+            "subtitle",
+            "title_align",
+            "subtitle_align",
+            "safe_box",
+            "expand",
+            "width",
+            "height",
+            "padding",
+            "highlight",
+        ]
+
         for prop in panel_props:
             if prop in bg:
                 panel_kwargs[prop] = bg[prop]
-        
+
         # Handle style and border_style
-        if 'style' in bg:
-            bg_style = bg['style']
+        if "style" in bg:
+            bg_style = bg["style"]
             if isinstance(bg_style, dict):
                 # Process nested style settings
                 bg_style_kwargs = {}
-                if 'color' in bg_style:
-                    color_value = bg_style['color']
+                if "color" in bg_style:
+                    color_value = bg_style["color"]
                     if isinstance(color_value, tuple):
-                        bg_style_kwargs['bgcolor'] = f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                        bg_style_kwargs["bgcolor"] = (
+                            f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                        )
                     else:
-                        bg_style_kwargs['bgcolor'] = color_value
-                panel_kwargs['style'] = RichStyle(**bg_style_kwargs)
+                        bg_style_kwargs["bgcolor"] = color_value
+                panel_kwargs["style"] = RichStyle(**bg_style_kwargs)
             else:
                 # Simple color background
                 if isinstance(bg_style, tuple):
-                    panel_kwargs['style'] = RichStyle(bgcolor=f"rgb({bg_style[0]},{bg_style[1]},{bg_style[2]})")
+                    panel_kwargs["style"] = RichStyle(
+                        bgcolor=f"rgb({bg_style[0]},{bg_style[1]},{bg_style[2]})"
+                    )
                 else:
-                    panel_kwargs['style'] = RichStyle(bgcolor=bg_style)
-        
-        if 'border_style' in bg:
-            border_style = bg['border_style']
+                    panel_kwargs["style"] = RichStyle(bgcolor=bg_style)
+
+        if "border_style" in bg:
+            border_style = bg["border_style"]
             if isinstance(border_style, dict):
                 # Process border style settings
                 border_style_kwargs = {}
-                if 'color' in border_style:
-                    color_value = border_style['color']
+                if "color" in border_style:
+                    color_value = border_style["color"]
                     if isinstance(color_value, tuple):
-                        border_style_kwargs['color'] = f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                        border_style_kwargs["color"] = (
+                            f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                        )
                     else:
-                        border_style_kwargs['color'] = color_value
-                
+                        border_style_kwargs["color"] = color_value
+
                 # Add other border style properties
-                for prop in ['bold', 'dim', 'italic']:
+                for prop in ["bold", "dim", "italic"]:
                     if prop in border_style:
                         border_style_kwargs[prop] = border_style[prop]
-                
-                panel_kwargs['border_style'] = RichStyle(**border_style_kwargs)
-        
+
+                panel_kwargs["border_style"] = RichStyle(**border_style_kwargs)
+
         # Handle background color if specified at top level
-        if 'color' in bg and 'style' not in bg:
-            color_value = bg['color']
+        if "color" in bg and "style" not in bg:
+            color_value = bg["color"]
             if isinstance(color_value, tuple):
-                panel_kwargs['style'] = RichStyle(bgcolor=f"rgb({color_value[0]},{color_value[1]},{color_value[2]})")
+                panel_kwargs["style"] = RichStyle(
+                    bgcolor=f"rgb({color_value[0]},{color_value[1]},{color_value[2]})"
+                )
             else:
-                panel_kwargs['style'] = RichStyle(bgcolor=color_value)
-        
+                panel_kwargs["style"] = RichStyle(bgcolor=color_value)
+
         # For non-text renderables that weren't styled, apply the style through panel
-        if not isinstance(r, (str, RichText)) and not isinstance(styled_renderable, (RichText)):
+        if not isinstance(r, (str, RichText)) and not isinstance(
+            styled_renderable, (RichText)
+        ):
             # Apply the style to the panel instead
-            if 'style' in panel_kwargs:
+            if "style" in panel_kwargs:
                 # Merge foreground style into panel style
-                existing_style = panel_kwargs['style']
+                existing_style = panel_kwargs["style"]
                 merged_style_dict = {}
-                
+
                 # Get existing bgcolor if any
-                if hasattr(existing_style, '_bgcolor') and existing_style._bgcolor:
-                    merged_style_dict['bgcolor'] = str(existing_style._bgcolor)
-                
+                if hasattr(existing_style, "_bgcolor") and existing_style._bgcolor:
+                    merged_style_dict["bgcolor"] = str(existing_style._bgcolor)
+
                 # Add foreground style attributes
-                if hasattr(rich_style, '_color') and rich_style._color:
-                    merged_style_dict['color'] = str(rich_style._color)
-                for attr in ['_bold', '_dim', '_italic', '_underline', '_blink', '_blink2', 
-                           '_reverse', '_conceal', '_strike', '_underline2', '_frame', 
-                           '_encircle', '_overline']:
+                if hasattr(rich_style, "_color") and rich_style._color:
+                    merged_style_dict["color"] = str(rich_style._color)
+                for attr in [
+                    "_bold",
+                    "_dim",
+                    "_italic",
+                    "_underline",
+                    "_blink",
+                    "_blink2",
+                    "_reverse",
+                    "_conceal",
+                    "_strike",
+                    "_underline2",
+                    "_frame",
+                    "_encircle",
+                    "_overline",
+                ]:
                     if hasattr(rich_style, attr) and getattr(rich_style, attr):
                         merged_style_dict[attr[1:]] = True
-                
-                panel_kwargs['style'] = RichStyle(**merged_style_dict)
+
+                panel_kwargs["style"] = RichStyle(**merged_style_dict)
             else:
                 # No existing panel style, so we can use the rich_style with bgcolor
-                panel_kwargs['style'] = rich_style
-        
+                panel_kwargs["style"] = rich_style
+
         # Create panel with all settings
         final_renderable = RichPanel(styled_renderable, **panel_kwargs)
     else:
@@ -581,22 +656,38 @@ def wrap_renderable_with_rich_config(
             bg_style = RichStyle(bgcolor=f"rgb({bg[0]},{bg[1]},{bg[2]})")
         else:
             bg_style = RichStyle(bgcolor=bg)
-        
+
         # For non-text renderables with simple bg, merge styles
-        if not isinstance(r, (str, RichText)) and not isinstance(styled_renderable, (RichText)):
+        if not isinstance(r, (str, RichText)) and not isinstance(
+            styled_renderable, (RichText)
+        ):
             # Merge foreground and background styles
-            merged_style_dict = {'bgcolor': bg_style._bgcolor}
-            
-            if hasattr(rich_style, '_color') and rich_style._color:
-                merged_style_dict['color'] = str(rich_style._color)
-            for attr in ['_bold', '_dim', '_italic', '_underline', '_blink', '_blink2', 
-                       '_reverse', '_conceal', '_strike', '_underline2', '_frame', 
-                       '_encircle', '_overline']:
+            merged_style_dict = {"bgcolor": bg_style._bgcolor}
+
+            if hasattr(rich_style, "_color") and rich_style._color:
+                merged_style_dict["color"] = str(rich_style._color)
+            for attr in [
+                "_bold",
+                "_dim",
+                "_italic",
+                "_underline",
+                "_blink",
+                "_blink2",
+                "_reverse",
+                "_conceal",
+                "_strike",
+                "_underline2",
+                "_frame",
+                "_encircle",
+                "_overline",
+            ]:
                 if hasattr(rich_style, attr) and getattr(rich_style, attr):
                     merged_style_dict[attr[1:]] = True
-            
-            final_renderable = RichPanel(styled_renderable, style=RichStyle(**merged_style_dict))
+
+            final_renderable = RichPanel(
+                styled_renderable, style=RichStyle(**merged_style_dict)
+            )
         else:
             final_renderable = RichPanel(styled_renderable, style=bg_style)
-    
+
     return final_renderable
