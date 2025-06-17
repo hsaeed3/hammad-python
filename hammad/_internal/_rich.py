@@ -16,6 +16,7 @@ from rich.console import (
     RenderResult as RichRenderResult,
     Segment as RichSegment,
 )
+from rich.logging import RichHandler
 from rich.live import Live as RichLive
 from rich.panel import Panel as RichPanel, AlignMethod as RichAlignMethod
 from rich.style import Style as RichStyle
@@ -33,6 +34,7 @@ __all__ = (
     "RichRenderableType",
     "RichRenderResult",
     "RichSegment",
+    "RichHandler",
     "RichLive",
     "RichPanel",
     "RichAlignMethod",
