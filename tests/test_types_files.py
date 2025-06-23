@@ -1,9 +1,11 @@
 import pytest
 from hammad.types.files.file import File, FileSource
+from hammad.types.files.configuration import Configuration
 from hammad.types.files.document import Document
 from hammad.types.files.image import Image
 from hammad.types.files.audio import Audio
 
+import json
 from pathlib import Path
 import tempfile
 import os
@@ -404,6 +406,345 @@ class TestIntegration:
         ext2 = data.extension
         assert ext1 == ext2
         assert data._extension is not None  # Should be cached
+
+
+
+class TestConfiguration:
+    """Test the Configuration class."""
+
+    def test_default_initialization(self):
+        """Test Configuration with default values."""
+        config = Configuration()
+        assert config.config_data == {}
+        assert config.format_type is None
+
+    def test_from_dict(self):
+        """Test creating Configuration from dictionary data."""
+        data = {"key1": "value1", "key2": 42, "nested": {"key": "value"}}
+        config = Configuration(config_data=data, format_type="json")
+        
+        assert config.config_data == data
+        assert config.format_type == "json"
+        assert config.get("key1") == "value1"
+        assert config.get("key2") == 42
+        assert config.get("nested") == {"key": "value"}
+
+    def test_json_parsing(self):
+        """Test parsing JSON configuration data."""
+        json_data = '{"name": "test", "count": 5, "enabled": true}'
+        config = Configuration(data=json_data)
+        config._parse_data()
+        
+        assert config.config_data["name"] == "test"
+        assert config.config_data["count"] == 5
+        assert config.config_data["enabled"] is True
+        assert config.format_type == "json"
+
+    def test_env_parsing(self):
+        """Test parsing environment file format."""
+        env_data = """
+# This is a comment
+DATABASE_URL=postgresql://localhost/mydb
+DEBUG=true
+PORT=5432
+NAME="My App"
+        """.strip()
+        
+        config = Configuration(data=env_data, format_type="env")
+        config._parse_data()
+        
+        assert config.config_data["DATABASE_URL"] == "postgresql://localhost/mydb"
+        assert config.config_data["DEBUG"] == "true"
+        assert config.config_data["PORT"] == "5432"
+        assert config.config_data["NAME"] == "My App"
+
+    def test_from_file_json(self):
+        """Test loading JSON configuration from file."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump({"app_name": "test_app", "version": "1.0"}, f)
+            temp_path = f.name
+
+        try:
+            config = Configuration.from_file(temp_path)
+            assert config.config_data["app_name"] == "test_app"
+            assert config.config_data["version"] == "1.0"
+            assert config.format_type == "json"
+        finally:
+            os.unlink(temp_path)
+
+    def test_from_dotenv(self):
+        """Test loading from .env file."""
+        env_content = """
+# Environment configuration
+DATABASE_URL=sqlite:///test.db
+SECRET_KEY=super-secret-key
+DEBUG=true
+        """.strip()
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+            f.write(env_content)
+            temp_path = f.name
+
+        try:
+            config = Configuration.from_dotenv(temp_path)
+            assert config.config_data["DATABASE_URL"] == "sqlite:///test.db"
+            assert config.config_data["SECRET_KEY"] == "super-secret-key"
+            assert config.config_data["DEBUG"] == "true"
+            assert config.format_type == "env"
+        finally:
+            os.unlink(temp_path)
+
+    def test_from_os_prefix(self):
+        """Test creating configuration from environment variables with prefix."""
+        # Set some test environment variables
+        test_vars = {
+            "MYAPP_DATABASE_URL": "postgresql://localhost/test",
+            "MYAPP_DEBUG": "true",
+            "MYAPP_PORT": "8080",
+            "OTHER_VAR": "should_be_ignored"
+        }
+        
+        # Save original environment
+        original_env = {k: os.environ.get(k) for k in test_vars.keys()}
+        
+        try:
+            # Set test variables
+            for k, v in test_vars.items():
+                os.environ[k] = v
+            
+            config = Configuration.from_os_prefix("MYAPP")
+            
+            assert config.config_data["database_url"] == "postgresql://localhost/test"
+            assert config.config_data["debug"] == "true"
+            assert config.config_data["port"] == "8080"
+            assert "other_var" not in config.config_data
+            assert config.format_type == "env"
+            
+        finally:
+            # Restore original environment
+            for k, v in original_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_from_os_vars(self):
+        """Test creating configuration from specific environment variables."""
+        test_vars = {
+            "TEST_VAR1": "value1",
+            "TEST_VAR2": "value2", 
+            "TEST_VAR3": "value3"
+        }
+        
+        # Save and set test variables
+        original_env = {k: os.environ.get(k) for k in test_vars.keys()}
+        
+        try:
+            for k, v in test_vars.items():
+                os.environ[k] = v
+            
+            config = Configuration.from_os_vars(["TEST_VAR1", "TEST_VAR2", "NONEXISTENT"])
+            
+            assert config.config_data["TEST_VAR1"] == "value1"
+            assert config.config_data["TEST_VAR2"] == "value2"
+            assert "TEST_VAR3" not in config.config_data
+            assert "NONEXISTENT" not in config.config_data
+            
+        finally:
+            # Restore environment
+            for k, v in original_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_to_file_json(self):
+        """Test saving configuration to JSON file."""
+        config = Configuration(
+            config_data={"name": "test", "value": 42},
+            format_type="json"
+        )
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "config.json"
+            config.to_file(output_path)
+            
+            assert output_path.exists()
+            
+            # Verify content
+            with open(output_path) as f:
+                loaded_data = json.load(f)
+            assert loaded_data["name"] == "test"
+            assert loaded_data["value"] == 42
+
+    def test_to_file_env(self):
+        """Test saving configuration to .env file."""
+        config = Configuration(
+            config_data={"DATABASE_URL": "sqlite:///test.db", "DEBUG": "true"},
+            format_type="env"
+        )
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "config.env"
+            config.to_file(output_path)
+            
+            assert output_path.exists()
+            content = output_path.read_text()
+            assert "DATABASE_URL=sqlite:///test.db" in content
+            assert "DEBUG=true" in content
+
+    def test_update_file(self):
+        """Test updating an existing configuration file."""
+        # Create initial config file
+        initial_data = {"name": "original", "version": "1.0", "debug": False}
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(initial_data, f)
+            temp_path = f.name
+
+        try:
+            # Create config with updates
+            update_config = Configuration(
+                config_data={"name": "updated", "new_key": "new_value"}
+            )
+            
+            # Update the file
+            update_config.update_file(temp_path)
+            
+            # Verify the update
+            updated_config = Configuration.from_file(temp_path)
+            assert updated_config.config_data["name"] == "updated"  # Updated
+            assert updated_config.config_data["version"] == "1.0"   # Preserved
+            assert updated_config.config_data["debug"] is False     # Preserved
+            assert updated_config.config_data["new_key"] == "new_value"  # Added
+            
+        finally:
+            os.unlink(temp_path)
+
+    def test_to_os(self):
+        """Test pushing configuration to environment variables."""
+        config = Configuration(
+            config_data={"database_url": "test://localhost", "port": "5432"}
+        )
+        
+        # Save original environment
+        original_env = {
+            "TEST_DATABASE_URL": os.environ.get("TEST_DATABASE_URL"),
+            "TEST_PORT": os.environ.get("TEST_PORT")
+        }
+        
+        try:
+            config.to_os(prefix="TEST")
+            
+            assert os.environ["TEST_DATABASE_URL"] == "test://localhost"
+            assert os.environ["TEST_PORT"] == "5432"
+            
+        finally:
+            # Restore environment
+            for k, v in original_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_dict_like_access(self):
+        """Test dictionary-like access methods."""
+        config = Configuration(
+            config_data={"key1": "value1", "key2": "value2"}
+        )
+        
+        # Test __getitem__ and __setitem__
+        assert config["key1"] == "value1"
+        config["key3"] = "value3"
+        assert config["key3"] == "value3"
+        
+        # Test __contains__
+        assert "key1" in config
+        assert "key3" in config
+        assert "nonexistent" not in config
+        
+        # Test get method
+        assert config.get("key1") == "value1"
+        assert config.get("nonexistent") is None
+        assert config.get("nonexistent", "default") == "default"
+        
+        # Test keys, values, items
+        keys = list(config.keys())
+        assert "key1" in keys
+        assert "key2" in keys
+        assert "key3" in keys
+        
+        values = list(config.values())
+        assert "value1" in values
+        assert "value2" in values
+        assert "value3" in values
+        
+        items = list(config.items())
+        assert ("key1", "value1") in items
+
+    def test_serialization_formats(self):
+        """Test serialization to different formats."""
+        config_data = {"name": "test", "count": 42, "enabled": True}
+        config = Configuration(config_data=config_data)
+        
+        # Test JSON serialization
+        json_output = config._serialize_data("json")
+        parsed_json = json.loads(json_output)
+        assert parsed_json == config_data
+        
+        # Test ENV serialization
+        env_output = config._serialize_data("env")
+        assert "name=test" in env_output
+        assert "count=42" in env_output
+        assert "enabled=True" in env_output
+
+    def test_format_detection(self):
+        """Test automatic format detection."""
+        # Test with different extensions
+        config = Configuration()
+        config.source = FileSource(path=Path("test.json"))
+        assert config._detect_format() == "json"
+        
+        config.source = FileSource(path=Path("test.yaml"))
+        assert config._detect_format() == "yaml"
+        
+        config.source = FileSource(path=Path("test.env"))
+        assert config._detect_format() == "env"
+        
+        # Test with MIME type
+        config = Configuration(type="application/json")
+        config.source = FileSource()
+        assert config._detect_format() == "json"
+
+    def test_error_handling(self):
+        """Test error handling for invalid data."""
+        # Test invalid JSON
+        with pytest.raises(ValueError, match="Failed to parse configuration data"):
+            config = Configuration(data="{ invalid json", format_type="json")
+            config._parse_data()
+        
+        # Test file not found for dotenv
+        with pytest.raises(FileNotFoundError):
+            Configuration.from_dotenv("nonexistent.env")
+        
+        # Test file not found for update
+        config = Configuration(config_data={"test": "value"})
+        with pytest.raises(FileNotFoundError):
+            config.update_file("nonexistent.json")
+        
+        # Test overwrite protection
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            f.write(b'{"existing": "data"}')
+            temp_path = f.name
+
+        try:
+            config = Configuration(config_data={"new": "data"})
+            with pytest.raises(FileExistsError):
+                config.to_file(temp_path, overwrite=False)
+        finally:
+            os.unlink(temp_path)
+
+
 
 
 if __name__ == "__main__":
