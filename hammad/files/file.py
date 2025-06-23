@@ -1,4 +1,4 @@
-"""hammad.types.files.file"""
+"""hammad.files.file"""
 
 from pathlib import Path
 import httpx
@@ -6,8 +6,8 @@ from typing import Any, Self
 import mimetypes
 from urllib.parse import urlparse
 
-from ...base.model import BasedModel
-from ...base.fields import basedfield
+from ..base.model import BasedModel
+from ..base.fields import basedfield
 
 __all__ = ("File", "FileSource")
 

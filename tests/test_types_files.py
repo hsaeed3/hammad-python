@@ -1,9 +1,9 @@
 import pytest
-from hammad.types.files.file import File, FileSource
-from hammad.types.files.configuration import Configuration
-from hammad.types.files.document import Document
-from hammad.types.files.image import Image
-from hammad.types.files.audio import Audio
+from hammad.files.file import File, FileSource
+from hammad.files.configuration import Configuration
+from hammad.files.document import Document
+from hammad.files.image import Image
+from hammad.files.audio import Audio
 
 import json
 from pathlib import Path

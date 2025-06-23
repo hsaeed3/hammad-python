@@ -1,11 +1,11 @@
-"""hammad.types.files.document"""
+"""hammad.files.document"""
 
 import httpx
 from typing import Any, Self, Iterator
 from markdown_it import MarkdownIt
 
 from .file import File, FileSource
-from ...base.fields import basedfield
+from ..base.fields import basedfield
 
 __all__ = ("Document",)
 

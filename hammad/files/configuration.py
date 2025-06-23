@@ -1,4 +1,4 @@
-"""hammad.types.files.configuration"""
+"""hammad.files.configuration"""
 
 import os
 import configparser
@@ -9,7 +9,7 @@ import httpx
 import msgspec
 
 from .file import File, FileSource
-from ...base.fields import basedfield
+from ..base.fields import basedfield
 
 __all__ = ("Configuration",)
 

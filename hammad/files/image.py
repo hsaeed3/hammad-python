@@ -1,10 +1,10 @@
-"""hammad.types.files.image"""
+"""hammad.files.image"""
 
 import httpx
 from typing import Self
 
 from .file import File, FileSource
-from ...base.fields import basedfield
+from ..base.fields import basedfield
 
 __all__ = ("Image",)
 
