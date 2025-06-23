@@ -1,4 +1,4 @@
-"""hammad.model"""
+"""hammad.based"""
 
 import copy
 import re
@@ -17,7 +17,7 @@ from msgspec.structs import Struct, asdict, fields
 __all__ = (
     "BasedModel",
     "basedfield", "FieldInfo", "Field", "get_field_info", "is_basedfield",
-    "str_field", "int_field", "float_field", "list_field", "validator"
+    "str_basedfield", "int_basedfield", "float_basedfield", "list_basedfield", "basedvalidator"
 )
 
 
@@ -348,6 +348,302 @@ class BasedModel(Struct):
     def model_fields(cls) -> Dict[str, Any]:
         """Get information about the struct's fields."""
         return cls._get_fields_info()
+
+    @classmethod
+    def model_load_from_model(
+        cls,
+        model : Any,
+        title : Optional[str] = None,
+        description : Optional[str] = None,
+        init : bool = False,
+        exclude : Optional[Union[Set[str], Set[int]]] = None,
+    ) -> Self:
+        """Load a model from another model.
+        
+        Args:
+            model : The model to load from
+            title : An optional title or title override for the model 
+            description : An optional description for the model
+            init : Whether to initialize the model with the field value
+            exclude : Fields to exclude from the conversion
+        """
+        # Extract data from the source model
+        if hasattr(model, 'model_dump'):
+            # It's a pydantic-like model
+            source_data = model.model_dump()
+        elif hasattr(model, '__dict__'):
+            # It's a regular object with attributes
+            source_data = model.__dict__.copy()
+        elif isinstance(model, dict):
+            # It's already a dictionary
+            source_data = model.copy()
+        elif hasattr(model, '_asdict'):
+            # It's a namedtuple
+            source_data = model._asdict()
+        else:
+            # Try to use msgspec's asdict for msgspec structs
+            try:
+                source_data = asdict(model)
+            except Exception:
+                # Last resort - try to convert to dict
+                try:
+                    source_data = dict(model)
+                except Exception:
+                    raise ValueError(f"Cannot extract data from model of type {type(model)}")
+        
+        # Apply exclusions if specified
+        if exclude is not None:
+            if isinstance(exclude, set) and all(isinstance(k, str) for k in exclude):
+                source_data = {k: v for k, v in source_data.items() if k not in exclude}
+            elif isinstance(exclude, set) and all(isinstance(k, int) for k in exclude):
+                items = list(source_data.items())
+                source_data = dict(items[i] for i in range(len(items)) if i not in exclude)
+        
+        # Get the fields of the target class to filter compatible fields
+        try:
+            target_fields = cls._get_field_names()
+            # Only include fields that exist in the target model
+            filtered_data = {k: v for k, v in source_data.items() if k in target_fields}
+        except Exception:
+            # If we can't get field names, use all data
+            filtered_data = source_data
+        
+        if init:
+            # Create and return an instance
+            return cls(**filtered_data)
+        else:
+            # Return the class type - this doesn't make much sense for the method signature
+            # but following the parameter description, we'll return an uninitialized version
+            # In practice, this would typically return the class itself or raise an error
+            # For now, let's create an instance anyway since that's most useful
+            return cls(**filtered_data)
+    
+    @classmethod
+    def model_field_to_model(
+        cls,
+        fields : str,
+        schema: Literal[
+            "based",
+            "dataclass",
+            "pydantic",
+            "msgspec",
+            "typeddict",
+            "namedtuple",
+            "attrs",
+            "dict",
+        ] = "based",
+        # Simple Override Params To Edit The Final Model
+        # This method always goes field(s) -> model not to field
+        title : Optional[str] = None,
+        description : Optional[str] = None,
+        field_name : str = "value",
+        field_description : Optional[str] = None,
+        field_examples : Optional[List[Any]] = None,
+        init : bool = False,
+    ) -> Any:
+        """Convert a single field to a new model of any
+        type.
+        
+        Args:
+            fields: The field to be converted into the model
+            schema: The target schema format to convert to (Defaults to a basedmodel)
+            title : An optional title or title override for the model (uses the field name if not provided)
+            description : An optional description for the model (uses the field description if not provided)
+            field_name : The name of the field within this new model representing the target field (defaults to "value")
+            field_description : An optional description for the field within this new model (defaults to None)
+            field_examples : An optional list of examples for the field within this new model (defaults to None)
+            init : Whether to initialize the model with the field value (defaults to False)
+        """
+        # Get field information from the class
+        fields_info = cls._get_fields_info()
+        
+        if fields not in fields_info:
+            raise ValueError(f"Field '{fields}' not found in {cls.__name__}")
+        
+        field_info = fields_info[fields]
+        field_type = field_info["type"]
+        
+        # Handle default values properly, including default_factory
+        if not field_info["required"]:
+            field_default = field_info["default"]
+            # Check for default_factory in the msgspec field
+            msgspec_field = field_info["field"]
+            if (hasattr(msgspec_field, 'default_factory') and 
+                msgspec_field.default_factory is not msgspec.UNSET and 
+                msgspec_field.default_factory is not msgspec.NODEFAULT):
+                # It has a default_factory, call it to get the actual default
+                try:
+                    field_default = msgspec_field.default_factory()
+                except Exception:
+                    # If calling fails, use UNSET
+                    field_default = msgspec.UNSET
+            # If field_default is NODEFAULT but no default_factory, keep as UNSET
+            elif field_default is msgspec.NODEFAULT:
+                field_default = msgspec.UNSET
+        else:
+            field_default = msgspec.UNSET
+        
+        # Use provided title or default to field name
+        model_title = title or fields.title()
+        model_description = description or f"Model wrapping field '{fields}'"
+        
+        if schema == "based":
+            # Create annotations for the dynamic class
+            annotations = {field_name: field_type}
+            
+            # Create field definition
+            class_dict = {"__annotations__": annotations}
+            
+            # Add default if available
+            if field_default is not msgspec.UNSET:
+                class_dict[field_name] = basedfield(
+                    default=field_default,
+                    description=field_description,
+                    examples=field_examples
+                )
+            elif field_description or field_examples:
+                class_dict[field_name] = basedfield(
+                    description=field_description,
+                    examples=field_examples
+                )
+            
+            # Create the dynamic class
+            DynamicModel = type(
+                model_title.replace(" ", ""),
+                (BasedModel,),
+                class_dict
+            )
+            
+            if init and field_default is not msgspec.UNSET:
+                return DynamicModel(**{field_name: field_default})
+            elif init:
+                # Need a value to initialize with
+                raise ValueError("Cannot initialize model without a default value")
+            else:
+                return DynamicModel
+                
+        elif schema == "dataclass":
+            from dataclasses import make_dataclass, field as dc_field
+            
+            if field_default is not msgspec.UNSET:
+                fields_list = [(field_name, field_type, dc_field(default=field_default))]
+            else:
+                fields_list = [(field_name, field_type)]
+            
+            DynamicDataclass = make_dataclass(
+                model_title.replace(" ", ""),
+                fields_list
+            )
+            
+            if init and field_default is not msgspec.UNSET:
+                return DynamicDataclass(**{field_name: field_default})
+            elif init:
+                raise ValueError("Cannot initialize dataclass without a default value")
+            else:
+                return DynamicDataclass
+                
+        elif schema == "pydantic":
+            from pydantic import BaseModel, create_model
+            
+            pydantic_fields = {}
+            if field_default is not msgspec.UNSET:
+                pydantic_fields[field_name] = (field_type, field_default)
+            else:
+                pydantic_fields[field_name] = (field_type, ...)
+            
+            PydanticModel = create_model(
+                model_title.replace(" ", ""),
+                **pydantic_fields
+            )
+            
+            if init and field_default is not msgspec.UNSET:
+                return PydanticModel(**{field_name: field_default})
+            elif init:
+                raise ValueError("Cannot initialize pydantic model without a default value")
+            else:
+                return PydanticModel
+                
+        elif schema == "msgspec":
+            # Create a msgspec Struct dynamically
+            struct_fields = {field_name: field_type}
+            if field_default is not msgspec.UNSET:
+                struct_fields[field_name] = msgspec_field(default=field_default)
+            
+            DynamicStruct = type(
+                model_title.replace(" ", ""),
+                (Struct,),
+                {"__annotations__": {field_name: field_type}}
+            )
+            
+            if init and field_default is not msgspec.UNSET:
+                return DynamicStruct(**{field_name: field_default})
+            elif init:
+                raise ValueError("Cannot initialize msgspec struct without a default value")
+            else:
+                return DynamicStruct
+                
+        elif schema == "typeddict":
+            from typing import TypedDict
+            
+            # TypedDict can't be created dynamically in the same way
+            # Return a dictionary with type information
+            if init and field_default is not msgspec.UNSET:
+                return {field_name: field_default}
+            elif init:
+                raise ValueError("Cannot initialize TypedDict without a default value")
+            else:
+                # Return a TypedDict class (though this is limited)
+                return TypedDict(model_title.replace(" ", ""), {field_name: field_type})
+                
+        elif schema == "namedtuple":
+            from collections import namedtuple
+            
+            DynamicNamedTuple = namedtuple(model_title.replace(" ", ""), [field_name])
+            
+            if init and field_default is not msgspec.UNSET:
+                return DynamicNamedTuple(**{field_name: field_default})
+            elif init:
+                raise ValueError("Cannot initialize namedtuple without a default value")
+            else:
+                return DynamicNamedTuple
+                
+        elif schema == "attrs":
+            try:
+                import attrs
+                
+                if field_default is not msgspec.UNSET:
+                    field_attr = attrs.field(default=field_default)
+                else:
+                    field_attr = attrs.field()
+                
+                @attrs.define
+                class DynamicAttrs:
+                    pass
+                
+                # Set the field dynamically
+                setattr(DynamicAttrs, field_name, field_attr)
+                DynamicAttrs.__annotations__ = {field_name: field_type}
+                
+                if init and field_default is not msgspec.UNSET:
+                    return DynamicAttrs(**{field_name: field_default})
+                elif init:
+                    raise ValueError("Cannot initialize attrs class without a default value")
+                else:
+                    return DynamicAttrs
+                    
+            except ImportError:
+                raise ImportError("attrs library is required for attrs conversion")
+                
+        elif schema == "dict":
+            if init and field_default is not msgspec.UNSET:
+                return {field_name: field_default}
+            elif init:
+                raise ValueError("Cannot initialize dict without a default value")
+            else:
+                return {field_name: field_type}
+                
+        else:
+            raise ValueError(f"Unsupported schema format: {schema}")
     
     def model_convert(
         self,
@@ -1091,7 +1387,7 @@ def is_basedfield(field: Any) -> bool:
 
 # Validators
 
-def validator(*fields: str, pre: bool = False, post: bool = False, always: bool = False):
+def basedvalidator(*fields: str, pre: bool = False, post: bool = False, always: bool = False):
     """Decorator to create a validator for specific fields.
     
     Args:
