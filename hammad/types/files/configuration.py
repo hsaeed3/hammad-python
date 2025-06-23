@@ -17,23 +17,23 @@ __all__ = ("Configuration",)
 class Configuration(File):
     """Model / structure representation for configuration objects
     for both module or application level usage. This class is
-    nothing more than a glorified key-value store with a 
+    nothing more than a glorified key-value store with a
     few extra features.
-    
+
     Inherits from File to provide file operations and extends
     with configuration-specific functionality."""
 
     # Configuration-specific fields
     config_data: dict[str, Any] = basedfield(default_factory=dict)
     """The actual configuration key-value pairs."""
-    
+
     format_type: str | None = basedfield(default=None)
     """The format type of the configuration (json, toml, yaml, ini, env)."""
 
     def __post_init__(self):
         """Initialize configuration data from file data if available."""
         super().__post_init__()
-        
+
         # If we have data but no config_data, try to parse it
         if self.data is not None and not self.config_data:
             self._parse_data()
@@ -42,95 +42,100 @@ class Configuration(File):
         """Parse the file data into configuration format."""
         if not self.data:
             return
-            
-        content = self.data if isinstance(self.data, str) else self.data.decode('utf-8')
-        
+
+        content = self.data if isinstance(self.data, str) else self.data.decode("utf-8")
+
         # Determine format from extension or type
         format_type = self._detect_format()
-        
+
         try:
             if format_type == "json":
-                self.config_data = msgspec.json.decode(content.encode('utf-8'))
+                self.config_data = msgspec.json.decode(content.encode("utf-8"))
             elif format_type == "toml":
-                self.config_data = msgspec.toml.decode(content.encode('utf-8'))
+                self.config_data = msgspec.toml.decode(content.encode("utf-8"))
             elif format_type == "yaml":
-                self.config_data = msgspec.yaml.decode(content.encode('utf-8'))
+                self.config_data = msgspec.yaml.decode(content.encode("utf-8"))
             elif format_type == "ini":
                 parser = configparser.ConfigParser()
                 parser.read_string(content)
-                self.config_data = {section: dict(parser[section]) for section in parser.sections()}
+                self.config_data = {
+                    section: dict(parser[section]) for section in parser.sections()
+                }
             elif format_type == "env":
                 # Parse as dotenv format
-                lines = content.strip().split('\n')
+                lines = content.strip().split("\n")
                 config_data = {}
                 for line in lines:
                     line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        config_data[key.strip()] = value.strip().strip('"\'')
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        config_data[key.strip()] = value.strip().strip("\"'")
                 self.config_data = config_data
-                
+
             self.format_type = format_type
         except Exception as e:
-            raise ValueError(f"Failed to parse configuration data as {format_type}: {e}")
+            raise ValueError(
+                f"Failed to parse configuration data as {format_type}: {e}"
+            )
 
     def _detect_format(self) -> str:
         """Detect the configuration format from extension or content."""
         if self.format_type:
             return self.format_type
-            
+
         # Try to detect from file extension
         # Get extension directly from source path to avoid caching issues
         if self.source.path:
             ext = self.source.path.suffix.lower()
-            if ext in ['.json']:
+            if ext in [".json"]:
                 return "json"
-            elif ext in ['.toml']:
+            elif ext in [".toml"]:
                 return "toml"
-            elif ext in ['.yaml', '.yml']:
+            elif ext in [".yaml", ".yml"]:
                 return "yaml"
-            elif ext in ['.ini', '.cfg', '.conf']:
+            elif ext in [".ini", ".cfg", ".conf"]:
                 return "ini"
-            elif ext in ['.env']:
+            elif ext in [".env"]:
                 return "env"
         elif self.extension:
             ext = self.extension.lower()
-            if ext in ['.json']:
+            if ext in [".json"]:
                 return "json"
-            elif ext in ['.toml']:
+            elif ext in [".toml"]:
                 return "toml"
-            elif ext in ['.yaml', '.yml']:
+            elif ext in [".yaml", ".yml"]:
                 return "yaml"
-            elif ext in ['.ini', '.cfg', '.conf']:
+            elif ext in [".ini", ".cfg", ".conf"]:
                 return "ini"
-            elif ext in ['.env']:
+            elif ext in [".env"]:
                 return "env"
-        
+
         # Try to detect from MIME type
         if self.type:
-            if 'json' in self.type:
+            if "json" in self.type:
                 return "json"
-            elif 'yaml' in self.type:
+            elif "yaml" in self.type:
                 return "yaml"
-        
+
         # Default fallback - try to parse as JSON first
         return "json"
 
     def _serialize_data(self, format_type: str | None = None) -> str:
         """Serialize configuration data to string format."""
         format_type = format_type or self.format_type or "json"
-        
+
         if format_type == "json":
-            return msgspec.json.encode(self.config_data).decode('utf-8')
+            return msgspec.json.encode(self.config_data).decode("utf-8")
         elif format_type == "toml":
-            return msgspec.toml.encode(self.config_data).decode('utf-8')
+            return msgspec.toml.encode(self.config_data).decode("utf-8")
         elif format_type == "yaml":
-            return msgspec.yaml.encode(self.config_data).decode('utf-8')
+            return msgspec.yaml.encode(self.config_data).decode("utf-8")
         elif format_type == "ini":
             parser = configparser.ConfigParser()
             for section_name, section_data in self.config_data.items():
                 parser[section_name] = section_data
             import io
+
             output = io.StringIO()
             parser.write(output)
             return output.getvalue()
@@ -138,23 +143,22 @@ class Configuration(File):
             lines = []
             for key, value in self.config_data.items():
                 # Simple escaping for shell variables
-                if isinstance(value, str) and (' ' in value or '"' in value or "'" in value):
+                if isinstance(value, str) and (
+                    " " in value or '"' in value or "'" in value
+                ):
                     value = f'"{value}"'
                 lines.append(f"{key}={value}")
-            return '\n'.join(lines)
+            return "\n".join(lines)
         else:
             raise ValueError(f"Unsupported format: {format_type}")
 
     @classmethod
-    def from_dotenv(
-        cls,
-        path: str | Path | None = None
-    ) -> Self:
+    def from_dotenv(cls, path: str | Path | None = None) -> Self:
         """Loads a .env file and creates a configuration object
         from it.
 
         NOTE: This does not set any environment variables.
-        
+
         Args:
             path: The path to the .env file to load. If not provided,
                 the .env file in the current working directory will be used.
@@ -163,13 +167,13 @@ class Configuration(File):
             path = Path.cwd() / ".env"
         else:
             path = Path(path)
-            
+
         if not path.exists():
             raise FileNotFoundError(f"Environment file not found: {path}")
-            
+
         # Use dotenv_values to parse without setting environment variables
         config_data = dotenv_values(path)
-        
+
         return cls(
             config_data=dict(config_data),
             format_type="env",
@@ -182,13 +186,10 @@ class Configuration(File):
         )
 
     @classmethod
-    def from_os_prefix(
-        cls,
-        prefix: str
-    ) -> Self:
+    def from_os_prefix(cls, prefix: str) -> Self:
         """Creates a new configuration object using all variables
         that begin with the given prefix.
-        
+
         Args:
             prefix: The prefix to use to filter the variables.
         """
@@ -196,9 +197,9 @@ class Configuration(File):
         for key, value in os.environ.items():
             if key.startswith(prefix):
                 # Remove prefix and convert to lowercase
-                config_key = key[len(prefix):].lstrip('_').lower()
+                config_key = key[len(prefix) :].lstrip("_").lower()
                 config_data[config_key] = value
-                
+
         return cls(
             config_data=config_data,
             format_type="env",
@@ -207,13 +208,10 @@ class Configuration(File):
         )
 
     @classmethod
-    def from_os_vars(
-        cls,
-        vars: list[str]
-    ) -> Self:
+    def from_os_vars(cls, vars: list[str]) -> Self:
         """Pulls a certain set of environment variables and
         creates a configuration object from them.
-        
+
         Args:
             vars: A list of environment variable names to pull.
         """
@@ -221,7 +219,7 @@ class Configuration(File):
         for var in vars:
             if var in os.environ:
                 config_data[var] = os.environ[var]
-                
+
         return cls(
             config_data=config_data,
             format_type="env",
@@ -236,7 +234,7 @@ class Configuration(File):
     ) -> Self:
         """Parses a file to return a configuration object. This
         utilizes the following file types:
-        
+
         - json
         - toml
         - yaml
@@ -245,20 +243,20 @@ class Configuration(File):
         """
         # Use the parent File class to load the file
         file_obj = File.from_path(path, lazy=False)
-        
+
         # Create a Configuration object from the File object
         config = cls(
             data=file_obj.data,
             type=file_obj.type,
             source=file_obj.source,
         )
-        
+
         # Parse the data
         config._parse_data()
-        
+
         return config
 
-    @classmethod 
+    @classmethod
     def from_url(
         cls,
         url: str,
@@ -267,33 +265,33 @@ class Configuration(File):
         headers: dict[str, str] | None = None,
     ) -> Self:
         """Load configuration from a URL supporting various formats.
-        
+
         Args:
             url: The URL to load configuration from
             timeout: Request timeout in seconds
             headers: Optional HTTP headers to include in the request
-            
+
         Returns:
             A new Configuration instance
         """
         with httpx.Client(timeout=timeout) as client:
             response = client.get(url, headers=headers or {})
             response.raise_for_status()
-            
+
             # Get content as text
             content = response.text
-            
+
             # Determine format from URL extension or content-type
             format_type = None
-            if url.endswith('.json'):
+            if url.endswith(".json"):
                 format_type = "json"
-            elif url.endswith(('.yaml', '.yml')):
+            elif url.endswith((".yaml", ".yml")):
                 format_type = "yaml"
-            elif url.endswith('.toml'):
+            elif url.endswith(".toml"):
                 format_type = "toml"
-            elif url.endswith(('.ini', '.cfg', '.conf')):
+            elif url.endswith((".ini", ".cfg", ".conf")):
                 format_type = "ini"
-            elif url.endswith('.env'):
+            elif url.endswith(".env"):
                 format_type = "env"
             else:
                 # Try to detect from content-type header
@@ -302,7 +300,7 @@ class Configuration(File):
                     format_type = "json"
                 elif "yaml" in content_type:
                     format_type = "yaml"
-                    
+
         config = cls(
             data=content,
             type=response.headers.get("content-type"),
@@ -310,11 +308,11 @@ class Configuration(File):
             source=FileSource(
                 is_url=True,
                 url=url,
-                size=len(content.encode('utf-8')),
+                size=len(content.encode("utf-8")),
                 encoding=response.encoding,
             ),
         )
-        
+
         config._parse_data()
         return config
 
@@ -327,7 +325,7 @@ class Configuration(File):
     ) -> None:
         """Saves the configuration object to a file. This
         utilizes the following file types:
-        
+
         - json
         - toml
         - yaml
@@ -340,30 +338,30 @@ class Configuration(File):
             format_type: Override the format type for saving.
         """
         save_path = Path(path)
-        
+
         if save_path.exists() and not overwrite:
             raise FileExistsError(f"File already exists: {save_path}")
-            
+
         # Determine format from path extension if not specified
         if format_type is None:
             ext = save_path.suffix.lower()
-            if ext in ['.json']:
+            if ext in [".json"]:
                 format_type = "json"
-            elif ext in ['.toml']:
+            elif ext in [".toml"]:
                 format_type = "toml"
-            elif ext in ['.yaml', '.yml']:
+            elif ext in [".yaml", ".yml"]:
                 format_type = "yaml"
-            elif ext in ['.ini', '.cfg', '.conf']:
+            elif ext in [".ini", ".cfg", ".conf"]:
                 format_type = "ini"
-            elif ext in ['.env']:
+            elif ext in [".env"]:
                 format_type = "env"
             else:
                 format_type = self.format_type or "json"
-        
+
         # Serialize and save
         content = self._serialize_data(format_type)
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        save_path.write_text(content, encoding='utf-8')
+        save_path.write_text(content, encoding="utf-8")
 
     def update_file(
         self,
@@ -373,33 +371,33 @@ class Configuration(File):
     ) -> None:
         """Updates a valid configuration file with only the
         differing values.
-        
+
         Args:
             path: The path to the file to update.
             exclude: A list of keys to exclude from the update.
             exclude_none: Whether to exclude keys with None values.
         """
         path = Path(path)
-        
+
         if not path.exists():
             raise FileNotFoundError(f"Configuration file not found: {path}")
-            
+
         # Load existing configuration
         existing_config = Configuration.from_file(path)
-        
+
         # Prepare data to update
         update_data = self.config_data.copy()
-        
+
         if exclude:
             for key in exclude:
                 update_data.pop(key, None)
-                
+
         if exclude_none:
             update_data = {k: v for k, v in update_data.items() if v is not None}
-        
+
         # Merge with existing data
         existing_config.config_data.update(update_data)
-        
+
         # Save back to file
         existing_config.to_file(path, overwrite=True)
 
@@ -411,33 +409,33 @@ class Configuration(File):
         """Pushes the configuration object's values as active
         environment variables. This will overwrite any existing
         values for the session.
-        
+
         Args:
             prefix: The prefix to use to filter the variables.
             exclude: A list of keys to exclude from the update.
         """
         exclude = exclude or []
-        
+
         for key, value in self.config_data.items():
             if key in exclude:
                 continue
-                
+
             # Convert value to string
             env_value = str(value) if value is not None else ""
-            
+
             # Apply prefix if specified
             env_key = f"{prefix}_{key}".upper() if prefix else key.upper()
-            
+
             # Set environment variable
             os.environ[env_key] = env_value
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by key.
-        
+
         Args:
             key: The configuration key
             default: Default value if key is not found
-            
+
         Returns:
             The configuration value or default
         """
@@ -445,7 +443,7 @@ class Configuration(File):
 
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value.
-        
+
         Args:
             key: The configuration key
             value: The value to set
@@ -469,9 +467,9 @@ class Configuration(File):
         return self.config_data.keys()
 
     def values(self):
-        """Return configuration values.""" 
+        """Return configuration values."""
         return self.config_data.values()
 
     def items(self):
         """Return configuration key-value pairs."""
-        return self.config_data.items() 
+        return self.config_data.items()
