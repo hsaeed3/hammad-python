@@ -1,4 +1,4 @@
-"""hammad.model"""
+"""hammad.objects.basedmodel"""
 
 import copy
 import re

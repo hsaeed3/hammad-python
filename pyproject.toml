@@ -22,8 +22,8 @@ packages = ["hammad"]
 
 [project.optional-dependencies]
 ai = [
-    "instructor>=1.8.3",
     "litellm>=1.72.4",
+    "openai-agents>=0.0.19",
 ]
 serve = [
     "fastapi>=0.115.8",

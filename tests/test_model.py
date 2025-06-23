@@ -1,6 +1,6 @@
 import pytest
 
-from hammad.model import (
+from hammad.objects.basedmodel import (
     BasedModel,
     basedfield,
     is_basedfield,
