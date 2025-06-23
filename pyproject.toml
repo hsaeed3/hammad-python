@@ -11,6 +11,9 @@ dependencies = [
     "msgspec>=0.19.0",
     "pydantic>=2.11.5",
     "rich>=13.9.4",
+    "instructor>=1.9.0",
+    "litellm>=1.72.4",
+    "openai-agents>=0.0.19",
 ]
 
 [build-system]
@@ -21,10 +24,6 @@ build-backend = "hatchling.build"
 packages = ["hammad"]
 
 [project.optional-dependencies]
-ai = [
-    "litellm>=1.72.4",
-    "openai-agents>=0.0.19",
-]
 serve = [
     "fastapi>=0.115.8",
     "uvicorn>=0.34.0",
