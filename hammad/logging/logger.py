@@ -1,6 +1,6 @@
 """hammad.logging.logger"""
 
-import logging as __logging
+import logging
 import inspect
 from dataclasses import dataclass, field
 from typing import (
@@ -83,14 +83,14 @@ DEFAULT_LEVEL_STYLES: Dict[str, LoggerLevelSettings] = {
 # -----------------------------------------------------------------------------
 
 
-class RichLoggerFilter(__logging.Filter):
+class RichLoggerFilter(logging.Filter):
     """Filter for applying rich styling to log messages based on level."""
 
     def __init__(self, level_styles: Dict[str, LoggerLevelSettings]):
         super().__init__()
         self.level_styles = level_styles
 
-    def filter(self, record: __logging.LogRecord) -> bool:
+    def filter(self, record: logging.LogRecord) -> bool:
         # Get the level name
         level_name = record.levelname.lower()
 
@@ -110,14 +110,14 @@ class RichLoggerFilter(__logging.Filter):
 # -----------------------------------------------------------------------------
 
 
-class RichLoggerFormatter(__logging.Formatter):
+class RichLoggerFormatter(logging.Formatter):
     """Custom formatter that applies rich styling using wrap_renderable_with_rich_config."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.console = get_rich_console()
 
-    def formatMessage(self, record: __logging.LogRecord) -> str:
+    def formatMessage(self, record: logging.LogRecord) -> str:
         """Override formatMessage to apply styling to different parts."""
         # Check if we have style configuration
         if hasattr(record, "_hammad_style_config"):
@@ -131,9 +131,7 @@ class RichLoggerFormatter(__logging.Formatter):
                 elif isinstance(title_style, dict):
                     style_str = self._build_style_string(title_style)
                     if style_str:
-                        record.name = (
-                            f"[{style_str}]{record.name}[/{style_str.split()[0]}]"
-                        )
+                        record.name = f"[{style_str}]{record.name}[/]"
 
             # Handle message styling
             message_style = style_config.get("message", None)
@@ -145,7 +143,7 @@ class RichLoggerFormatter(__logging.Formatter):
                 elif isinstance(message_style, dict):
                     style_str = self._build_style_string(message_style)
                     if style_str:
-                        record.message = f"[{style_str}]{record.getMessage()}[/{style_str.split()[0]}]"
+                        record.message = f"[{style_str}]{record.getMessage()}[/]"
                 else:
                     record.message = record.getMessage()
             else:
@@ -191,7 +189,7 @@ class RichLoggerFormatter(__logging.Formatter):
 class Logger:
     """Flexible logger with rich styling and custom level support."""
 
-    _logger: __logging.Logger = field(init=False)
+    _logger: logging.Logger = field(init=False)
     """The underlying logging.Logger instance."""
 
     _level_styles: Dict[str, LoggerLevelSettings] = field(init=False)
@@ -240,21 +238,21 @@ class Logger:
 
         # Standard level mapping
         level_map = {
-            "debug": __logging.DEBUG,
-            "info": __logging.INFO,
-            "warning": __logging.WARNING,
-            "error": __logging.ERROR,
-            "critical": __logging.CRITICAL,
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR,
+            "critical": logging.CRITICAL,
         }
 
         # Check if it's a custom level
         if effective_level.lower() in self._custom_levels:
             log_level = self._custom_levels[effective_level.lower()]
         else:
-            log_level = level_map.get(effective_level.lower(), __logging.WARNING)
+            log_level = level_map.get(effective_level.lower(), logging.WARNING)
 
         # Create logger
-        self._logger = __logging.getLogger(logger_name)
+        self._logger = logging.getLogger(logger_name)
 
         # Clear any existing handlers
         if self._logger.hasHandlers():
@@ -294,10 +292,8 @@ class Logger:
 
     def _setup_standard_handler(self, log_level: int) -> None:
         """Setup standard handler for the logger."""
-        handler = __logging.StreamHandler()
-        formatter = __logging.Formatter(
-            "✼  {name} - {levelname} - {message}", style="{"
-        )
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter("✼  {name} - {levelname} - {message}", style="{")
         handler.setFormatter(formatter)
         handler.setLevel(log_level)
 
@@ -315,7 +311,7 @@ class Logger:
             style: Optional style settings for the level
         """
         # Add to Python's logging module
-        __logging.addLevelName(value, name.upper())
+        logging.addLevelName(value, name.upper())
 
         # Store in our custom levels
         self._custom_levels[name.lower()] = value
@@ -345,18 +341,18 @@ class Logger:
 
         # Standard level mapping
         level_map = {
-            "debug": __logging.DEBUG,
-            "info": __logging.INFO,
-            "warning": __logging.WARNING,
-            "error": __logging.ERROR,
-            "critical": __logging.CRITICAL,
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR,
+            "critical": logging.CRITICAL,
         }
 
         # Check custom levels
         if value.lower() in self._custom_levels:
             log_level = self._custom_levels[value.lower()]
         else:
-            log_level = level_map.get(value.lower(), __logging.WARNING)
+            log_level = level_map.get(value.lower(), logging.WARNING)
 
         # Update logger level
         self._logger.setLevel(log_level)
@@ -398,18 +394,18 @@ class Logger:
         """
         # Standard level mapping
         level_map = {
-            "debug": __logging.DEBUG,
-            "info": __logging.INFO,
-            "warning": __logging.WARNING,
-            "error": __logging.ERROR,
-            "critical": __logging.CRITICAL,
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR,
+            "critical": logging.CRITICAL,
         }
 
         # Check custom levels first
         if level.lower() in self._custom_levels:
             log_level = self._custom_levels[level.lower()]
         else:
-            log_level = level_map.get(level.lower(), __logging.WARNING)
+            log_level = level_map.get(level.lower(), logging.WARNING)
 
         self._logger.log(log_level, message, *args, **kwargs)
 
@@ -419,11 +415,11 @@ class Logger:
         return self._logger.name
 
     @property
-    def handlers(self) -> list[__logging.Handler]:
+    def handlers(self) -> list[logging.Handler]:
         """Get the logger handlers."""
         return self._logger.handlers
 
-    def get_logger(self) -> __logging.Logger:
+    def get_logger(self) -> logging.Logger:
         """Get the underlying logging.Logger instance."""
         return self._logger
 
