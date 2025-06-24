@@ -80,7 +80,7 @@ class RichLoggingFormatter(logging.Formatter):
         except TypeError:
             # Fallback for older Python versions
             super().__init__(fmt, datefmt, style, validate)
-        
+
         self.console = get_rich_console()
         self.global_settings = global_settings or {}
 
@@ -194,7 +194,7 @@ class RichLoggingFormatter(logging.Formatter):
     def _build_markup_from_dict(self, text: str, style_dict: dict) -> str:
         """Build rich markup from a style dictionary."""
         style_parts = []
-        
+
         # Handle color
         if "color" in style_dict:
             color = style_dict["color"]
@@ -202,7 +202,7 @@ class RichLoggingFormatter(logging.Formatter):
                 style_parts.append(f"rgb({color[0]},{color[1]},{color[2]})")
             else:
                 style_parts.append(str(color))
-        
+
         # Handle style attributes
         for attr in [
             "bold",
@@ -216,7 +216,7 @@ class RichLoggingFormatter(logging.Formatter):
         ]:
             if style_dict.get(attr):
                 style_parts.append(attr)
-        
+
         if style_parts:
             style_str = " ".join(style_parts)
             # Use the full style string for both opening and closing tags
