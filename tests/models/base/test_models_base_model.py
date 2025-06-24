@@ -2,7 +2,7 @@ import pytest
 import re
 from typing import List, Pattern
 
-from hammad.models import (
+from hammad.models.base import (
     BasedModel,
     basedfield,
     is_basedfield,
@@ -11,10 +11,9 @@ from hammad.models import (
     float_basedfield,
     list_basedfield,
     basedvalidator,
-    BasedFieldInfo,
-    BasedField,
     get_field_info,
 )
+from hammad.models.base.fields import BasedFieldInfo, BasedField
 
 
 def test_basedfield_functionality():

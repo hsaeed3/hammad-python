@@ -1,4 +1,4 @@
-"""hammad.models.basedfields"""
+"""hammad.models.base.fields"""
 
 import re
 from dataclasses import dataclass

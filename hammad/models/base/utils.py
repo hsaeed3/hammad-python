@@ -1,15 +1,12 @@
-"""hammad.models.fn
-
-Contains various functions connected to `BasedModels` that implement Pydantic-like
-functionality."""
+"""hammad.models.base._utils"""
 
 from functools import lru_cache
 from typing import Any, Callable, Optional, Pattern, Union, Tuple, Dict
 
 from msgspec.structs import Struct
 
-from .basedfields import BasedFieldInfo, basedfield, BasedField
-from .basedmodel import BasedModel
+from .fields import BasedFieldInfo, basedfield, BasedField
+from .model import BasedModel
 
 __all__ = (
     "create_basedmodel",

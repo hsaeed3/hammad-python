@@ -2,10 +2,8 @@ import pytest
 from typing import Optional, List, Dict, Any
 import json
 
-from hammad.models import (
+from hammad.models.base import (
     BasedModel,
-    BasedFieldInfo,
-    BasedField,
     basedfield,
     create_basedmodel,
     get_field_info,

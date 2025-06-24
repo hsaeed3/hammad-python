@@ -1,4 +1,4 @@
-"""hammad.models.basedmodel"""
+"""hammad.models.base.model"""
 
 import copy
 from functools import lru_cache
@@ -490,7 +490,7 @@ class BasedModel(Struct):
         model_description = description or f"Model wrapping field '{fields}'"
 
         if schema == "based":
-            from .basedfields import basedfield
+            from .fields import basedfield
 
             # Create annotations for the dynamic class
             annotations = {field_name: field_type}
