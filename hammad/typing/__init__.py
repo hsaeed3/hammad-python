@@ -1,4 +1,4 @@
-"""hammad.utils.typing
+"""hammad.typing
 
 Contains various utility functions in regards to typing or working
 with type hints. These utils are also exposed in:
