@@ -8,6 +8,8 @@
 .dev/
 .__old__/
 dev/
+# For Dev
+tester.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
