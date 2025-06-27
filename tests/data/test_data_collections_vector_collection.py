@@ -1,5 +1,5 @@
 import pytest
-from hammad.data.collections.vector_collection import VectorCollection as Collection
+from hammad.data.collections import VectorCollection as Collection
 
 
 def test_vector_collection_init():

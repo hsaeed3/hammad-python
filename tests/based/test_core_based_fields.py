@@ -10,7 +10,7 @@ from hammad.based import (
     int_basedfield,
     float_basedfield,
     list_basedfield,
-    basedvalidator,
+    based_validator as basedvalidator,
     get_field_info,
 )
 from hammad.based.fields import BasedFieldInfo, BasedField
