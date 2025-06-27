@@ -18,6 +18,7 @@ __all__ = (
     "based_validator",
     "create_lazy_loader",
     "auto_create_lazy_loader",
+    "install",
 )
 
 
@@ -407,3 +408,45 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, str]:
     visitor.visit(tree)
 
     return visitor.imports
+
+
+def install(
+    traceback: bool = True,
+    uvloop: bool = True,
+    print: bool = False,
+    input: bool = False,
+):
+    """Installs various 'opinionated' and optional resources that help
+    enhance the development experience, or increase performance.
+
+    Args:
+        traceback (bool): Whether to install the rich traceback handler.
+        uvloop (bool): Whether to install uvloop.
+        print (bool): Whether to install the stylized `print` method as a builtin
+            from `hammad.cli`. NOTE: IDEs will not recognize this change statically.
+        input (bool): Whether to install the stylized `input` method as a builtin
+            from `hammad.cli`. NOTE: IDEs will not recognize this change statically.
+
+    Note:
+        IDE limitations: Static analysis tools cannot detect runtime builtin modifications.
+        The IDE will still show the original builtin definitions. Consider using explicit
+        imports for better IDE support:
+
+        from hammad.cli.plugins import print, input
+    """
+    import builtins
+
+    if traceback:
+        from rich.traceback import install
+
+        install()
+    if uvloop:
+        from uvloop import install
+
+        install()
+    if print:
+        from hammad.cli.plugins import print as print_fn
+        builtins.print = print_fn
+    if input:
+        from hammad.cli.plugins import input as input_fn
+        builtins.input = input_fn
