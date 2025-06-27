@@ -1,5 +1,7 @@
 import pytest
-from hammad.data.collection import Collection
+from hammad.data.collections.searchable_collection import (
+    SearchableCollection as Collection,
+)
 
 
 def test_collection_initialization():

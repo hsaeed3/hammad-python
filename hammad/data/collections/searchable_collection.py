@@ -1,64 +1,18 @@
-"""hammad.data.collection"""
+"""hammad.data.collections.searchable_collection"""
 
 import uuid
 import json
-import tempfile
-import os
-from typing import Any, Dict, Optional, List, TypeVar, Generic, Type, Union
+from typing import Any, Dict, Optional, List, Generic
 from datetime import datetime, timezone, timedelta
-from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass
 import tantivy
 
+from .base_collection import BaseCollection, Object, Filters, Schema
 
-Object = TypeVar("Object")
-"""Represents an object that can be stored within a collection."""
-
-
-Filters = Dict[str, object]
-"""Represents a dictionary of filters that can be applied to objects within
-a collection."""
+__all__ = ("SearchableCollection",)
 
 
-Schema = Union[Type[Any], Dict[str, Any], None]
-"""Represents a strict schema that a collection can optionally enforce."""
-
-
-class BaseCollection(ABC):
-    """Base class defining the interface for collections. This
-    class does not provide any functionality.
-    """
-
-    @abstractmethod
-    def get(self, id: str, *, filters: Optional[Filters] = None) -> Optional[Any]:
-        """Get an item by ID."""
-        pass
-
-    @abstractmethod
-    def add(
-        self,
-        entry: Any,
-        *,
-        id: Optional[str] = None,
-        filters: Optional[Filters] = None,
-        ttl: Optional[int] = None,
-    ) -> None:
-        """Add an item to the collection."""
-        pass
-
-    @abstractmethod
-    def query(
-        self,
-        *,
-        filters: Optional[Filters] = None,
-        search: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Any]:
-        """Query items from the collection."""
-        pass
-
-
-class Collection(BaseCollection, Generic[Object]):
+class SearchableCollection(BaseCollection, Generic[Object]):
     """
     Base collection class that can be used independently or with a database.
 
