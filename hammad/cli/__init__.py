@@ -27,8 +27,4 @@ def __getattr__(name: str):
 
 def __dir__() -> list[str]:
     """Get the attributes of the plugins module."""
-    from importlib import import_module
-
-    if not hasattr(__dir__, "_plugins_module"):
-        __dir__._plugins_module = import_module(f".plugins", __package__)
-    return list(__dir__._plugins_module.__all__)
+    return list(__all__)

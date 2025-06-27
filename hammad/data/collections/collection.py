@@ -66,7 +66,12 @@ def create_collection(
     schema: Optional[Any] = None,
     default_ttl: Optional[int] = None,
     storage_backend: Optional[Any] = None,
-    tantivy_settings: Optional[SearchableCollectionSettings] = None,
+    heap_size: Optional[int] = None,
+    num_threads: Optional[int] = None,
+    index_path: Optional[str] = None,
+    schema_builder: Optional[Any] = None,
+    writer_memory: Optional[int] = None,
+    reload_policy: Optional[str] = None,
 ) -> "SearchableCollection": ...
 
 
@@ -80,8 +85,14 @@ def create_collection(
     default_ttl: Optional[int] = None,
     storage_backend: Optional[Any] = None,
     distance_metric: Optional[Any] = None,
-    qdrant_settings: Optional[VectorCollectionSettings] = None,
     embedding_function: Optional[Callable[[Any], List[float]]] = None,
+    path: Optional[str] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    grpc_port: Optional[int] = None,
+    prefer_grpc: Optional[bool] = None,
+    api_key: Optional[str] = None,
+    timeout: Optional[float] = None,
 ) -> "VectorCollection": ...
 
 
@@ -93,10 +104,23 @@ def create_collection(
     schema: Optional[Any] = None,
     default_ttl: Optional[int] = None,
     storage_backend: Optional[Any] = None,
-    tantivy_settings: Optional[SearchableCollectionSettings] = None,
     distance_metric: Optional[Any] = None,
-    qdrant_settings: Optional[VectorCollectionSettings] = None,
     embedding_function: Optional[Callable[[Any], List[float]]] = None,
+    # Tantivy parameters (searchable collections only)
+    heap_size: Optional[int] = None,
+    num_threads: Optional[int] = None,
+    index_path: Optional[str] = None,
+    schema_builder: Optional[Any] = None,
+    writer_memory: Optional[int] = None,
+    reload_policy: Optional[str] = None,
+    # Qdrant parameters (vector collections only)
+    path: Optional[str] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    grpc_port: Optional[int] = None,
+    prefer_grpc: Optional[bool] = None,
+    api_key: Optional[str] = None,
+    timeout: Optional[float] = None,
 ) -> Union["SearchableCollection", "VectorCollection"]:
     """
     Create a collection of the specified type.
@@ -108,10 +132,25 @@ def create_collection(
         schema: Optional schema for type validation
         default_ttl: Default TTL for items in seconds
         storage_backend: Optional storage backend
-        tantivy_settings: Configuration for tantivy search (searchable collections only)
         distance_metric: Distance metric for similarity search (vector collections only)
-        qdrant_settings: Configuration for Qdrant (vector collections only)
         embedding_function: Function to convert objects to vectors (vector collections only)
+
+        Tantivy parameters (searchable collections only):
+        heap_size: Memory allocation for tantivy heap
+        num_threads: Number of threads for tantivy operations
+        index_path: Path to store tantivy index files
+        schema_builder: Custom schema builder for tantivy
+        writer_memory: Memory allocation for tantivy writer
+        reload_policy: Policy for reloading tantivy index
+
+        Qdrant parameters (vector collections only):
+        path: Path for local Qdrant storage
+        host: Qdrant server host
+        port: Qdrant server port
+        grpc_port: Qdrant gRPC port
+        prefer_grpc: Whether to prefer gRPC over HTTP
+        api_key: API key for Qdrant authentication
+        timeout: Request timeout for Qdrant operations
 
     Returns:
         A SearchableCollection or VectorCollection instance
@@ -119,12 +158,27 @@ def create_collection(
     if type == "searchable":
         from .searchable_collection import SearchableCollection
 
+        # Build tantivy config from individual parameters
+        tantivy_config = {}
+        if heap_size is not None:
+            tantivy_config["heap_size"] = heap_size
+        if num_threads is not None:
+            tantivy_config["num_threads"] = num_threads
+        if index_path is not None:
+            tantivy_config["index_path"] = index_path
+        if schema_builder is not None:
+            tantivy_config["schema_builder"] = schema_builder
+        if writer_memory is not None:
+            tantivy_config["writer_memory"] = writer_memory
+        if reload_policy is not None:
+            tantivy_config["reload_policy"] = reload_policy
+
         return SearchableCollection(
             name=name,
             schema=schema,
             default_ttl=default_ttl,
             storage_backend=storage_backend,
-            tantivy_config=tantivy_settings,
+            tantivy_config=tantivy_config if tantivy_config else None,
         )
     elif type == "vector":
         if vector_size is None:
@@ -142,6 +196,23 @@ def create_collection(
         if distance_metric is None and Distance is not None:
             distance_metric = Distance.DOT
 
+        # Build qdrant config from individual parameters
+        qdrant_config = {}
+        if path is not None:
+            qdrant_config["path"] = path
+        if host is not None:
+            qdrant_config["host"] = host
+        if port is not None:
+            qdrant_config["port"] = port
+        if grpc_port is not None:
+            qdrant_config["grpc_port"] = grpc_port
+        if prefer_grpc is not None:
+            qdrant_config["prefer_grpc"] = prefer_grpc
+        if api_key is not None:
+            qdrant_config["api_key"] = api_key
+        if timeout is not None:
+            qdrant_config["timeout"] = timeout
+
         return VectorCollection(
             name=name,
             vector_size=vector_size,
@@ -149,7 +220,7 @@ def create_collection(
             default_ttl=default_ttl,
             storage_backend=storage_backend,
             distance_metric=distance_metric,
-            qdrant_config=qdrant_settings,
+            qdrant_config=qdrant_config if qdrant_config else None,
             embedding_function=embedding_function,
         )
     else:

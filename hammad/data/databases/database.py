@@ -16,11 +16,7 @@ from typing import (
 from datetime import datetime, timezone, timedelta
 
 from ..collections.base_collection import BaseCollection, Filters, Schema
-from ..collections.collection import (
-    create_collection,
-    SearchableCollectionSettings,
-    VectorCollectionSettings,
-)
+from ..collections.collection import create_collection
 
 if TYPE_CHECKING:
     from ..collections.searchable_collection import SearchableCollection
@@ -76,7 +72,12 @@ class Database(Generic[DatabaseEntryType]):
         *,
         schema: Optional[Schema] = None,
         default_ttl: Optional[int] = None,
-        tantivy_settings: Optional[SearchableCollectionSettings] = None,
+        heap_size: Optional[int] = None,
+        num_threads: Optional[int] = None,
+        index_path: Optional[str] = None,
+        schema_builder: Optional[Any] = None,
+        writer_memory: Optional[int] = None,
+        reload_policy: Optional[str] = None,
     ) -> "SearchableCollection[DatabaseEntryType]":
         """Create a searchable collection using tantivy for full-text search."""
         ...
@@ -90,8 +91,14 @@ class Database(Generic[DatabaseEntryType]):
         schema: Optional[Schema] = None,
         default_ttl: Optional[int] = None,
         distance_metric: Optional[Any] = None,
-        qdrant_settings: Optional[VectorCollectionSettings] = None,
         embedding_function: Optional[Callable[[Any], List[float]]] = None,
+        path: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        grpc_port: Optional[int] = None,
+        prefer_grpc: Optional[bool] = None,
+        api_key: Optional[str] = None,
+        timeout: Optional[float] = None,
     ) -> "VectorCollection[DatabaseEntryType]":
         """Create a vector collection using Qdrant for semantic similarity search."""
         ...
@@ -102,7 +109,12 @@ class Database(Generic[DatabaseEntryType]):
         *,
         schema: Optional[Schema] = None,
         default_ttl: Optional[int] = None,
-        tantivy_settings: Optional[SearchableCollectionSettings] = None,
+        heap_size: Optional[int] = None,
+        num_threads: Optional[int] = None,
+        index_path: Optional[str] = None,
+        schema_builder: Optional[Any] = None,
+        writer_memory: Optional[int] = None,
+        reload_policy: Optional[str] = None,
     ) -> "SearchableCollection[DatabaseEntryType]":
         """Create a searchable collection using tantivy for full-text search."""
         collection = create_collection(
@@ -111,7 +123,12 @@ class Database(Generic[DatabaseEntryType]):
             schema=schema,
             default_ttl=default_ttl or self.default_ttl,
             storage_backend=self,
-            tantivy_settings=tantivy_settings,
+            heap_size=heap_size,
+            num_threads=num_threads,
+            index_path=index_path,
+            schema_builder=schema_builder,
+            writer_memory=writer_memory,
+            reload_policy=reload_policy,
         )
         self._collections[name] = collection
         return collection
@@ -124,8 +141,14 @@ class Database(Generic[DatabaseEntryType]):
         schema: Optional[Schema] = None,
         default_ttl: Optional[int] = None,
         distance_metric: Optional[Any] = None,
-        qdrant_settings: Optional[VectorCollectionSettings] = None,
         embedding_function: Optional[Callable[[Any], List[float]]] = None,
+        path: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        grpc_port: Optional[int] = None,
+        prefer_grpc: Optional[bool] = None,
+        api_key: Optional[str] = None,
+        timeout: Optional[float] = None,
     ) -> "VectorCollection[DatabaseEntryType]":
         """Create a vector collection using Qdrant for semantic similarity search."""
         collection = create_collection(
@@ -136,8 +159,14 @@ class Database(Generic[DatabaseEntryType]):
             default_ttl=default_ttl or self.default_ttl,
             storage_backend=self,
             distance_metric=distance_metric,
-            qdrant_settings=qdrant_settings,
             embedding_function=embedding_function,
+            path=path,
+            host=host,
+            port=port,
+            grpc_port=grpc_port,
+            prefer_grpc=prefer_grpc,
+            api_key=api_key,
+            timeout=timeout,
         )
         self._collections[name] = collection
         return collection
@@ -392,3 +421,131 @@ class Database(Generic[DatabaseEntryType]):
         self._collection_ttls.clear()
         self._storage.clear()
         self._storage["default"] = {}
+
+
+@overload
+def create_database(
+    type: Literal["searchable"],
+    location: str = "memory",
+    *,
+    default_ttl: Optional[int] = None,
+    heap_size: Optional[int] = None,
+    num_threads: Optional[int] = None,
+    index_path: Optional[str] = None,
+    schema_builder: Optional[Any] = None,
+    writer_memory: Optional[int] = None,
+    reload_policy: Optional[str] = None,
+) -> "Database[SearchableCollection]": ...
+
+
+@overload
+def create_database(
+    type: Literal["vector"],
+    location: str = "memory",
+    *,
+    default_ttl: Optional[int] = None,
+    path: Optional[str] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    grpc_port: Optional[int] = None,
+    prefer_grpc: Optional[bool] = None,
+    api_key: Optional[str] = None,
+    timeout: Optional[float] = None,
+) -> "Database[VectorCollection]": ...
+
+
+def create_database(
+    type: Literal["searchable", "vector"],
+    location: str = "memory",
+    *,
+    default_ttl: Optional[int] = None,
+    # Tantivy parameters (searchable databases only)
+    heap_size: Optional[int] = None,
+    num_threads: Optional[int] = None,
+    index_path: Optional[str] = None,
+    schema_builder: Optional[Any] = None,
+    writer_memory: Optional[int] = None,
+    reload_policy: Optional[str] = None,
+    # Qdrant parameters (vector databases only)
+    path: Optional[str] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    grpc_port: Optional[int] = None,
+    prefer_grpc: Optional[bool] = None,
+    api_key: Optional[str] = None,
+    timeout: Optional[float] = None,
+) -> "Database":
+    """
+    Create a database instance optimized for specific collection types.
+
+    Args:
+        type: Type of database to create ("searchable" or "vector")
+        location: Database location (default: "memory")
+        default_ttl: Default TTL for items in seconds
+
+        Tantivy parameters (searchable databases only):
+        heap_size: Memory allocation for tantivy heap
+        num_threads: Number of threads for tantivy operations
+        index_path: Path to store tantivy index files
+        schema_builder: Custom schema builder for tantivy
+        writer_memory: Memory allocation for tantivy writer
+        reload_policy: Policy for reloading tantivy index
+
+        Qdrant parameters (vector databases only):
+        path: Path for local Qdrant storage
+        host: Qdrant server host
+        port: Qdrant server port
+        grpc_port: Qdrant gRPC port
+        prefer_grpc: Whether to prefer gRPC over HTTP
+        api_key: API key for Qdrant authentication
+        timeout: Request timeout for Qdrant operations
+
+    Returns:
+        A Database instance optimized for the specified collection type
+    """
+    database = Database(location=location, default_ttl=default_ttl)
+
+    # Store the database type for future collection creation optimization
+    database._database_type = type
+
+    if type == "searchable":
+        # Build default tantivy settings from individual parameters
+        tantivy_defaults = {}
+        if heap_size is not None:
+            tantivy_defaults["heap_size"] = heap_size
+        if num_threads is not None:
+            tantivy_defaults["num_threads"] = num_threads
+        if index_path is not None:
+            tantivy_defaults["index_path"] = index_path
+        if schema_builder is not None:
+            tantivy_defaults["schema_builder"] = schema_builder
+        if writer_memory is not None:
+            tantivy_defaults["writer_memory"] = writer_memory
+        if reload_policy is not None:
+            tantivy_defaults["reload_policy"] = reload_policy
+
+        if tantivy_defaults:
+            database._default_tantivy_settings = tantivy_defaults
+
+    elif type == "vector":
+        # Build default qdrant settings from individual parameters
+        qdrant_defaults = {}
+        if path is not None:
+            qdrant_defaults["path"] = path
+        if host is not None:
+            qdrant_defaults["host"] = host
+        if port is not None:
+            qdrant_defaults["port"] = port
+        if grpc_port is not None:
+            qdrant_defaults["grpc_port"] = grpc_port
+        if prefer_grpc is not None:
+            qdrant_defaults["prefer_grpc"] = prefer_grpc
+        if api_key is not None:
+            qdrant_defaults["api_key"] = api_key
+        if timeout is not None:
+            qdrant_defaults["timeout"] = timeout
+
+        if qdrant_defaults:
+            database._default_qdrant_settings = qdrant_defaults
+
+    return database
