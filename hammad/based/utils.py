@@ -446,7 +446,9 @@ def install(
         install()
     if print:
         from hammad.cli.plugins import print as print_fn
+
         builtins.print = print_fn
     if input:
         from hammad.cli.plugins import input as input_fn
+
         builtins.input = input_fn
