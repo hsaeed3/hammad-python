@@ -5,12 +5,15 @@ Contains various utility functions used when working with JSON data."""
 import dataclasses
 from typing import Any
 import msgspec
+from msgspec.json import encode as encode_json, decode as decode_json
 
 from ..typing import get_type_description, inspection
 
 __all__ = (
     "SchemaError",
     "convert_to_json_schema",
+    "encode",
+    "decode",
 )
 
 
