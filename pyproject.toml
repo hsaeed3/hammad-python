@@ -14,6 +14,14 @@ dependencies = [
     "typing-inspect>=0.9.0",
     "prompt-toolkit>=3.0.51",
     "tantivy>=0.24.0",
+    "selectolax>=0.3.30",
+    "duckduckgo-search>=8.0.4",
+    "uvloop>=0.21.0",
+    "tenacity>=9.0.0",
+    "httpx>=0.28.1",
+    "docstring-parser>=0.16",
+    "pyyaml>=6.0.2",
+    "python-dotenv>=1.1.0",
 ]
 
 [build-system]
@@ -42,6 +50,7 @@ dev = [
     "ruff",
     "uv",
     "pytest",
+    "pytest-asyncio",
     "twine>=6.1.0",
 ]
 
