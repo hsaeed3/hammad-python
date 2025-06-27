@@ -4,6 +4,7 @@ Contains both models and pydantic **specific** utiltiies / resources
 meant for general case usage."""
 
 from typing import TYPE_CHECKING
+from ..based.utils import auto_create_lazy_loader
 
 if TYPE_CHECKING:
     from .converters import (
@@ -12,6 +13,13 @@ if TYPE_CHECKING:
         create_confirmation_pydantic_model,
         create_selection_pydantic_model,
     )
+    from .models import (
+        FastModel,
+        FunctionModel,
+        ArbitraryModel,
+        CacheableModel,
+        SubscriptableModel,
+    )
 
 
 __all__ = (
@@ -19,16 +27,15 @@ __all__ = (
     "convert_to_pydantic_field",
     "create_confirmation_pydantic_model",
     "create_selection_pydantic_model",
+    "FastModel",
+    "FunctionModel",
+    "ArbitraryModel",
+    "CacheableModel",
+    "SubscriptableModel",
 )
 
 
-def __getattr__(name: str):
-    """Get an attribute from the pydantic module."""
-    from importlib import import_module
-
-    if not hasattr(__getattr__, "_pydantic_module"):
-        __getattr__._pydantic_module = import_module(f".converters", __package__)
-    return getattr(__getattr__._pydantic_module, name)
+__getattr__ = auto_create_lazy_loader(__all__)
 
 
 def __dir__() -> list[str]:

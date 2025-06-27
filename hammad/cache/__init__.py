@@ -1,9 +1,18 @@
 """hammad.cache"""
 
 from typing import TYPE_CHECKING
+from ..based.utils import auto_create_lazy_loader
 
 if TYPE_CHECKING:
-    from ._cache import auto_cached, cached, create_cache
+    from ._cache import (
+        TTLCache,
+        DiskCache,
+        CacheParams,
+        CacheReturn,
+        cached,
+        auto_cached,
+        create_cache,
+    )
 
 
 __all__ = (
@@ -13,13 +22,7 @@ __all__ = (
 )
 
 
-def __getattr__(name: str):
-    """Get an attribute from the cache module."""
-    from importlib import import_module
-
-    if not hasattr(__getattr__, "_cache_module"):
-        __getattr__._cache_module = import_module(f"._cache", __package__)
-    return getattr(__getattr__._cache_module, name)
+__getattr__ = auto_create_lazy_loader(__all__)
 
 
 def __dir__() -> list[str]:

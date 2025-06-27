@@ -1,6 +1,7 @@
 """hammad.pydantic.models"""
 
 from typing import TYPE_CHECKING
+from ...based.utils import auto_create_lazy_loader
 
 if TYPE_CHECKING:
     from .arbitrary_model import ArbitraryModel
@@ -19,24 +20,7 @@ __all__ = (
 )
 
 
-def __getattr__(name: str):
-    """Get an attribute from the models module."""
-    from importlib import import_module
-
-    # Map of attribute names to their respective modules
-    module_map = {
-        "ArbitraryModel": ".arbitrary_model",
-        "CacheableModel": ".cacheable_model",
-        "FastModel": ".fast_model",
-        "FunctionModel": ".function_model",
-        "SubscriptableModel": ".subscriptable_model",
-    }
-
-    if name in module_map:
-        module = import_module(module_map[name], __package__)
-        return getattr(module, name)
-
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+__getattr__ = auto_create_lazy_loader(__all__)
 
 
 def __dir__() -> list[str]:
