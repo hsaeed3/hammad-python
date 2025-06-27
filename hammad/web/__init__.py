@@ -12,21 +12,9 @@ if TYPE_CHECKING:
         search_news,
         extract_page_links,
     )
-    from .http.client import (
-        AsyncHttpClient,
-        HttpClient,
-        create_http_client
-    )
-    from .openapi.client import (
-        AsyncOpenAPIClient,
-        OpenAPIClient,
-        create_openapi_client
-    )
-    from .search.client import (
-        AsyncSearchClient,
-        SearchClient,
-        create_search_client
-    )
+    from .http.client import AsyncHttpClient, HttpClient, create_http_client
+    from .openapi.client import AsyncOpenAPIClient, OpenAPIClient, create_openapi_client
+    from .search.client import AsyncSearchClient, SearchClient, create_search_client
 
 __all__ = (
     "run_web_request",
@@ -47,6 +35,7 @@ __all__ = (
 )
 
 __getattr__ = auto_create_lazy_loader(__all__)
+
 
 def __dir__() -> list[str]:
     """Get the attributes of the web module."""

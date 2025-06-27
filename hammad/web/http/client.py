@@ -719,6 +719,7 @@ class HttpClient:
             loop = asyncio.get_running_loop()
             # If we're already in an event loop, we need to use a thread
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, coro)
                 return future.result()
