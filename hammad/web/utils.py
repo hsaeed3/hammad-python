@@ -6,6 +6,15 @@ from typing import Any, Dict, Optional, Union, Literal, List, overload, TYPE_CHE
 if TYPE_CHECKING:
     from .http.client import HttpResponse
 
+from .models import (
+    SearchResults,
+    NewsResults,
+    WebPageResult,
+    WebPageResults,
+    ExtractedLinks,
+    HttpResponse as HttpResponseModel,
+)
+
 __all__ = (
     "run_web_request",
     "search_web",
@@ -251,7 +260,7 @@ def search_web(
     backend: Literal["auto", "html", "lite"] = "auto",
     retry_attempts: int = 3,
     retry_delay: float = 1.0,
-) -> List[Dict[str, str]]:
+) -> SearchResults:
     """
     Search the web using DuckDuckGo search.
 
@@ -296,7 +305,7 @@ def read_web_page(
     extract_links: bool = False,
     extract_images: bool = False,
     css_selector: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> WebPageResult:
     """
     Read and parse a single web page using selectolax.
 
@@ -342,7 +351,7 @@ def read_web_pages(
     extract_images: bool = False,
     css_selector: Optional[str] = None,
     max_concurrent: int = 5,
-) -> List[Dict[str, Any]]:
+) -> WebPageResults:
     """
     Read and parse multiple web pages concurrently using selectolax.
 
@@ -386,7 +395,7 @@ def search_news(
     region: str = "wt-wt",
     safesearch: Literal["on", "moderate", "off"] = "moderate",
     timelimit: Optional[Literal["d", "w", "m"]] = None,
-) -> List[Dict[str, str]]:
+) -> NewsResults:
     """
     Search for news using DuckDuckGo news search.
 
@@ -427,7 +436,7 @@ def extract_page_links(
     include_external: bool = True,
     include_internal: bool = True,
     base_url: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> ExtractedLinks:
     """
     Extract links from a web page using selectolax.
 

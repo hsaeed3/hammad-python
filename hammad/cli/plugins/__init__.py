@@ -433,6 +433,9 @@ def _collect_fields_sequentially(schema: Any, console) -> Dict[str, Any]:
 
         # Handle dataclasses
         elif hasattr(schema, "__dataclass_fields__"):
+            from ...typing import get_type_description
+            import dataclasses
+
             fields_info = schema.__dataclass_fields__
             console.print(
                 f"\n[bold blue]Entering data for {schema.__name__}:[/bold blue]"
@@ -443,13 +446,21 @@ def _collect_fields_sequentially(schema: Any, console) -> Dict[str, Any]:
                 default = getattr(field_info, "default", None)
 
                 prompt_text = f"  {field_name}"
-                if default is not None:
+                if default is not None and default is not dataclasses.MISSING:
                     prompt_text += f" (default: {default})"
-                prompt_text += ": "
+                elif hasattr(field_type, "__name__"):
+                    prompt_text += f" ({field_type.__name__})"
+                else:
+                    prompt_text += f" ({get_type_description(field_type)})"
+                prompt_text += ""
 
                 Prompt, _ = _get_rich_prompts()
                 value = Prompt.ask(prompt_text)
-                if not value and default is not None:
+                if (
+                    not value
+                    and default is not None
+                    and default is not dataclasses.MISSING
+                ):
                     result[field_name] = default
                 else:
                     try:
@@ -650,101 +661,80 @@ def input(
         raise InputError(f"Input error: {e}")
 
 
-@overload
-def animate(
-    renderable: "RenderableType",
-    type: Literal["flashing"],
-    duration: Optional[float] = None,
-    speed: float = 0.5,
-    colors: "Optional[List[CLIStyleColorName]]" = None,
-) -> None: ...
-
-
-@overload
-def animate(
-    renderable: "RenderableType",
-    type: Literal["pulsing"],
-    duration: Optional[float] = None,
-    speed: float = 2.0,
-    min_opacity: float = 0.3,
-    max_opacity: float = 1.0,
-    color: "CLIStyleColorName" = "white",
-) -> None: ...
-
-
-@overload
-def animate(
-    renderable: "RenderableType",
-    type: Literal["shaking"],
-    duration: Optional[float] = None,
-    intensity: int = 1,
-    speed: float = 0.1,
-) -> None: ...
-
-
-@overload
-def animate(
-    text: str,
-    type: Literal["typing"],
-    duration: Optional[float] = None,
-    speed: float = 0.05,
-) -> None: ...
-
-
-@overload
-def animate(
-    renderable: "RenderableType",
-    type: Literal["spinning"],
-    duration: Optional[float] = None,
-    frames: Optional[List[str]] = None,
-    speed: float = 0.1,
-    prefix: bool = True,
-) -> None: ...
-
-
-@overload
-def animate(
-    renderable: "RenderableType",
-    type: Literal["rainbow"],
-    duration: Optional[float] = None,
-    speed: float = 0.5,
-    colors: "RainbowPreset | List[CLIStyleColorName] | None" = None,
-) -> None: ...
-
-
 def animate(
     renderable: "RenderableType | str",
     type: Literal["flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"],
     duration: Optional[float] = None,
-    **kwargs,
+    # Flashing animation parameters
+    speed: float = 0.5,
+    colors: "Optional[List[CLIStyleColorName]]" = None,
+    on_color: "CLIStyleColorName" = "white",
+    off_color: "CLIStyleColorName" = "dim white",
+    # Pulsing animation parameters
+    min_opacity: float = 0.3,
+    max_opacity: float = 1.0,
+    color: "CLIStyleColorName" = "white",
+    # Shaking animation parameters
+    intensity: int = 1,
+    # Typing animation parameters
+    typing_speed: Optional[float] = None,
+    cursor: str = "█",
+    show_cursor: bool = True,
+    # Spinning animation parameters
+    frames: Optional[List[str]] = None,
+    prefix: bool = True,
+    # Rich.Live parameters
+    refresh_rate: int = 20,
+    transient: bool = True,
+    auto_refresh: bool = True,
+    console: Optional["Console"] = None,
+    screen: bool = False,
+    vertical_overflow: str = "ellipsis",
 ) -> None:
     """Create and run an animation based on the specified type.
 
     Args:
-        type: The type of animation to create
         renderable: The object to animate (text, panel, etc.)
+        type: The type of animation to create
         duration: Duration of the animation in seconds (defaults to 2.0)
-        **kwargs: Additional parameters specific to each animation type
+        speed: Animation speed (used by flashing, pulsing, shaking, spinning, rainbow)
+        colors: Color list (used by flashing, rainbow)
+        on_color: Color when flashing "on" (used by flashing)
+        off_color: Color when flashing "off" (used by flashing)
+        min_opacity: Minimum opacity for pulsing animation
+        max_opacity: Maximum opacity for pulsing animation
+        color: Color for pulsing animation
+        intensity: Shaking intensity for shaking animation
+        typing_speed: Speed for typing animation (used by typing)
+        cursor: Cursor character for typing animation (used by typing)
+        show_cursor: Whether to show cursor for typing animation (used by typing)
+        frames: Custom frames for spinning animation
+        prefix: Whether to show spinner as prefix for spinning animation
+        refresh_rate: Refresh rate per second for Live rendering
+        transient: Whether to clear animation after completion
+        auto_refresh: Whether to auto-refresh the display
+        console: Console to use for rendering
+        screen: Whether to use alternate screen buffer
+        vertical_overflow: How to handle vertical overflow
 
     Examples:
-        >>> animate("flashing", "Alert!", duration=3.0, speed=0.3)
-        >>> animate("pulsing", Panel("Loading"), min_opacity=0.1)
-        >>> animate("typing", "Hello World!", speed=0.1)
-        >>> animate("rainbow", "Colorful!", colors="bright")
+        >>> animate("Hello!", type="flashing", duration=3.0, speed=0.3)
+        >>> animate(Panel("Loading"), type="pulsing", min_opacity=0.1)
+        >>> animate("Hello World!", type="typing", typing_speed=0.1)
+        >>> animate("Colorful!", type="rainbow", colors=["red", "blue"])
     """
     animations = _get_animation_classes()
 
     if type == "flashing":
-        speed = kwargs.get("speed", 0.5)
-        colors = kwargs.get("colors", None)
         animation = animations["CLIFlashingAnimation"](
-            renderable, speed=speed, colors=colors, duration=duration
+            renderable,
+            speed=speed,
+            colors=colors,
+            on_color=on_color,
+            off_color=off_color,
+            duration=duration,
         )
     elif type == "pulsing":
-        speed = kwargs.get("speed", 2.0)
-        min_opacity = kwargs.get("min_opacity", 0.3)
-        max_opacity = kwargs.get("max_opacity", 1.0)
-        color = kwargs.get("color", "white")
         animation = animations["CLIPulsingAnimation"](
             renderable,
             speed=speed,
@@ -754,33 +744,38 @@ def animate(
             duration=duration,
         )
     elif type == "shaking":
-        intensity = kwargs.get("intensity", 1)
-        speed = kwargs.get("speed", 0.1)
         animation = animations["CLIShakingAnimation"](
             renderable, intensity=intensity, speed=speed, duration=duration
         )
     elif type == "typing":
-        speed = kwargs.get("speed", 0.05)
         animation = animations["CLITypingAnimation"](
-            renderable, speed=speed, duration=duration
+            renderable,
+            speed=speed,
+            typing_speed=typing_speed,
+            cursor=cursor,
+            show_cursor=show_cursor,
+            duration=duration,
         )
     elif type == "spinning":
-        frames = kwargs.get("frames", None)
-        speed = kwargs.get("speed", 0.1)
-        prefix = kwargs.get("prefix", True)
         animation = animations["CLISpinningAnimation"](
             renderable, frames=frames, speed=speed, prefix=prefix, duration=duration
         )
     elif type == "rainbow":
-        speed = kwargs.get("speed", 0.5)
-        colors = kwargs.get("colors", None)
         animation = animations["CLIRainbowAnimation"](
             renderable, speed=speed, colors=colors, duration=duration
         )
     else:
         raise ValueError(f"Unknown animation type: {type}")
 
-    animation.animate()
+    animation.animate(
+        duration=duration,
+        refresh_rate=refresh_rate,
+        transient=transient,
+        auto_refresh=auto_refresh,
+        console=console,
+        screen=screen,
+        vertical_overflow=vertical_overflow,
+    )
 
 
 __all__ = ("print", "input", "animate")

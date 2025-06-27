@@ -10,6 +10,7 @@ from msgspec.structs import Struct
 from .fields import BasedFieldInfo, basedfield, BasedField
 from .model import BasedModel
 
+
 __all__ = (
     "create_basedmodel",
     "get_field_info",
@@ -285,28 +286,37 @@ def based_validator(
 
 
 def create_lazy_loader(
-    imports_dict: dict[str, str], package: str
+    imports_dict: dict[str, tuple[str, str]], package: str
 ) -> Callable[[str], Any]:
     """Create a lazy loader function for __getattr__.
 
     Args:
-        imports_dict: Dictionary mapping attribute names to their module paths
+        imports_dict: Dictionary mapping attribute names to (module_path, original_name) tuples
         package: The package name for import_module
 
     Returns:
         A __getattr__ function that lazily imports modules
     """
+    from importlib import import_module
+
+    _cache = {}
 
     def __getattr__(name: str) -> Any:
-        if name in imports_dict:
-            from importlib import import_module
+        if name in _cache:
+            return _cache[name]
 
+        if name in imports_dict:
             module_path, original_name = imports_dict[name]
             module = import_module(module_path, package)
-            return getattr(module, original_name)
+            result = getattr(module, original_name)
+            _cache[name] = result
+            return result
         raise AttributeError(f"module '{package}' has no attribute '{name}'")
 
     return __getattr__
+
+
+_type_checking_cache = {}
 
 
 def auto_create_lazy_loader(all_exports: tuple[str, ...]) -> Callable[[str], Any]:
@@ -331,6 +341,11 @@ def auto_create_lazy_loader(all_exports: tuple[str, ...]) -> Callable[[str], Any
     package = calling_frame.f_globals.get("__package__", "")
     filename = calling_frame.f_globals.get("__file__", "")
 
+    # Check cache first
+    cache_key = (filename, tuple(all_exports))
+    if cache_key in _type_checking_cache:
+        return _type_checking_cache[cache_key]
+
     # Read the source file
     try:
         with open(filename, "r") as f:
@@ -353,7 +368,9 @@ def auto_create_lazy_loader(all_exports: tuple[str, ...]) -> Callable[[str], Any
         name: path for name, path in imports_map.items() if name in all_exports
     }
 
-    return create_lazy_loader(filtered_map, package)
+    loader = create_lazy_loader(filtered_map, package)
+    _type_checking_cache[cache_key] = loader
+    return loader
 
 
 def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]:
@@ -365,50 +382,41 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]
     Returns:
         Dictionary mapping local names to (module_path, original_name) tuples
     """
-    tree = ast.parse(source_code)
-    imports_map = {}
+    from ..cache._cache import cached
 
-    class TypeCheckingVisitor(ast.NodeVisitor):
-        def __init__(self):
-            self.in_type_checking = False
-            self.imports = {}
+    @cached
+    def _exec(source_code: str) -> dict[str, tuple[str, str]]:
+        tree = ast.parse(source_code)
+        imports = {}
 
-        def visit_If(self, node):
-            # Check if this is a TYPE_CHECKING block
-            is_type_checking = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.If):
+                # Check if this is a TYPE_CHECKING block
+                is_type_checking = False
 
-            if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
-                is_type_checking = True
-            elif isinstance(node.test, ast.Attribute):
-                if (
-                    isinstance(node.test.value, ast.Name)
-                    and node.test.value.id == "typing"
-                    and node.test.attr == "TYPE_CHECKING"
-                ):
+                if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
                     is_type_checking = True
+                elif isinstance(node.test, ast.Attribute):
+                    if (
+                        isinstance(node.test.value, ast.Name)
+                        and node.test.value.id == "typing"
+                        and node.test.attr == "TYPE_CHECKING"
+                    ):
+                        is_type_checking = True
 
-            if is_type_checking:
-                old_state = self.in_type_checking
-                self.in_type_checking = True
-                for stmt in node.body:
-                    self.visit(stmt)
-                self.in_type_checking = old_state
-            else:
-                self.generic_visit(node)
+                if is_type_checking:
+                    # Process imports in this block
+                    for stmt in node.body:
+                        if isinstance(stmt, ast.ImportFrom) and stmt.module:
+                            module_path = f".{stmt.module}"
+                            for alias in stmt.names:
+                                original_name = alias.name
+                                local_name = alias.asname or original_name
+                                imports[local_name] = (module_path, original_name)
 
-        def visit_ImportFrom(self, node):
-            if self.in_type_checking and node.module:
-                module_path = f".{node.module}"
-                for alias in node.names:
-                    original_name = alias.name
-                    local_name = alias.asname or original_name
-                    self.imports[local_name] = (module_path, original_name)
-            self.generic_visit(node)
+        return imports
 
-    visitor = TypeCheckingVisitor()
-    visitor.visit(tree)
-
-    return visitor.imports
+    return _exec(source_code)
 
 
 def install(

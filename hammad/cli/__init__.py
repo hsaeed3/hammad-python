@@ -8,12 +8,20 @@ from ..based.utils import auto_create_lazy_loader
 
 if TYPE_CHECKING:
     from .plugins import print, input, animate
+    from .styles.settings import (
+        CLIStyleRenderableSettings,
+        CLIStyleBackgroundSettings,
+        CLIStyleLiveSettings,
+    )
 
 
 __all__ = (
     "print",
     "input",
     "animate",
+    "CLIStyleRenderableSettings",
+    "CLIStyleBackgroundSettings",
+    "CLIStyleLiveSettings",
 )
 
 

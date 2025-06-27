@@ -16,6 +16,15 @@ from tenacity import (
     before_sleep_log,
 )
 
+from ..models import (
+    SearchResults,
+    NewsResults,
+    WebPageResult,
+    WebPageErrorResult,
+    WebPageResults,
+    ExtractedLinks,
+)
+
 __all__ = ("AsyncSearchClient", "SearchClient", "create_search_client")
 
 
@@ -100,7 +109,7 @@ class AsyncSearchClient:
         timelimit: Optional[Literal["d", "w", "m", "y"]] = None,
         backend: Literal["auto", "html", "lite"] = "auto",
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> SearchResults:
         """
         Search the web using DuckDuckGo search.
 
@@ -158,7 +167,7 @@ class AsyncSearchClient:
         safesearch: Literal["on", "moderate", "off"] = "moderate",
         timelimit: Optional[Literal["d", "w", "m"]] = None,
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> NewsResults:
         """
         Search for news using DuckDuckGo news search.
 
@@ -216,7 +225,7 @@ class AsyncSearchClient:
         extract_images: bool = False,
         css_selector: Optional[str] = None,
         max_retries: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> WebPageResult:
         """
         Read and parse a single web page using selectolax.
 
@@ -342,7 +351,7 @@ class AsyncSearchClient:
         css_selector: Optional[str] = None,
         max_concurrent: Optional[int] = None,
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> WebPageResults:
         """
         Read and parse multiple web pages concurrently using selectolax.
 
@@ -392,17 +401,17 @@ class AsyncSearchClient:
                         max_retries=max_retries,
                     )
                 except Exception as e:
-                    return {
-                        "url": url,
-                        "error": str(e),
-                        "status_code": None,
-                        "content_type": "",
-                        "title": "",
-                        "text": "",
-                        "links": [],
-                        "images": [],
-                        "selected_elements": [],
-                    }
+                    return WebPageErrorResult(
+                        url=url,
+                        error=str(e),
+                        status_code=None,
+                        content_type="",
+                        title="",
+                        text="",
+                        links=[],
+                        images=[],
+                        selected_elements=[],
+                    )
 
         # Execute all requests concurrently
         tasks = [fetch_page(url) for url in unique_urls]
@@ -421,7 +430,7 @@ class AsyncSearchClient:
         include_internal: bool = True,
         base_url: Optional[str] = None,
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> ExtractedLinks:
         """
         Extract links from a web page using selectolax.
 
@@ -572,7 +581,7 @@ class SearchClient:
         region: str = "wt-wt",
         safesearch: str = "moderate",
         backend: str = "api",
-    ) -> List[Dict[str, Any]]:
+    ) -> SearchResults:
         """
         Synchronous web search using DuckDuckGo.
 
@@ -631,7 +640,7 @@ class SearchClient:
         include_external: bool = True,
         timeout: Optional[float] = None,
         retries: int = 3,
-    ) -> List[Dict[str, Any]]:
+    ) -> ExtractedLinks:
         """
         Synchronously extract links from a web page.
 
@@ -667,7 +676,7 @@ class SearchClient:
         timelimit: Optional[Literal["d", "w", "m", "y"]] = None,
         backend: Literal["auto", "html", "lite"] = "auto",
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> SearchResults:
         """
         Synchronously search the web using DuckDuckGo search.
 
@@ -708,7 +717,7 @@ class SearchClient:
         safesearch: Literal["on", "moderate", "off"] = "moderate",
         timelimit: Optional[Literal["d", "w", "m"]] = None,
         max_retries: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> NewsResults:
         """
         Synchronously search for news using DuckDuckGo news search.
 
@@ -748,7 +757,7 @@ class SearchClient:
         extract_links: bool = False,
         extract_images: bool = False,
         css_selector: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> WebPageResult:
         """
         Synchronously read and parse a single web page using selectolax.
 
@@ -791,7 +800,7 @@ class SearchClient:
         extract_images: bool = False,
         css_selector: Optional[str] = None,
         max_concurrent: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> WebPageResults:
         """
         Synchronously read and parse multiple web pages concurrently using selectolax.
 
@@ -835,7 +844,7 @@ class SearchClient:
         include_internal: bool = True,
         include_external: bool = True,
         base_url: Optional[str] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> ExtractedLinks:
         """
         Synchronously extract all links from a web page.
 
