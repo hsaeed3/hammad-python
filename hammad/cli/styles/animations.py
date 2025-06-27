@@ -9,12 +9,7 @@ from typing import Literal, Optional, List, overload, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from rich import get_console
-    from rich.console import (
-        Console,
-        ConsoleOptions,
-        RenderResult,
-        RenderableType
-    )
+    from rich.console import Console, ConsoleOptions, RenderResult, RenderableType
     from rich.live import Live
     from rich.text import Text
     from rich.panel import Panel
@@ -27,26 +22,22 @@ from .types import (
 def _get_rich_animation_classes():
     """Lazy import for rich classes used in animations"""
     from rich import get_console
-    from rich.console import (
-        Console,
-        ConsoleOptions,
-        RenderResult,
-        RenderableType
-    )
+    from rich.console import Console, ConsoleOptions, RenderResult, RenderableType
     from rich.live import Live
     from rich.text import Text
     from rich.panel import Panel
-    
+
     return {
-        'get_console': get_console,
-        'Console': Console,
-        'ConsoleOptions': ConsoleOptions,
-        'RenderResult': RenderResult,
-        'RenderableType': RenderableType,
-        'Live': Live,
-        'Text': Text,
-        'Panel': Panel
+        "get_console": get_console,
+        "Console": Console,
+        "ConsoleOptions": ConsoleOptions,
+        "RenderResult": RenderResult,
+        "RenderableType": RenderableType,
+        "Live": Live,
+        "Text": Text,
+        "Panel": Panel,
     }
+
 
 __all__ = (
     "CLIAnimation",
@@ -71,9 +62,9 @@ class CLIAnimationState:
     """Internal class used to track the current state of an
     animation."""
 
-    start_time : float = field(default_factory=time.time)
-    frame : int = 0
-    last_update : float | None = field(default_factory=time.time)
+    start_time: float = field(default_factory=time.time)
+    frame: int = 0
+    last_update: float | None = field(default_factory=time.time)
 
 
 @dataclass
@@ -85,7 +76,7 @@ class CLIAnimation:
         self,
         # The object that this animation is being applied to.
         renderable,
-        duration : Optional[float] = None,
+        duration: Optional[float] = None,
     ) -> None:
         self.renderable = renderable
         """The object that this animation is being applied to."""
@@ -93,18 +84,18 @@ class CLIAnimation:
         """The duration of the animation in seconds (defaults to 2.0 seconds)."""
         # Set last_update to None to ensure the animation is classified as
         # the first update on init.
-        self.state = CLIAnimationState(last_update = None)
+        self.state = CLIAnimationState(last_update=None)
         """The current state of the animation."""
 
         rich_classes = _get_rich_animation_classes()
-        self.rich_console = rich_classes['get_console']()
+        self.rich_console = rich_classes["get_console"]()
         """The rich console responsible for rendering the animation."""
-        self._animation_thread : threading.Thread | None = None
+        self._animation_thread: threading.Thread | None = None
         """The thread responsible for running the animation."""
         self._stop_animation = False
         """Flag used to stop the animation."""
 
-    def __rich_console__(   
+    def __rich_console__(
         self,
         console,
         options,
@@ -122,11 +113,7 @@ class CLIAnimation:
 
         yield from self.apply(console, options)
 
-    def apply(
-        self,
-        console,
-        options
-    ):
+    def apply(self, console, options):
         """Used by subclasses to apply the animation."""
         yield self.renderable
 
@@ -141,17 +128,17 @@ class CLIAnimation:
         if self.duration is None:
             return False
         return self.time_elapsed >= self.duration
-    
+
     def animate(
         self,
-        duration : Optional[float] = None,
-        refresh_rate : int = 20,
+        duration: Optional[float] = None,
+        refresh_rate: int = 20,
     ) -> None:
         """Animate this effect for the specified duration using Live."""
         animate_duration = duration or self.duration or 3.0
         rich_classes = _get_rich_animation_classes()
-        Console = rich_classes['Console']
-        Live = rich_classes['Live']
+        Console = rich_classes["Console"]
+        Live = rich_classes["Live"]
         console = Console()
 
         with Live(
@@ -183,8 +170,8 @@ class CLIFlashingAnimation(CLIAnimation):
 
     def apply(self, console, options):
         rich_classes = _get_rich_animation_classes()
-        Text = rich_classes['Text']
-        
+        Text = rich_classes["Text"]
+
         # Calculate which color to use based on time
         color_index = int(self.time_elapsed / self.speed) % len(self.colors)
         color = self.colors[color_index]
@@ -266,7 +253,7 @@ class CLIShakingAnimation(CLIAnimation):
         self.speed = speed
         self.last_shake = 0
 
-    def apply(self, console:"Console", options:"ConsoleOptions") -> "RenderResult":
+    def apply(self, console: "Console", options: "ConsoleOptions") -> "RenderResult":
         if self.time_elapsed - self.last_shake > self.speed:
             self.last_shake = self.time_elapsed
 
@@ -340,9 +327,23 @@ RainbowPreset = Literal["classic", "bright", "pastel", "neon"]
 
 RAINBOW_PRESETS = {
     "classic": ["red", "yellow", "green", "cyan", "blue", "magenta"],
-    "bright": ["bright_red", "bright_yellow", "bright_green", "bright_cyan", "bright_blue", "bright_magenta"],
-    "pastel": ["light_pink3", "khaki1", "light_green", "light_cyan1", "light_blue", "plum2"],
-    "neon": ["hot_pink", "yellow1", "green1", "cyan1", "blue1", "magenta1"]
+    "bright": [
+        "bright_red",
+        "bright_yellow",
+        "bright_green",
+        "bright_cyan",
+        "bright_blue",
+        "bright_magenta",
+    ],
+    "pastel": [
+        "light_pink3",
+        "khaki1",
+        "light_green",
+        "light_cyan1",
+        "light_blue",
+        "plum2",
+    ],
+    "neon": ["hot_pink", "yellow1", "green1", "cyan1", "blue1", "magenta1"],
 }
 
 
@@ -358,11 +359,11 @@ class CLIRainbowAnimation(CLIAnimation):
     ):
         super().__init__(renderable, duration)
         self.speed = speed
-        
+
         # Handle color selection
         if colors is None:
             colors = "classic"
-        
+
         if isinstance(colors, str) and colors in RAINBOW_PRESETS:
             self.colors = RAINBOW_PRESETS[colors]
         elif isinstance(colors, list):
@@ -373,9 +374,11 @@ class CLIRainbowAnimation(CLIAnimation):
     def apply(self, console: "Console", options: "ConsoleOptions") -> "RenderResult":
         if isinstance(self.renderable, str):
             # Apply rainbow to each character
-            result = _get_rich_animation_classes()['Text']()
+            result = _get_rich_animation_classes()["Text"]()
             for i, char in enumerate(self.renderable):
-                color_offset = int((self.time_elapsed / self.speed + i) % len(self.colors))
+                color_offset = int(
+                    (self.time_elapsed / self.speed + i) % len(self.colors)
+                )
                 color = self.colors[color_offset]
                 result.append(char, style=color)
             yield result
@@ -392,17 +395,17 @@ def animate_flashing(
     duration: Optional[float] = None,
     speed: float = 0.5,
     on_color: CLIStyleColorName = "white",
-    off_color: CLIStyleColorName = "dim white"
+    off_color: CLIStyleColorName = "dim white",
 ) -> None:
     """Create and run a flashing animation on any renderable.
-    
+
     Args:
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         speed: Speed of the flashing effect (defaults to 0.5)
         on_color: Color when flashing "on" (defaults to "white")
         off_color: Color when flashing "off" (defaults to "dim white")
-        
+
     Examples:
         >>> animate_flashing("Alert!", duration=3.0, speed=0.3)
         >>> animate_flashing(Panel("Warning"), on_color="red", off_color="dark_red")
@@ -412,7 +415,7 @@ def animate_flashing(
         duration=duration,
         speed=speed,
         on_color=on_color,
-        off_color=off_color
+        off_color=off_color,
     )
     animation.animate()
 
@@ -422,17 +425,17 @@ def animate_pulsing(
     duration: Optional[float] = None,
     speed: float = 1.0,
     min_opacity: float = 0.3,
-    max_opacity: float = 1.0
+    max_opacity: float = 1.0,
 ) -> None:
     """Create and run a pulsing animation on any renderable.
-    
+
     Args:
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         speed: Speed of the pulsing effect (defaults to 1.0)
         min_opacity: Minimum opacity during pulse (defaults to 0.3)
         max_opacity: Maximum opacity during pulse (defaults to 1.0)
-        
+
     Examples:
         >>> animate_pulsing("Loading...", duration=5.0, speed=2.0)
         >>> animate_pulsing(Panel("Status"), min_opacity=0.1, max_opacity=0.9)
@@ -442,7 +445,7 @@ def animate_pulsing(
         duration=duration,
         speed=speed,
         min_opacity=min_opacity,
-        max_opacity=max_opacity
+        max_opacity=max_opacity,
     )
     animation.animate()
 
@@ -451,25 +454,22 @@ def animate_shaking(
     renderable: "RenderableType",
     duration: Optional[float] = None,
     intensity: int = 2,
-    speed: float = 10.0
+    speed: float = 10.0,
 ) -> None:
     """Create and run a shaking animation on any renderable.
-    
+
     Args:
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         intensity: Intensity of the shake effect (defaults to 2)
         speed: Speed of the shaking motion (defaults to 10.0)
-        
+
     Examples:
         >>> animate_shaking("Error!", duration=1.5, intensity=3)
         >>> animate_shaking(Panel("Critical Alert"), speed=15.0)
     """
     animation = CLIShakingAnimation(
-        renderable,
-        duration=duration,
-        intensity=intensity,
-        speed=speed
+        renderable, duration=duration, intensity=intensity, speed=speed
     )
     animation.animate()
 
@@ -479,52 +479,42 @@ def animate_spinning(
     duration: Optional[float] = None,
     frames: Optional[List[str]] = None,
     speed: float = 0.1,
-    prefix: bool = True
+    prefix: bool = True,
 ) -> None:
     """Create and run a spinning animation on any renderable.
-    
+
     Args:
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         frames: List of spinner frames (defaults to ["⋅", "•", "●", "◉", "●", "•"])
         speed: Speed between frame changes (defaults to 0.1)
         prefix: Whether to show spinner before text (defaults to True)
-        
+
     Examples:
         >>> animate_spinning("Processing...", duration=10.0, speed=0.2)
         >>> animate_spinning("Done", frames=["◐", "◓", "◑", "◒"], prefix=False)
     """
     animation = CLISpinningAnimation(
-        renderable,
-        duration=duration,
-        frames=frames,
-        speed=speed,
-        prefix=prefix
+        renderable, duration=duration, frames=frames, speed=speed, prefix=prefix
     )
     animation.animate()
 
 
 def animate_rainbow(
-    renderable: "RenderableType",
-    duration: Optional[float] = None,
-    speed: float = 0.5
+    renderable: "RenderableType", duration: Optional[float] = None, speed: float = 0.5
 ) -> None:
     """Create and run a rainbow animation on any renderable.
-    
+
     Args:
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         speed: Speed of the color cycling effect (defaults to 0.5)
-        
+
     Examples:
         >>> animate_rainbow("Colorful Text!", duration=4.0, speed=1.0)
         >>> animate_rainbow(Panel("Rainbow Panel"), speed=0.3)
     """
-    animation = CLIRainbowAnimation(
-        renderable,
-        duration=duration,
-        speed=speed
-    )
+    animation = CLIRainbowAnimation(renderable, duration=duration, speed=speed)
     animation.animate()
 
 
@@ -533,17 +523,17 @@ def animate_typing(
     duration: Optional[float] = None,
     typing_speed: float = 0.05,
     cursor: str = "▌",
-    show_cursor: bool = True
+    show_cursor: bool = True,
 ) -> None:
     """Create and run a typewriter animation.
-    
+
     Args:
         text: The text to type out
         duration: Duration of the animation in seconds (defaults to 2.0)
         typing_speed: Speed between character reveals (defaults to 0.05)
         cursor: Cursor character to show (defaults to "▌")
         show_cursor: Whether to show the typing cursor (defaults to True)
-        
+
     Examples:
         >>> animate_typing("Hello, World!", typing_speed=0.1)
         >>> animate_typing("Fast typing", duration=1.0, cursor="|", show_cursor=False)
@@ -553,6 +543,6 @@ def animate_typing(
         duration=duration,
         typing_speed=typing_speed,
         cursor=cursor,
-        show_cursor=show_cursor
+        show_cursor=show_cursor,
     )
     animation.animate()

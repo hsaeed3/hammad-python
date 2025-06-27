@@ -343,8 +343,7 @@ box names within the `rich` library."""
 
 
 CLIStyleType = TypeAliasType(
-    "CLIStyleType",
-    Union[str | CLIStyleStyleName, CLIStyleColorName]
+    "CLIStyleType", Union[str | CLIStyleStyleName, CLIStyleColorName]
 )
 """Union helper alias for the accepted inputs within modules
 that incorporate the `style` parameter within the
@@ -352,8 +351,7 @@ that incorporate the `style` parameter within the
 
 
 CLIStyleBackgroundType = TypeAliasType(
-    "CLIStyleBackgroundType",
-    Union[str | CLIStyleBoxName, CLIStyleColorName]
+    "CLIStyleBackgroundType", Union[str | CLIStyleBoxName, CLIStyleColorName]
 )
 """Union helper alias for the accepted inputs within modules
 that incorporate the `bg` parameter within the

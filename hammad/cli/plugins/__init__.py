@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         CLITypingAnimation,
         CLISpinningAnimation,
         CLIRainbowAnimation,
-        RainbowPreset
+        RainbowPreset,
     )
     from ..styles.types import (
         CLIStyleType,
@@ -57,45 +57,56 @@ if TYPE_CHECKING:
 # Lazy import cache
 _IMPORT_CACHE = {}
 
+
 def _get_rich_console():
     """Lazy import for rich.get_console"""
-    if 'get_console' not in _IMPORT_CACHE:
+    if "get_console" not in _IMPORT_CACHE:
         from rich import get_console
-        _IMPORT_CACHE['get_console'] = get_console
-    return _IMPORT_CACHE['get_console']
+
+        _IMPORT_CACHE["get_console"] = get_console
+    return _IMPORT_CACHE["get_console"]
+
 
 def _get_rich_console_classes():
     """Lazy import for rich.console classes"""
-    if 'console_classes' not in _IMPORT_CACHE:
+    if "console_classes" not in _IMPORT_CACHE:
         from rich.console import Console, RenderableType
-        _IMPORT_CACHE['console_classes'] = (Console, RenderableType)
-    return _IMPORT_CACHE['console_classes']
+
+        _IMPORT_CACHE["console_classes"] = (Console, RenderableType)
+    return _IMPORT_CACHE["console_classes"]
+
 
 def _get_rich_prompts():
     """Lazy import for rich.prompt classes"""
-    if 'prompts' not in _IMPORT_CACHE:
-        from rich.prompt import Prompt, Confirm  
-        _IMPORT_CACHE['prompts'] = (Prompt, Confirm)
-    return _IMPORT_CACHE['prompts']
+    if "prompts" not in _IMPORT_CACHE:
+        from rich.prompt import Prompt, Confirm
+
+        _IMPORT_CACHE["prompts"] = (Prompt, Confirm)
+    return _IMPORT_CACHE["prompts"]
+
 
 def _get_prompt_toolkit():
     """Lazy import for prompt_toolkit"""
-    if 'prompt_toolkit' not in _IMPORT_CACHE:
+    if "prompt_toolkit" not in _IMPORT_CACHE:
         from prompt_toolkit import prompt as pt_prompt
         from prompt_toolkit.completion import WordCompleter
-        _IMPORT_CACHE['prompt_toolkit'] = (pt_prompt, WordCompleter)
-    return _IMPORT_CACHE['prompt_toolkit']
+
+        _IMPORT_CACHE["prompt_toolkit"] = (pt_prompt, WordCompleter)
+    return _IMPORT_CACHE["prompt_toolkit"]
+
 
 def _get_style_utils():
     """Lazy import for style utilities"""
-    if 'style_utils' not in _IMPORT_CACHE:
+    if "style_utils" not in _IMPORT_CACHE:
         from ..styles.utils import live_render, style_renderable
-        _IMPORT_CACHE['style_utils'] = (live_render, style_renderable)
-    return _IMPORT_CACHE['style_utils']
+
+        _IMPORT_CACHE["style_utils"] = (live_render, style_renderable)
+    return _IMPORT_CACHE["style_utils"]
+
 
 def _get_animation_classes():
     """Lazy import for animation classes"""
-    if 'animations' not in _IMPORT_CACHE:
+    if "animations" not in _IMPORT_CACHE:
         from ..styles.animations import (
             CLIFlashingAnimation,
             CLIPulsingAnimation,
@@ -103,18 +114,19 @@ def _get_animation_classes():
             CLITypingAnimation,
             CLISpinningAnimation,
             CLIRainbowAnimation,
-            RainbowPreset
+            RainbowPreset,
         )
-        _IMPORT_CACHE['animations'] = {
-            'CLIFlashingAnimation': CLIFlashingAnimation,
-            'CLIPulsingAnimation': CLIPulsingAnimation,
-            'CLIShakingAnimation': CLIShakingAnimation,
-            'CLITypingAnimation': CLITypingAnimation,
-            'CLISpinningAnimation': CLISpinningAnimation,
-            'CLIRainbowAnimation': CLIRainbowAnimation,
-            'RainbowPreset': RainbowPreset
+
+        _IMPORT_CACHE["animations"] = {
+            "CLIFlashingAnimation": CLIFlashingAnimation,
+            "CLIPulsingAnimation": CLIPulsingAnimation,
+            "CLIShakingAnimation": CLIShakingAnimation,
+            "CLITypingAnimation": CLITypingAnimation,
+            "CLISpinningAnimation": CLISpinningAnimation,
+            "CLIRainbowAnimation": CLIRainbowAnimation,
+            "RainbowPreset": RainbowPreset,
         }
-    return _IMPORT_CACHE['animations']
+    return _IMPORT_CACHE["animations"]
 
 
 @overload
@@ -181,7 +193,13 @@ def print(
     """
 
     # If no styling parameters are provided, use built-in print to avoid rich's default styling
-    if style is None and style_settings is None and bg is None and bg_settings is None and live is None:
+    if (
+        style is None
+        and style_settings is None
+        and bg is None
+        and bg_settings is None
+        and live is None
+    ):
         builtins.print(*values, sep=sep, end=end, file=file, flush=flush)
         return
 
@@ -191,11 +209,11 @@ def print(
     # Apply styling and background
     live_render, style_renderable = _get_style_utils()
     styled_content = style_renderable(
-        content, 
-        style=style, 
+        content,
+        style=style,
         style_settings=style_settings,
-        bg=bg, 
-        bg_settings=bg_settings
+        bg=bg,
+        bg_settings=bg_settings,
     )
 
     # Handle live rendering
@@ -203,6 +221,7 @@ def print(
         if isinstance(live, int):
             # If live is an integer, treat it as duration in seconds
             from ..styles.settings import CLIStyleLiveSettings
+
             live_settings: CLIStyleLiveSettings = {
                 "duration": float(live),
                 "transient": False,  # Changed to False for testing
@@ -546,11 +565,11 @@ def input(
         # Apply styling to prompt if provided
         _, style_renderable = _get_style_utils()
         styled_prompt = style_renderable(
-            prompt, 
-            style=style, 
+            prompt,
+            style=style,
             style_settings=style_settings,
-            bg=bg, 
-            bg_settings=bg_settings
+            bg=bg,
+            bg_settings=bg_settings,
         )
 
         # Handle schema-based input
@@ -629,7 +648,7 @@ def input(
         raise
     except Exception as e:
         raise InputError(f"Input error: {e}")
-    
+
 
 @overload
 def animate(
@@ -638,8 +657,7 @@ def animate(
     duration: Optional[float] = None,
     speed: float = 0.5,
     colors: "Optional[List[CLIStyleColorName]]" = None,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -651,8 +669,7 @@ def animate(
     min_opacity: float = 0.3,
     max_opacity: float = 1.0,
     color: "CLIStyleColorName" = "white",
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -662,8 +679,7 @@ def animate(
     duration: Optional[float] = None,
     intensity: int = 1,
     speed: float = 0.1,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -672,8 +688,7 @@ def animate(
     type: Literal["typing"],
     duration: Optional[float] = None,
     speed: float = 0.05,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -684,8 +699,7 @@ def animate(
     frames: Optional[List[str]] = None,
     speed: float = 0.1,
     prefix: bool = True,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -695,24 +709,23 @@ def animate(
     duration: Optional[float] = None,
     speed: float = 0.5,
     colors: "RainbowPreset | List[CLIStyleColorName] | None" = None,
-) -> None:
-    ...
+) -> None: ...
 
 
 def animate(
     renderable: "RenderableType | str",
     type: Literal["flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"],
     duration: Optional[float] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Create and run an animation based on the specified type.
-    
+
     Args:
         type: The type of animation to create
         renderable: The object to animate (text, panel, etc.)
         duration: Duration of the animation in seconds (defaults to 2.0)
         **kwargs: Additional parameters specific to each animation type
-        
+
     Examples:
         >>> animate("flashing", "Alert!", duration=3.0, speed=0.3)
         >>> animate("pulsing", Panel("Loading"), min_opacity=0.1)
@@ -720,73 +733,54 @@ def animate(
         >>> animate("rainbow", "Colorful!", colors="bright")
     """
     animations = _get_animation_classes()
-    
+
     if type == "flashing":
         speed = kwargs.get("speed", 0.5)
         colors = kwargs.get("colors", None)
-        animation = animations['CLIFlashingAnimation'](
-            renderable,
-            speed=speed,
-            colors=colors,
-            duration=duration
+        animation = animations["CLIFlashingAnimation"](
+            renderable, speed=speed, colors=colors, duration=duration
         )
     elif type == "pulsing":
         speed = kwargs.get("speed", 2.0)
         min_opacity = kwargs.get("min_opacity", 0.3)
         max_opacity = kwargs.get("max_opacity", 1.0)
         color = kwargs.get("color", "white")
-        animation = animations['CLIPulsingAnimation'](
+        animation = animations["CLIPulsingAnimation"](
             renderable,
             speed=speed,
             min_opacity=min_opacity,
             max_opacity=max_opacity,
             color=color,
-            duration=duration
+            duration=duration,
         )
     elif type == "shaking":
         intensity = kwargs.get("intensity", 1)
         speed = kwargs.get("speed", 0.1)
-        animation = animations['CLIShakingAnimation'](
-            renderable,
-            intensity=intensity,
-            speed=speed,
-            duration=duration
+        animation = animations["CLIShakingAnimation"](
+            renderable, intensity=intensity, speed=speed, duration=duration
         )
     elif type == "typing":
         speed = kwargs.get("speed", 0.05)
-        animation = animations['CLITypingAnimation'](
-            renderable,
-            speed=speed,
-            duration=duration
+        animation = animations["CLITypingAnimation"](
+            renderable, speed=speed, duration=duration
         )
     elif type == "spinning":
         frames = kwargs.get("frames", None)
         speed = kwargs.get("speed", 0.1)
         prefix = kwargs.get("prefix", True)
-        animation = animations['CLISpinningAnimation'](
-            renderable,
-            frames=frames,
-            speed=speed,
-            prefix=prefix,
-            duration=duration
+        animation = animations["CLISpinningAnimation"](
+            renderable, frames=frames, speed=speed, prefix=prefix, duration=duration
         )
     elif type == "rainbow":
         speed = kwargs.get("speed", 0.5)
         colors = kwargs.get("colors", None)
-        animation = animations['CLIRainbowAnimation'](
-            renderable,
-            speed=speed,
-            colors=colors,
-            duration=duration
+        animation = animations["CLIRainbowAnimation"](
+            renderable, speed=speed, colors=colors, duration=duration
         )
     else:
         raise ValueError(f"Unknown animation type: {type}")
-    
+
     animation.animate()
 
 
-__all__ = (
-    "print",
-    "input",
-    "animate"
-)
+__all__ = ("print", "input", "animate")

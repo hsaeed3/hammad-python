@@ -19,42 +19,46 @@ from .types import (
 from .settings import (
     CLIStyleRenderableSettings,
     CLIStyleBackgroundSettings,
-    CLIStyleLiveSettings
+    CLIStyleLiveSettings,
 )
 
 # Lazy import cache for rich components
 _RICH_CACHE = {}
 
+
 def _get_rich_console():
     """Lazy import for rich console"""
-    if 'get_console' not in _RICH_CACHE:
+    if "get_console" not in _RICH_CACHE:
         from rich import get_console as get_rich_console
-        _RICH_CACHE['get_console'] = get_rich_console
-    return _RICH_CACHE['get_console']
+
+        _RICH_CACHE["get_console"] = get_rich_console
+    return _RICH_CACHE["get_console"]
+
 
 def _get_rich_classes():
     """Lazy import for rich classes"""
-    if 'classes' not in _RICH_CACHE:
+    if "classes" not in _RICH_CACHE:
         from rich.console import Console, RenderableType
         from rich.live import Live
         from rich.panel import Panel
         from rich.style import Style
         from rich.text import Text
-        _RICH_CACHE['classes'] = {
-            'Console': Console,
-            'RenderableType': RenderableType,
-            'Live': Live,
-            'Panel': Panel, 
-            'Style': Style,
-            'Text': Text
+
+        _RICH_CACHE["classes"] = {
+            "Console": Console,
+            "RenderableType": RenderableType,
+            "Live": Live,
+            "Panel": Panel,
+            "Style": Style,
+            "Text": Text,
         }
-    return _RICH_CACHE['classes']
+    return _RICH_CACHE["classes"]
 
 
 def live_render(
     r,
-    live_settings : CLIStyleLiveSettings,
-    console = None,
+    live_settings: CLIStyleLiveSettings,
+    console=None,
 ) -> None:
     """Runs a rich live renderable.
 
@@ -64,9 +68,9 @@ def live_render(
         console : The console to use for the live renderable."""
 
     rich_classes = _get_rich_classes()
-    RenderableType = rich_classes['RenderableType']
-    Live = rich_classes['Live']
-    
+    RenderableType = rich_classes["RenderableType"]
+    Live = rich_classes["Live"]
+
     if console is None:
         get_rich_console = _get_rich_console()
         console = get_rich_console()
@@ -107,14 +111,14 @@ def live_render(
                 live.refresh()
     except Exception as e:
         raise CLIStyleError(f"Error running rich live: {e}") from e
-    
+
 
 def style_renderable(
     r,
-    style : CLIStyleType | None = None,
-    style_settings : CLIStyleRenderableSettings | None = None,
-    bg : CLIStyleBackgroundType | None = None,
-    bg_settings : CLIStyleBackgroundSettings | None = None,
+    style: CLIStyleType | None = None,
+    style_settings: CLIStyleRenderableSettings | None = None,
+    bg: CLIStyleBackgroundType | None = None,
+    bg_settings: CLIStyleBackgroundSettings | None = None,
 ):
     """Styles a renderable with a rich string tag or settings.
 
@@ -128,10 +132,10 @@ def style_renderable(
 
     try:
         rich_classes = _get_rich_classes()
-        Style = rich_classes['Style']
-        Text = rich_classes['Text']
-        Panel = rich_classes['Panel']
-        
+        Style = rich_classes["Style"]
+        Text = rich_classes["Text"]
+        Panel = rich_classes["Panel"]
+
         # First handle style processing to get styled_renderable
         styled_renderable = r
 
@@ -186,7 +190,7 @@ def style_renderable(
                 # Handle text style properties
                 text_style_props = [
                     "bold",
-                    "dim", 
+                    "dim",
                     "italic",
                     "underline",
                     "blink",
@@ -257,7 +261,7 @@ def style_renderable(
                 # Handle text style properties
                 text_style_props = [
                     "bold",
-                    "dim", 
+                    "dim",
                     "italic",
                     "underline",
                     "blink",
@@ -474,4 +478,3 @@ def style_renderable(
     except Exception:
         # Ultimate fallback - return original renderable
         return r
-    

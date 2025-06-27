@@ -42,21 +42,23 @@ def test_animate_with_custom_parameters():
     """Test animate with custom parameters."""
     # Test flashing with custom speed and colors
     animate("Test", type="flashing", duration=0.1, speed=0.2, colors=["red", "blue"])
-    
+
     # Test pulsing with custom opacity
     animate("Test", type="pulsing", duration=0.1, min_opacity=0.1, max_opacity=0.9)
-    
+
     # Test shaking with custom intensity
     animate("Test", type="shaking", duration=0.1, intensity=2, speed=0.05)
-    
+
     # Test typing with custom speed
     animate("Test", type="typing", duration=0.1, speed=0.01)
-    
+
     # Test spinning with custom frames
     animate("Test", type="spinning", duration=0.1, frames=[".", "o", "O"], prefix=False)
-    
+
     # Test rainbow with custom colors
-    animate("Test", type="rainbow", duration=0.1, speed=0.2, colors=["red", "green", "blue"])
+    animate(
+        "Test", type="rainbow", duration=0.1, speed=0.2, colors=["red", "green", "blue"]
+    )
 
 
 def test_animate_invalid_type():
@@ -72,4 +74,4 @@ def test_animate_no_duration():
 
 
 if __name__ == "__main__":
-    pytest.main(['-v', __file__])
+    pytest.main(["-v", __file__])
