@@ -301,8 +301,9 @@ def create_lazy_loader(
         if name in imports_dict:
             from importlib import import_module
 
-            module = import_module(imports_dict[name], package)
-            return getattr(module, name)
+            module_path, original_name = imports_dict[name]
+            module = import_module(module_path, package)
+            return getattr(module, original_name)
         raise AttributeError(f"module '{package}' has no attribute '{name}'")
 
     return __getattr__
@@ -355,14 +356,14 @@ def auto_create_lazy_loader(all_exports: tuple[str, ...]) -> Callable[[str], Any
     return create_lazy_loader(filtered_map, package)
 
 
-def _parse_type_checking_imports(source_code: str) -> dict[str, str]:
+def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]:
     """Parse TYPE_CHECKING imports from source code to build import map.
 
     Args:
         source_code: The source code containing TYPE_CHECKING imports
 
     Returns:
-        Dictionary mapping imported names to their module paths
+        Dictionary mapping local names to (module_path, original_name) tuples
     """
     tree = ast.parse(source_code)
     imports_map = {}
@@ -399,9 +400,9 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, str]:
             if self.in_type_checking and node.module:
                 module_path = f".{node.module}"
                 for alias in node.names:
-                    imported_name = alias.name
-                    local_name = alias.asname or imported_name
-                    self.imports[local_name] = module_path
+                    original_name = alias.name
+                    local_name = alias.asname or original_name
+                    self.imports[local_name] = (module_path, original_name)
             self.generic_visit(node)
 
     visitor = TypeCheckingVisitor()
