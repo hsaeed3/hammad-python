@@ -22,10 +22,7 @@ from rich.logging import RichHandler
 from ..cli.styles.types import (
     CLIStyleType,
 )
-from ..cli.styles.settings import (
-    CLIStyleRenderableSettings,
-    CLIStyleBackgroundSettings
-)
+from ..cli.styles.settings import CLIStyleRenderableSettings, CLIStyleBackgroundSettings
 
 __all__ = (
     "Logger",
@@ -150,12 +147,16 @@ class RichLoggerFormatter(_logging.Formatter):
             if message_style:
                 if isinstance(message_style, str):
                     # It's a color/style string tag
-                    record.message = f"[{message_style}]{record.getMessage()}[/{message_style}]"
+                    record.message = (
+                        f"[{message_style}]{record.getMessage()}[/{message_style}]"
+                    )
                 elif isinstance(message_style, dict):
                     # It's a CLIStyleRenderableSettings dict
                     style_str = self._build_renderable_style_string(message_style)
                     if style_str:
-                        record.message = f"[{style_str}]{record.getMessage()}[/{style_str}]"
+                        record.message = (
+                            f"[{style_str}]{record.getMessage()}[/{style_str}]"
+                        )
                 else:
                     record.message = record.getMessage()
             else:
@@ -169,11 +170,11 @@ class RichLoggerFormatter(_logging.Formatter):
     def _build_renderable_style_string(self, style_dict: dict) -> str:
         """Build a rich markup style string from a CLIStyleRenderableSettings dictionary."""
         style_parts = []
-        
+
         # Handle all the style attributes from CLIStyleRenderableSettings
         for attr in [
             "bold",
-            "italic", 
+            "italic",
             "dim",
             "underline",
             "strike",
@@ -317,9 +318,7 @@ class Logger:
     def _setup_standard_handler(self, log_level: int) -> None:
         """Setup standard handler for the logger."""
         handler = _logging.StreamHandler()
-        formatter = _logging.Formatter(
-            "✼  {name} - {levelname} - {message}", style="{"
-        )
+        formatter = _logging.Formatter("✼  {name} - {levelname} - {message}", style="{")
         handler.setFormatter(formatter)
         handler.setLevel(log_level)
 
@@ -408,7 +407,9 @@ class Logger:
         """Log a critical message."""
         self._logger.critical(message, *args, **kwargs)
 
-    def log(self, level: Union[str, int], message: str, *args: Any, **kwargs: Any) -> None:
+    def log(
+        self, level: Union[str, int], message: str, *args: Any, **kwargs: Any
+    ) -> None:
         """
         Log a message at the specified level.
 
@@ -477,32 +478,28 @@ def create_logger_level(
     """
     # Convert name to uppercase for consistency
     level_name = name.upper()
-    
+
     # Add the level to the logging module
     _logging.addLevelName(level, level_name)
-    
+
     # Create a method on the Logger class for this level
     def log_method(self, message, *args, **kwargs):
         if self.isEnabledFor(level):
             self._log(level, message, args, **kwargs)
-    
+
     # Add the method to the standard logging.Logger class
     setattr(_logging.Logger, name.lower(), log_method)
-    
+
     # Store level info for potential rich formatting
-    if hasattr(_logging, '_custom_level_info'):
+    if hasattr(_logging, "_custom_level_info"):
         _logging._custom_level_info[level] = {
-            'name': level_name,
-            'color': color,
-            'style': style
+            "name": level_name,
+            "color": color,
+            "style": style,
         }
     else:
         _logging._custom_level_info = {
-            level: {
-                'name': level_name,
-                'color': color,
-                'style': style
-            }
+            level: {"name": level_name, "color": color, "style": style}
         }
 
 
