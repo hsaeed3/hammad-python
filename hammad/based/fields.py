@@ -12,6 +12,10 @@ __all__ = (
     "BasedFieldInfo",
     "basedfield",
     "BasedField",
+    "str_basedfield",
+    "int_basedfield",
+    "float_basedfield",
+    "list_basedfield",
 )
 
 
@@ -466,3 +470,77 @@ def basedfield(
 
     # For now, just return the msgspec field - let msgspec handle everything
     return msgspec_field_instance
+
+
+def str_basedfield(
+    *,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    pattern: Optional[Union[str, Pattern[str]]] = None,
+    strip_whitespace: bool = False,
+    to_lower: bool = False,
+    to_upper: bool = False,
+    **kwargs,
+) -> Any:
+    """Create a string field with common string-specific options."""
+    return basedfield(
+        min_length=min_length,
+        max_length=max_length,
+        pattern=pattern,
+        strip_whitespace=strip_whitespace,
+        to_lower=to_lower,
+        to_upper=to_upper,
+        **kwargs,
+    )
+
+
+def int_basedfield(
+    *,
+    gt: Optional[int] = None,
+    ge: Optional[int] = None,
+    lt: Optional[int] = None,
+    le: Optional[int] = None,
+    multiple_of: Optional[int] = None,
+    **kwargs,
+) -> Any:
+    """Create an integer field with numeric constraints."""
+    return basedfield(gt=gt, ge=ge, lt=lt, le=le, multiple_of=multiple_of, **kwargs)
+
+
+def float_basedfield(
+    *,
+    gt: Optional[float] = None,
+    ge: Optional[float] = None,
+    lt: Optional[float] = None,
+    le: Optional[float] = None,
+    multiple_of: Optional[float] = None,
+    allow_inf_nan: bool = True,
+    **kwargs,
+) -> Any:
+    """Create a float field with numeric constraints."""
+    return basedfield(
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        multiple_of=multiple_of,
+        allow_inf_nan=allow_inf_nan,
+        **kwargs,
+    )
+
+
+def list_basedfield(
+    *,
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    unique_items: bool = False,
+    **kwargs,
+) -> Any:
+    """Create a list field with collection constraints."""
+    return basedfield(
+        default_factory=list,
+        min_length=min_length,
+        max_length=max_length,
+        unique_items=unique_items,
+        **kwargs,
+    )

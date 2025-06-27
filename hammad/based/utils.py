@@ -1,7 +1,9 @@
-"""hammad.core.base.utils"""
+"""hammad.based.utils"""
 
 from functools import lru_cache
-from typing import Any, Callable, Optional, Pattern, Union, Tuple, Dict
+from typing import Any, Callable, Optional, Pattern, Union, Tuple, Dict, TYPE_CHECKING
+import ast
+import inspect
 
 from msgspec.structs import Struct
 
@@ -13,11 +15,9 @@ __all__ = (
     "get_field_info",
     "is_basedfield",
     "is_basedmodel",
-    "basedvalidator",
-    "str_basedfield",
-    "int_basedfield",
-    "float_basedfield",
-    "list_basedfield",
+    "based_validator",
+    "create_lazy_loader",
+    "auto_create_lazy_loader",
 )
 
 
@@ -258,7 +258,7 @@ def is_basedmodel(model: Any) -> bool:
     return False
 
 
-def basedvalidator(
+def based_validator(
     *fields: str, pre: bool = False, post: bool = False, always: bool = False
 ):
     """Decorator to create a validator for specific fields.
@@ -283,75 +283,127 @@ def basedvalidator(
     return decorator
 
 
-def str_basedfield(
-    *,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    pattern: Optional[Union[str, Pattern[str]]] = None,
-    strip_whitespace: bool = False,
-    to_lower: bool = False,
-    to_upper: bool = False,
-    **kwargs,
-) -> Any:
-    """Create a string field with common string-specific options."""
-    return basedfield(
-        min_length=min_length,
-        max_length=max_length,
-        pattern=pattern,
-        strip_whitespace=strip_whitespace,
-        to_lower=to_lower,
-        to_upper=to_upper,
-        **kwargs,
-    )
+def create_lazy_loader(
+    imports_dict: dict[str, str], package: str
+) -> Callable[[str], Any]:
+    """Create a lazy loader function for __getattr__.
+
+    Args:
+        imports_dict: Dictionary mapping attribute names to their module paths
+        package: The package name for import_module
+
+    Returns:
+        A __getattr__ function that lazily imports modules
+    """
+
+    def __getattr__(name: str) -> Any:
+        if name in imports_dict:
+            from importlib import import_module
+
+            module = import_module(imports_dict[name], package)
+            return getattr(module, name)
+        raise AttributeError(f"module '{package}' has no attribute '{name}'")
+
+    return __getattr__
 
 
-def int_basedfield(
-    *,
-    gt: Optional[int] = None,
-    ge: Optional[int] = None,
-    lt: Optional[int] = None,
-    le: Optional[int] = None,
-    multiple_of: Optional[int] = None,
-    **kwargs,
-) -> Any:
-    """Create an integer field with numeric constraints."""
-    return basedfield(gt=gt, ge=ge, lt=lt, le=le, multiple_of=multiple_of, **kwargs)
+def auto_create_lazy_loader(all_exports: tuple[str, ...]) -> Callable[[str], Any]:
+    """Automatically create a lazy loader by inspecting the calling module.
+
+    This function inspects the calling module's source code to extract
+    TYPE_CHECKING imports and automatically builds the import map.
+
+    Args:
+        all_exports: The __all__ tuple from the calling module
+
+    Returns:
+        A __getattr__ function that lazily imports modules
+    """
+    # Get the calling module's frame
+    frame = inspect.currentframe()
+    if frame is None or frame.f_back is None:
+        raise RuntimeError("Cannot determine calling module")
+
+    calling_frame = frame.f_back
+    module_name = calling_frame.f_globals.get("__name__", "")
+    package = calling_frame.f_globals.get("__package__", "")
+    filename = calling_frame.f_globals.get("__file__", "")
+
+    # Read the source file
+    try:
+        with open(filename, "r") as f:
+            source_code = f.read()
+    except (IOError, OSError):
+        # Fallback: try to get source from the module
+        import sys
+
+        module = sys.modules.get(module_name)
+        if module:
+            source_code = inspect.getsource(module)
+        else:
+            raise RuntimeError(f"Cannot read source for module {module_name}")
+
+    # Parse the source to extract TYPE_CHECKING imports
+    imports_map = _parse_type_checking_imports(source_code)
+
+    # Filter to only include exports that are in __all__
+    filtered_map = {
+        name: path for name, path in imports_map.items() if name in all_exports
+    }
+
+    return create_lazy_loader(filtered_map, package)
 
 
-def float_basedfield(
-    *,
-    gt: Optional[float] = None,
-    ge: Optional[float] = None,
-    lt: Optional[float] = None,
-    le: Optional[float] = None,
-    multiple_of: Optional[float] = None,
-    allow_inf_nan: bool = True,
-    **kwargs,
-) -> Any:
-    """Create a float field with numeric constraints."""
-    return basedfield(
-        gt=gt,
-        ge=ge,
-        lt=lt,
-        le=le,
-        multiple_of=multiple_of,
-        allow_inf_nan=allow_inf_nan,
-        **kwargs,
-    )
+def _parse_type_checking_imports(source_code: str) -> dict[str, str]:
+    """Parse TYPE_CHECKING imports from source code to build import map.
 
+    Args:
+        source_code: The source code containing TYPE_CHECKING imports
 
-def list_basedfield(
-    *,
-    min_length: Optional[int] = None,
-    max_length: Optional[int] = None,
-    unique_items: bool = False,
-    **kwargs,
-) -> Any:
-    """Create a list field with collection constraints."""
-    return basedfield(
-        default_factory=list,
-        min_length=min_length,
-        max_length=max_length,
-        unique_items=unique_items,
-        **kwargs,
-    )
+    Returns:
+        Dictionary mapping imported names to their module paths
+    """
+    tree = ast.parse(source_code)
+    imports_map = {}
+
+    class TypeCheckingVisitor(ast.NodeVisitor):
+        def __init__(self):
+            self.in_type_checking = False
+            self.imports = {}
+
+        def visit_If(self, node):
+            # Check if this is a TYPE_CHECKING block
+            is_type_checking = False
+
+            if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+                is_type_checking = True
+            elif isinstance(node.test, ast.Attribute):
+                if (
+                    isinstance(node.test.value, ast.Name)
+                    and node.test.value.id == "typing"
+                    and node.test.attr == "TYPE_CHECKING"
+                ):
+                    is_type_checking = True
+
+            if is_type_checking:
+                old_state = self.in_type_checking
+                self.in_type_checking = True
+                for stmt in node.body:
+                    self.visit(stmt)
+                self.in_type_checking = old_state
+            else:
+                self.generic_visit(node)
+
+        def visit_ImportFrom(self, node):
+            if self.in_type_checking and node.module:
+                module_path = f".{node.module}"
+                for alias in node.names:
+                    imported_name = alias.name
+                    local_name = alias.asname or imported_name
+                    self.imports[local_name] = module_path
+            self.generic_visit(node)
+
+    visitor = TypeCheckingVisitor()
+    visitor.visit(tree)
+
+    return visitor.imports
