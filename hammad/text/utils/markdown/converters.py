@@ -55,7 +55,7 @@ def _escape_markdown(text: str) -> str:
 
 def convert_dataclass_to_markdown(
     obj: Any,
-    name: Optional[str],
+    title: Optional[str],
     description: Optional[str],
     table_format: bool,
     show_types: bool,
@@ -65,7 +65,7 @@ def convert_dataclass_to_markdown(
 ) -> str:
     """Convert a dataclass to Markdown format."""
     is_class = isinstance(obj, type)
-    obj_name = name or (obj.__name__ if is_class else obj.__class__.__name__)
+    obj_name = title or (obj.__name__ if is_class else obj.__class__.__name__)
 
     parts = []
     parts.append(heading(obj_name, min(indent_level + 1, 6)))
@@ -130,7 +130,7 @@ def convert_dataclass_to_markdown(
 
 def convert_pydantic_to_markdown(
     obj: Any,
-    name: Optional[str],
+    title: Optional[str],
     description: Optional[str],
     table_format: bool,
     show_types: bool,
@@ -143,7 +143,7 @@ def convert_pydantic_to_markdown(
     is_class = isinstance(obj, type)
     is_instance = is_pydantic_basemodel_instance(obj)
 
-    obj_name = name or (obj.__name__ if is_class else obj.__class__.__name__)
+    obj_name = title or (obj.__name__ if is_class else obj.__class__.__name__)
 
     parts = []
     parts.append(heading(obj_name, min(indent_level + 1, 6)))
@@ -229,14 +229,14 @@ def convert_pydantic_to_markdown(
 
 def convert_function_to_markdown(
     obj: Callable,
-    name: Optional[str],
+    title: Optional[str],
     description: Optional[str],
     show_signature: bool,
     show_docstring: bool,
     indent_level: int,
 ) -> str:
     """Convert a function to Markdown format."""
-    func_name = name or obj.__name__
+    func_name = title or obj.__name__
 
     parts = []
     parts.append(heading(func_name, min(indent_level + 1, 6)))
@@ -264,7 +264,7 @@ def convert_function_to_markdown(
 
 def convert_collection_to_markdown(
     obj: Union[List, Set, tuple],
-    name: Optional[str],
+    title: Optional[str],
     description: Optional[str],
     compact: bool,
     show_indices: bool,
@@ -272,7 +272,7 @@ def convert_collection_to_markdown(
     visited: Set[int],
 ) -> str:
     """Convert a collection to Markdown format."""
-    obj_name = name or obj.__class__.__name__
+    obj_name = title or obj.__class__.__name__
 
     parts = []
     if not compact:
@@ -298,7 +298,7 @@ def convert_collection_to_markdown(
 
 def convert_dict_to_markdown(
     obj: Dict[Any, Any],
-    name: Optional[str],
+    title: Optional[str],
     description: Optional[str],
     table_format: bool,
     compact: bool,
@@ -306,7 +306,7 @@ def convert_dict_to_markdown(
     visited: Set[int],
 ) -> str:
     """Convert a dictionary to Markdown format."""
-    obj_name = name or "Dictionary"
+    obj_name = title or "Dictionary"
 
     parts = []
     if not compact:
@@ -344,7 +344,7 @@ def convert_to_markdown(
     obj: Any,
     *,
     # Formatting options
-    name: Optional[str] = None,
+    title: Optional[str] = None,
     description: Optional[str] = None,
     heading_level: int = 1,
     table_format: bool = False,
@@ -433,7 +433,7 @@ def convert_to_markdown(
     if is_dataclass(obj):
         result = convert_dataclass_to_markdown(
             obj,
-            name,
+            title,
             description,
             table_format,
             show_types,
@@ -446,7 +446,7 @@ def convert_to_markdown(
     elif is_pydantic_basemodel(obj):
         result = convert_pydantic_to_markdown(
             obj,
-            name,
+            title,
             description,
             table_format,
             show_types,
@@ -461,7 +461,7 @@ def convert_to_markdown(
         # Similar to dataclass handling
         result = convert_dataclass_to_markdown(
             obj,
-            name,
+            title,
             description,
             table_format,
             show_types,
@@ -473,24 +473,24 @@ def convert_to_markdown(
     # Handle functions
     elif callable(obj) and hasattr(obj, "__name__"):
         result = convert_function_to_markdown(
-            obj, name, description, show_signature, show_docstring, _indent_level
+            obj, title, description, show_signature, show_docstring, _indent_level
         )
 
     # Handle collections
     elif isinstance(obj, (list, tuple, set)):
         result = convert_collection_to_markdown(
-            obj, name, description, compact, show_indices, _indent_level, visited_copy
+            obj, title, description, compact, show_indices, _indent_level, visited_copy
         )
 
     # Handle dictionaries
     elif isinstance(obj, dict):
         result = convert_dict_to_markdown(
-            obj, name, description, table_format, compact, _indent_level, visited_copy
+            obj, title, description, table_format, compact, _indent_level, visited_copy
         )
 
     # Default handling
     else:
-        obj_name = name or obj.__class__.__name__
+        obj_name = title or obj.__class__.__name__
         parts = []
         if not compact:
             parts.append(heading(obj_name, min(_indent_level + 1, 6)))

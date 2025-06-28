@@ -7,6 +7,7 @@ from typing import Any, Self
 from dotenv import load_dotenv, dotenv_values
 import httpx
 import msgspec
+import yaml
 
 from .file import File, FileSource
 from ....based.fields import basedfield
@@ -54,7 +55,13 @@ class Configuration(File):
             elif format_type == "toml":
                 self.config_data = msgspec.toml.decode(content.encode("utf-8"))
             elif format_type == "yaml":
-                self.config_data = msgspec.yaml.decode(content.encode("utf-8"))
+                # Use PyYAML with unsafe_load for YAML tags like !!python/name:
+                # This is needed for files like mkdocs.yml that use custom constructors
+                try:
+                    self.config_data = yaml.unsafe_load(content)
+                except yaml.constructor.ConstructorError:
+                    # Fallback to safe_load if unsafe_load fails
+                    self.config_data = yaml.safe_load(content)
             elif format_type == "ini":
                 parser = configparser.ConfigParser()
                 parser.read_string(content)
@@ -129,7 +136,9 @@ class Configuration(File):
         elif format_type == "toml":
             return msgspec.toml.encode(self.config_data).decode("utf-8")
         elif format_type == "yaml":
-            return msgspec.yaml.encode(self.config_data).decode("utf-8")
+            return yaml.dump(
+                self.config_data, default_flow_style=False, allow_unicode=True
+            )
         elif format_type == "ini":
             parser = configparser.ConfigParser()
             for section_name, section_data in self.config_data.items():

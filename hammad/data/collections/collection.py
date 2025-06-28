@@ -13,6 +13,7 @@ from typing import (
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
+    from .base_collection import BaseCollection
     from .searchable_collection import SearchableCollection
     from .vector_collection import VectorCollection
 
@@ -121,7 +122,7 @@ def create_collection(
     prefer_grpc: Optional[bool] = None,
     api_key: Optional[str] = None,
     timeout: Optional[float] = None,
-) -> Union["SearchableCollection", "VectorCollection"]:
+) -> BaseCollection:
     """
     Create a collection of the specified type.
 

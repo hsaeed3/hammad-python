@@ -4,6 +4,7 @@ from typing import Any
 from typing_extensions import TypedDict, NotRequired
 
 from .types import (
+    CLIStyleColorName,
     CLIStyleBoxName,
     CLIStyleJustifyMethod,
     CLIStyleOverflowMethod,
@@ -27,6 +28,9 @@ class CLIStyleRenderableSettings(TypedDict, total=False):
     you can either define the `style` parameter with a rich string
     tag with a color / style name. or apply the `style_settings`
     parameter with these settings."""
+
+    color: NotRequired[CLIStyleColorName]
+    """The color of the renderable output or content."""
 
     # rich.text
 

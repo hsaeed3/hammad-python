@@ -99,6 +99,49 @@ class AsyncSearchClient:
         headers.update(self.default_headers)
         return headers
 
+    async def search(
+        self,
+        query: str,
+        *,
+        max_results: int = 10,
+        region: str = "wt-wt",
+        safesearch: Literal["on", "moderate", "off"] = "moderate",
+        timelimit: Optional[Literal["d", "w", "m", "y"]] = None,
+        backend: Literal["auto", "html", "lite"] = "auto",
+        max_retries: Optional[int] = None,
+    ) -> SearchResults:
+        """
+        (deprecated in favor of `search_web`)
+
+        Args:
+            query: Search query string
+            max_results: Maximum number of results to return (default: 10)
+            region: Search region (default: "wt-wt" for worldwide)
+            safesearch: Safe search setting (default: "moderate")
+            timelimit: Time limit for results (d=day, w=week, m=month, y=year)
+            backend: Search backend to use (default: "auto")
+            max_retries: Maximum number of retry attempts (uses instance default if not provided)
+
+        Returns:
+            List of search result dictionaries with 'title', 'href', and 'body' keys
+
+        Raises:
+            ValueError: If query is empty
+            Exception: If search fails after all retries
+        """
+        from rich import print
+
+        print(
+            "[bold yellow]WARNING: [/bold yellow] [yellow]Using `AsyncSearchClient.[bold light_salmon3]search[/bold light_salmon3]` is now deprecated in favor of `AsyncSearchClient.[bold light_salmon3]search_web[/bold light_salmon3]`[/yellow]"
+        )
+        return await self.search_web(
+            query,
+            max_results=max_results,
+            region=region,
+            safesearch=safesearch,
+            timelimit=timelimit,
+        )
+
     async def search_web(
         self,
         query: str,
