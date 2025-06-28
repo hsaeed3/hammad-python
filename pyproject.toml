@@ -52,6 +52,11 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "twine>=6.1.0",
+
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
 ]
 
 
