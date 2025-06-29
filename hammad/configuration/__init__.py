@@ -10,21 +10,21 @@ from .._core._utils._import_utils import _auto_create_getattr_loader
 if TYPE_CHECKING:
     from .configuration import (
         Configuration,
-        get_configuration_from_file,
-        get_configuration_from_url,
-        get_configuration_from_os_vars,
-        get_configuration_from_os_prefix,
-        get_configuration_from_dotenv,
+        read_configuration_from_file,
+        read_configuration_from_url,
+        read_configuration_from_os_vars,
+        read_configuration_from_os_prefix,
+        read_configuration_from_dotenv,
     )
 
 
 __all__ = (
     "Configuration",
-    "get_configuration_from_file",
-    "get_configuration_from_url",
-    "get_configuration_from_os_vars",
-    "get_configuration_from_os_prefix",
-    "get_configuration_from_dotenv",
+    "read_configuration_from_file",
+    "read_configuration_from_url",
+    "read_configuration_from_os_vars",
+    "read_configuration_from_os_prefix",
+    "read_configuration_from_dotenv",
 )
 
 
