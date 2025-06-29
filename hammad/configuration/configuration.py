@@ -14,11 +14,11 @@ from ..base.fields import field
 
 __all__ = (
     "Configuration",
-    "get_configuration_from_file",
-    "get_configuration_from_url",
-    "get_configuration_from_os_vars",
-    "get_configuration_from_os_prefix",
-    "get_configuration_from_dotenv",
+    "read_configuration_from_file",
+    "read_configuration_from_url",
+    "read_configuration_from_os_vars",
+    "read_configuration_from_os_prefix",
+    "read_configuration_from_dotenv",
 )
 
 
@@ -494,7 +494,7 @@ class Configuration(File):
 # HELPERS
 
 
-def get_configuration_from_file(path: str | Path) -> Configuration:
+def read_configuration_from_file(path: str | Path) -> Configuration:
     """Parse a filepath into a `Configuration` object.
 
     Valid file types:
@@ -514,7 +514,7 @@ def get_configuration_from_file(path: str | Path) -> Configuration:
     return Configuration.from_file(file_obj)
 
 
-def get_configuration_from_url(url: str) -> Configuration:
+def read_configuration_from_url(url: str) -> Configuration:
     """Parse a URL into a `Configuration` object.
 
     Args:
@@ -526,7 +526,7 @@ def get_configuration_from_url(url: str) -> Configuration:
     return Configuration.from_url(url)
 
 
-def get_configuration_from_os_vars(vars: list[str]) -> Configuration:
+def read_configuration_from_os_vars(vars: list[str]) -> Configuration:
     """Parse a list of environment variables into a `Configuration` object.
 
     Args:
@@ -538,7 +538,7 @@ def get_configuration_from_os_vars(vars: list[str]) -> Configuration:
     return Configuration.from_os_vars(vars)
 
 
-def get_configuration_from_os_prefix(prefix: str) -> Configuration:
+def read_configuration_from_os_prefix(prefix: str) -> Configuration:
     """Parse a list of environment variables into a `Configuration` object.
 
     Args:
@@ -550,7 +550,7 @@ def get_configuration_from_os_prefix(prefix: str) -> Configuration:
     return Configuration.from_os_prefix(prefix)
 
 
-def get_configuration_from_dotenv(path: str | Path = ".env") -> Configuration:
+def read_configuration_from_dotenv(path: str | Path = ".env") -> Configuration:
     """Parse a .env file into a `Configuration` object.
 
     NOTE: Defaults to `.env` in the current working directory.
