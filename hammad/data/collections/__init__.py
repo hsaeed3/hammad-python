@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         create_collection,
         VectorCollectionSettings,
         SearchableCollectionSettings,
+        Collection,
     )
 
 
@@ -21,6 +22,7 @@ __all__ = (
     "create_collection",
     "VectorCollectionSettings",
     "SearchableCollectionSettings",
+    "Collection",
 )
 
 
