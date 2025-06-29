@@ -2,7 +2,19 @@
 
 import copy
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Self, Set, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Self,
+    Set,
+    Type,
+    Union,
+)
 
 import msgspec
 from msgspec.json import decode, encode, schema
@@ -35,10 +47,10 @@ def model_settings(
     cache_hash: bool = False,
 ) -> Callable[[Type], Type]:
     """Decorator to configure msgspec Struct parameters for Model classes.
-    
+
     This decorator allows you to configure all msgspec Struct parameters
     while preserving type safety and IDE completion.
-    
+
     Args:
         tag: Tag configuration for the struct
         tag_field: Field to use for tagging
@@ -55,16 +67,17 @@ def model_settings(
         weakref: Whether to enable weak references
         dict: Whether to enable dict-like access
         cache_hash: Whether to cache hash values
-    
+
     Returns:
         Class decorator that configures the Model class
-    
+
     Example:
         @model_settings(frozen=True, kw_only=True)
         class User(Model):
             name: str
             age: int = 0
     """
+
     def decorator(cls: Type) -> Type:
         # Store the configuration parameters
         config_kwargs = {
@@ -84,27 +97,27 @@ def model_settings(
             "dict": dict,
             "cache_hash": cache_hash,
         }
-        
+
         # Filter out None values to avoid passing them to __init_subclass__
         filtered_kwargs = {k: v for k, v in config_kwargs.items() if v is not None}
-        
+
         # Create a new class with the same name and bases but with the configuration
         class ConfiguredModel(cls):
             def __init_subclass__(cls, **kwargs):
                 # Merge the decorator kwargs with any kwargs passed to __init_subclass__
                 merged_kwargs = {**filtered_kwargs, **kwargs}
                 super().__init_subclass__(**merged_kwargs)
-        
+
         # Preserve the original class name and module
         ConfiguredModel.__name__ = cls.__name__
         ConfiguredModel.__qualname__ = cls.__qualname__
         ConfiguredModel.__module__ = cls.__module__
-        
+
         # Apply the configuration by calling __init_subclass__ manually
         ConfiguredModel.__init_subclass__(**filtered_kwargs)
-        
+
         return ConfiguredModel
-    
+
     return decorator
 
 

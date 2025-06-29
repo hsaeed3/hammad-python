@@ -12,13 +12,7 @@ if TYPE_CHECKING:
     from .fields import (
         field,
     )
-    from .utils import (
-        create_model,
-        validator,
-        is_field,
-        is_model,
-        get_field_info
-    )
+    from .utils import create_model, validator, is_field, is_model, get_field_info
 
 __all__ = (
     "Model",
@@ -32,6 +26,7 @@ __all__ = (
 )
 
 __getattr__ = _auto_create_getattr_loader(__all__)
+
 
 def __dir__() -> list[str]:
     return list(__all__)

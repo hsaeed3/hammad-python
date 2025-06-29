@@ -5,26 +5,24 @@ import inspect
 import ast
 import hashlib
 
-__all__ = (
-    "_auto_create_getattr_loader",
-)
+__all__ = ("_auto_create_getattr_loader",)
 
 
 class _ModuleCache:
     """Minimal cache implementation for internal use only."""
-    
+
     def __init__(self, maxsize: int = 128):
         self.maxsize = maxsize
         self._cache: dict[str, Any] = {}
-    
+
     def _make_key(self, data: str) -> str:
         """Create a simple hash key from string data."""
-        return hashlib.sha256(data.encode('utf-8')).hexdigest()[:16]
-    
+        return hashlib.sha256(data.encode("utf-8")).hexdigest()[:16]
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get value from cache."""
         return self._cache.get(key, default)
-    
+
     def set(self, key: str, value: Any) -> None:
         """Set value in cache with basic LRU eviction."""
         if len(self._cache) >= self.maxsize and key not in self._cache:
@@ -32,9 +30,10 @@ class _ModuleCache:
             oldest_key = next(iter(self._cache))
             del self._cache[oldest_key]
         self._cache[key] = value
-    
+
     def cached_call(self, func: Callable[[str], Any]) -> Callable[[str], Any]:
         """Decorator to cache function calls."""
+
         def wrapper(arg: str) -> Any:
             key = self._make_key(arg)
             result = self.get(key)
@@ -42,6 +41,7 @@ class _ModuleCache:
                 result = func(arg)
                 self.set(key, result)
             return result
+
         return wrapper
 
 
@@ -146,6 +146,7 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]
     Returns:
         Dictionary mapping local names to (module_path, original_name) tuples
     """
+
     @_parse_cache.cached_call
     def _exec(source_code: str) -> dict[str, tuple[str, str]]:
         tree = ast.parse(source_code)
