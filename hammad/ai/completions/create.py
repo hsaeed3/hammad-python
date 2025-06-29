@@ -17,6 +17,7 @@ except ImportError:
     )
 
 from .types import (
+    CompletionsModelName,
     CompletionsInputParam,
     CompletionsOutputType,
     Completion,
@@ -30,15 +31,15 @@ from .client import (
 )
 
 
-__all__ = ("create_completion", "create_async_completion")
+__all__ = ("create_completion", "async_create_completion")
 
 
 # Async overloads
 @overload
-async def create_async_completion(
+async def async_create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
@@ -85,10 +86,10 @@ async def create_async_completion(
 
 
 @overload
-async def create_async_completion(
+async def async_create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
@@ -134,10 +135,10 @@ async def create_async_completion(
 ) -> Completion[CompletionsOutputType]: ...
 
 
-async def create_async_completion(
+async def async_create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
@@ -364,7 +365,7 @@ async def create_async_completion(
 def create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
@@ -414,7 +415,7 @@ def create_completion(
 def create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
@@ -463,7 +464,7 @@ def create_completion(
 def create_completion(
     messages: CompletionsInputParam,
     instructions: Optional[str] = None,
-    model: str = "openai/gpt-4o-mini",
+    model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
