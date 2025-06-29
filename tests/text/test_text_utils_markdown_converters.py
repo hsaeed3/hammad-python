@@ -111,9 +111,7 @@ class TestConvertToMarkdown:
 
     def test_convert_with_title_and_description(self):
         """Test converting with custom name and description."""
-        result = convert_to_text(
-            [1, 2, 3], title="My List", description="A test list"
-        )
+        result = convert_to_text([1, 2, 3], title="My List", description="A test list")
         assert "My List" in result
         assert "A test list" in result
 
@@ -130,9 +128,7 @@ class TestConvertDataclassToMarkdown:
     def test_convert_dataclass_instance(self):
         """Test converting dataclass instance."""
         obj = SampleDataClass(name="John", age=30)
-        result = convert_dataclass_to_text(
-            obj, None, None, False, True, True, True, 0
-        )
+        result = convert_dataclass_to_text(obj, None, None, False, True, True, True, 0)
         assert "SampleDataClass" in result
         assert "`name`" in result
         assert "`age`" in result
@@ -151,9 +147,7 @@ class TestConvertDataclassToMarkdown:
     def test_convert_dataclass_table_format(self):
         """Test converting dataclass in table format."""
         obj = SampleDataClass(name="John", age=30)
-        result = convert_dataclass_to_text(
-            obj, None, None, True, True, True, True, 0
-        )
+        result = convert_dataclass_to_text(obj, None, None, True, True, True, True, 0)
         assert "|" in result
         assert "Field" in result
 
@@ -196,17 +190,13 @@ class TestConvertFunctionToMarkdown:
 
     def test_convert_function_with_signature(self):
         """Test converting function with signature."""
-        result = convert_function_to_text(
-            sample_function, None, None, True, False, 0
-        )
+        result = convert_function_to_text(sample_function, None, None, True, False, 0)
         assert "sample_function" in result
         assert "`sample_function(" in result
 
     def test_convert_function_with_docstring(self):
         """Test converting function with docstring."""
-        result = convert_function_to_text(
-            sample_function, None, None, False, True, 0
-        )
+        result = convert_function_to_text(sample_function, None, None, False, True, 0)
         assert "sample_function" in result
         assert "A sample function for testing" in result
 
@@ -335,9 +325,7 @@ class TestSpecialOptions:
 
     def test_escape_special_chars(self):
         """Test escaping special markdown characters."""
-        result = convert_to_text(
-            "text with *special* chars", escape_special_chars=True
-        )
+        result = convert_to_text("text with *special* chars", escape_special_chars=True)
         assert "\\*" in result
 
     def test_horizontal_rules(self):

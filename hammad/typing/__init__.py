@@ -405,4 +405,3 @@ def get_type_description(t: "Any") -> str:
         return f"typevar({t.__name__})"
 
     return str(t)
-

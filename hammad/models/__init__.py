@@ -8,7 +8,7 @@ model-like objects, please use `hammad.types`.
 """
 
 from typing import TYPE_CHECKING
-from .._common._utils._loader import _auto_create_getattr_loader
+from .._common._loader import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .model import Model, model_settings
