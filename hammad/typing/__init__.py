@@ -7,40 +7,37 @@ resources."""
 
 from typing import Any, TYPE_CHECKING
 import typing_inspect as inspection
-from .._common._utils._loader import _auto_create_getattr_loader
 
+try:
+    from typing_extensions import *
+except ImportError:
+    from typing import *
 
-if TYPE_CHECKING:
-    try:
-        from typing_extensions import *
-    except ImportError:
-        from typing import *
-
-    from typing_inspect import (
-        is_callable_type,
-        is_classvar,
-        is_final_type,
-        is_forward_ref,
-        is_generic_type,
-        is_literal_type,
-        is_new_type,
-        is_optional_type,
-        is_union_type,
-        is_typevar,
-        is_tuple_type,
-        get_origin,
-        get_args,
-        get_last_args,
-        get_last_origin,
-        get_generic_bases,
-        typed_dict_keys as get_typed_dict_keys,
-    )
-    from typing_inspection.introspection import (
-        is_union_origin,
-        inspect_annotation,
-        get_literal_values,
-    )
-    from dataclasses import is_dataclass
+from typing_inspect import (
+    is_callable_type,
+    is_classvar,
+    is_final_type,
+    is_forward_ref,
+    is_generic_type,
+    is_literal_type,
+    is_new_type,
+    is_optional_type,
+    is_union_type,
+    is_typevar,
+    is_tuple_type,
+    get_origin,
+    get_args,
+    get_last_args,
+    get_last_origin,
+    get_generic_bases,
+    typed_dict_keys as get_typed_dict_keys,
+)
+from typing_inspection.introspection import (
+    is_union_origin,
+    inspect_annotation,
+    get_literal_values,
+)
+from dataclasses import is_dataclass
 
 __all__ = (
     # Super-special typing primitives.
@@ -409,78 +406,3 @@ def get_type_description(t: "Any") -> str:
 
     return str(t)
 
-
-if TYPE_CHECKING:
-    pass
-
-
-def create_lazy_loader(imports_dict: dict[str, str], package: str):
-    """Create a lazy loader function for __getattr__.
-
-    Args:
-        imports_dict: Dictionary mapping attribute names to their module paths
-        package: The package name for import_module
-
-    Returns:
-        A __getattr__ function that lazily imports modules
-    """
-
-    def __getattr__(name: str):
-        if name in imports_dict:
-            from importlib import import_module
-
-            module = import_module(imports_dict[name], package)
-            return getattr(module, name)
-        raise AttributeError(f"module '{package}' has no attribute '{name}'")
-
-    return __getattr__
-
-
-def parse_type_checking_imports(source_code: str) -> dict[str, str]:
-    """Parse TYPE_CHECKING imports from source code to build import map.
-
-    This is a simple parser that extracts import information from
-    TYPE_CHECKING blocks to automatically build the module map.
-
-    Args:
-        source_code: The source code containing TYPE_CHECKING imports
-
-    Returns:
-        Dictionary mapping imported names to their module paths
-    """
-    import ast
-    import re
-
-    # Parse the source code
-    tree = ast.parse(source_code)
-
-    imports_map = {}
-    in_type_checking = False
-
-    for node in ast.walk(tree):
-        # Check if we're in a TYPE_CHECKING block
-        if isinstance(node, ast.If):
-            if (
-                isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING"
-            ) or (
-                isinstance(node.test, ast.Attribute)
-                and isinstance(node.test.value, ast.Name)
-                and node.test.value.id == "typing"
-                and node.test.attr == "TYPE_CHECKING"
-            ):
-                # Process imports in the TYPE_CHECKING block
-                for stmt in node.body:
-                    if isinstance(stmt, ast.ImportFrom):
-                        module = stmt.module or ""
-                        for alias in stmt.names:
-                            name = alias.asname or alias.name
-                            imports_map[name] = f".{module}"
-
-    return imports_map
-
-
-__getattr__ = _auto_create_getattr_loader(__all__)
-
-
-def __dir__() -> list[str]:
-    return list(__all__)
