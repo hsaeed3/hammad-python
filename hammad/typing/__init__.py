@@ -205,7 +205,7 @@ class TypingError(Exception):
 # ------------------------------------------------------------------------
 
 
-def is_pydantic_basemodel(t: 'Any') -> bool:
+def is_pydantic_basemodel(t: "Any") -> bool:
     """Check if an object is a Pydantic BaseModel class or instance using duck typing.
 
     This function uses duck typing to identify Pydantic BaseModel objects by checking
@@ -246,7 +246,7 @@ def is_pydantic_basemodel(t: 'Any') -> bool:
     )
 
 
-def is_pydantic_basemodel_instance(t: 'Any') -> bool:
+def is_pydantic_basemodel_instance(t: "Any") -> bool:
     """Check if an object is an instance (not class) of a Pydantic BaseModel using duck typing.
 
     This function specifically identifies Pydantic BaseModel instances by ensuring
@@ -277,7 +277,7 @@ def is_pydantic_basemodel_instance(t: 'Any') -> bool:
     )
 
 
-def is_msgspec_struct(t: 'Any') -> bool:
+def is_msgspec_struct(t: "Any") -> bool:
     """Check if an object is a msgspec Struct class or instance using duck typing.
 
     This function uses duck typing to identify msgspec Struct objects by checking
@@ -305,7 +305,7 @@ def is_msgspec_struct(t: 'Any') -> bool:
     return hasattr(t, "__struct_fields__") and hasattr(t, "__struct_config__")
 
 
-def get_type_description(t: 'Any') -> str:
+def get_type_description(t: "Any") -> str:
     """Creates a human-readable description of a type hint.
 
     Args:
