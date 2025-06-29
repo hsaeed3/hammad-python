@@ -22,6 +22,7 @@ dependencies = [
     "docstring-parser>=0.16",
     "pyyaml>=6.0.2",
     "python-dotenv>=1.1.0",
+    "sqlalchemy>=2.0.41",
 ]
 
 [build-system]
@@ -38,6 +39,9 @@ ai = [
     "openai-agents>=0.0.19",
     "qdrant-client>=1.14.3",
 ]
+fastembed = [
+    "fastembed"
+]
 serve = [
     "fastapi>=0.115.8",
     "uvicorn>=0.34.0",
@@ -52,6 +56,11 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "twine>=6.1.0",
+
+    "ipython",
+    "ipykernel",
+
+    "marimo",
 
     "mkdocs",
     "mkdocstrings[python]",
