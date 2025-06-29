@@ -1,11 +1,11 @@
-"""hammad.models.base
+"""hammad.base
 
 Contains resources that build the `Model` & `field` components.
 This system is built to 'mock' a Pydantic Model, using `msgspec` for faster
 serialization as well as extended functionality through the model."""
 
 from typing import TYPE_CHECKING
-from ..._internal import _auto_create_getattr_loader
+from .._internal import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .model import Model, model_settings

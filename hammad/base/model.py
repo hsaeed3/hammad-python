@@ -1,4 +1,4 @@
-"""hammad.core.base.model"""
+"""hammad.base.model"""
 
 import copy
 from functools import lru_cache

@@ -1,4 +1,4 @@
-"""hammad.core.base.fields"""
+"""hammad.base.fields"""
 
 import re
 from dataclasses import dataclass
