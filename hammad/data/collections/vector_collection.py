@@ -25,6 +25,16 @@ except ImportError as e:
     ) from e
 
 from .base_collection import BaseCollection, Object, Filters, Schema
+from ...ai.embeddings.create import (
+    create_embeddings,
+    async_create_embeddings,
+)
+from ...ai.embeddings.client.fastembed_text_embeddings_client import (
+    FastEmbedTextEmbeddingModel,
+)
+from ...ai.embeddings.client.litellm_embeddings_client import (
+    LiteLlmEmbeddingModel,
+)
 
 __all__ = ("VectorCollection",)
 
@@ -50,6 +60,22 @@ class VectorCollection(BaseCollection, Generic[Object]):
         distance_metric: Distance = Distance.DOT,
         qdrant_config: Optional[Dict[str, Any]] = None,
         embedding_function: Optional[Callable[[Any], List[float]]] = None,
+        model: Optional[str] = None,
+        # Common embedding parameters
+        format: bool = False,
+        # LiteLLM parameters
+        dimensions: Optional[int] = None,
+        encoding_format: Optional[str] = None,
+        timeout: Optional[int] = None,
+        api_base: Optional[str] = None,
+        api_version: Optional[str] = None,
+        api_key: Optional[str] = None,
+        api_type: Optional[str] = None,
+        caching: bool = False,
+        user: Optional[str] = None,
+        # FastEmbed parameters
+        parallel: Optional[int] = None,
+        batch_size: Optional[int] = None,
     ):
         """
         Initialize a vector collection.
@@ -71,6 +97,23 @@ class VectorCollection(BaseCollection, Generic[Object]):
                               "api_key": "your-api-key"
                           }
             embedding_function: Optional function to convert objects to vectors
+            model: Optional model name (e.g., 'fastembed/BAAI/bge-small-en-v1.5', 'openai/text-embedding-3-small')
+            format: Whether to format each non-string input as a markdown string
+
+            # LiteLLM-specific parameters:
+            dimensions: The dimensions of the embedding
+            encoding_format: The encoding format of the embedding (e.g. "float", "base64")
+            timeout: The timeout for the embedding request
+            api_base: The base URL for the embedding API
+            api_version: The version of the embedding API
+            api_key: The API key for the embedding API
+            api_type: The type of the embedding API
+            caching: Whether to cache the embedding
+            user: The user for the embedding
+
+            # FastEmbed-specific parameters:
+            parallel: The number of parallel processes to use for the embedding
+            batch_size: The batch size to use for the embedding
         """
         self.name = name
         self.vector_size = vector_size
@@ -79,6 +122,29 @@ class VectorCollection(BaseCollection, Generic[Object]):
         self.distance_metric = distance_metric
         self._storage_backend = storage_backend
         self._embedding_function = embedding_function
+        self._model = model
+
+        # Store embedding parameters
+        self._embedding_params = {
+            "format": format,
+            # LiteLLM parameters
+            "dimensions": dimensions,
+            "encoding_format": encoding_format,
+            "timeout": timeout,
+            "api_base": api_base,
+            "api_version": api_version,
+            "api_key": api_key,
+            "api_type": api_type,
+            "caching": caching,
+            "user": user,
+            # FastEmbed parameters
+            "parallel": parallel,
+            "batch_size": batch_size,
+        }
+
+        # If model is provided, create embedding function
+        if model:
+            self._embedding_function = self._create_embedding_function(model)
 
         # Store qdrant configuration
         self._qdrant_config = qdrant_config or {}
@@ -91,6 +157,28 @@ class VectorCollection(BaseCollection, Generic[Object]):
 
         # Initialize Qdrant client
         self._init_qdrant_client()
+
+    def _create_embedding_function(
+        self,
+        model_name: str,
+    ) -> Callable[[Any], List[float]]:
+        """Create an embedding function from a model name."""
+
+        def embedding_function(text: Any) -> List[float]:
+            if not isinstance(text, str):
+                text = str(text)
+
+            # Filter out None values from embedding parameters
+            embedding_kwargs = {
+                k: v for k, v in self._embedding_params.items() if v is not None
+            }
+            embedding_kwargs["model"] = model_name
+            embedding_kwargs["input"] = text
+
+            response = create_embeddings(**embedding_kwargs)
+            return response.data[0].embedding
+
+        return embedding_function
 
     def _init_qdrant_client(self):
         """Initialize the Qdrant client and collection."""
@@ -257,18 +345,28 @@ class VectorCollection(BaseCollection, Generic[Object]):
     def add(
         self,
         entry: Object,
-        *,
         id: Optional[str] = None,
+        *,
         filters: Optional[Filters] = None,
         ttl: Optional[int] = None,
-    ) -> None:
-        """Add an item to the collection."""
+    ) -> str:
+        """Add an item to the collection.
+
+        Args:
+            entry: The object/data to store
+            id: Optional ID for the item (will generate UUID if not provided)
+            filters: Optional metadata filters
+            ttl: Time-to-live in seconds
+
+        Returns:
+            The ID of the added item
+        """
         if self._storage_backend is not None:
             # Delegate to storage backend
             self._storage_backend.add(
                 entry, id=id, collection=self.name, filters=filters, ttl=ttl
             )
-            return
+            return id or str(uuid.uuid4())
 
         # Independent operation
         item_id = id or str(uuid.uuid4())
@@ -313,24 +411,32 @@ class VectorCollection(BaseCollection, Generic[Object]):
 
         self._client.upsert(collection_name=self.name, points=[point])
 
+        return item_id
+
     def query(
         self,
+        query: Optional[str] = None,
         *,
         filters: Optional[Filters] = None,
-        search: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> List[Object]:
-        """Query items from the collection."""
+        """Query items from the collection.
+
+        Args:
+            query: Search query string. If provided, performs semantic similarity search.
+            filters: Optional filters to apply
+            limit: Maximum number of results to return
+        """
         if self._storage_backend is not None:
             return self._storage_backend.query(
                 collection=self.name,
                 filters=filters,
-                search=search,
+                search=query,
                 limit=limit,
             )
 
         # For basic query without vector search, just return all items with filters
-        if search is None:
+        if query is None:
             return self._query_all(filters=filters, limit=limit)
 
         # If search is provided but no embedding function, treat as error
@@ -341,7 +447,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
             )
 
         # Convert search to vector and perform similarity search
-        query_vector = self._embedding_function(search)
+        query_vector = self._embedding_function(query)
         return self.vector_search(
             query_vector=query_vector, filters=filters, limit=limit
         )
@@ -386,7 +492,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
         query_vector: Union[List[float], np.ndarray],
         *,
         filters: Optional[Filters] = None,
-        limit: Optional[int] = None,
+        limit: int = 10,
         score_threshold: Optional[float] = None,
     ) -> List[Object]:
         """
@@ -395,7 +501,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
         Args:
             query_vector: Query vector for similarity search
             filters: Optional filters to apply
-            limit: Maximum number of results to return
+            limit: Maximum number of results to return (default: 10)
             score_threshold: Minimum similarity score threshold
 
         Returns:
@@ -414,7 +520,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
                 collection_name=self.name,
                 query=query_vector,
                 query_filter=self._build_qdrant_filter(filters),
-                limit=limit or 10,
+                limit=limit,
                 score_threshold=score_threshold,
                 with_payload=True,
                 with_vectors=False,

@@ -4,7 +4,7 @@ Contains both models and pydantic **specific** utiltiies / resources
 meant for general case usage."""
 
 from typing import TYPE_CHECKING
-from ..based.utils import auto_create_lazy_loader
+from .._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .converters import (
@@ -35,7 +35,7 @@ __all__ = (
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:

@@ -28,7 +28,7 @@ from typing import (
 )
 from pydantic import BaseModel, Field, create_model
 
-from ..cache._cache import cached
+from ..cache.decorators import cached
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 """hammad.data.collections"""
 
 from typing import TYPE_CHECKING
-from ...based.utils import auto_create_lazy_loader
+from ..._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .base_collection import BaseCollection
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         create_collection,
         VectorCollectionSettings,
         SearchableCollectionSettings,
+        Collection,
     )
 
 
@@ -21,10 +22,11 @@ __all__ = (
     "create_collection",
     "VectorCollectionSettings",
     "SearchableCollectionSettings",
+    "Collection",
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:

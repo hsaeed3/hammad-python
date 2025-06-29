@@ -1,118 +1,179 @@
 """hammad-python
 
-A collection of rapid, opinionated, cookie-cutter like resources for
-Python applications and development."""
-
-# NOTE:
-# all resources imported to the top level are lazy loaded within their
-# respective modules.
-
-from .based.utils import auto_create_lazy_loader
+```markdown
+## Happliy Accelerated Micro Modules (for) Application Development
+```
+"""
 
 from typing import TYPE_CHECKING
+from ._core._utils._import_utils import _auto_create_getattr_loader
+
+
 if TYPE_CHECKING:
-    # `hammad.based`
-    from .based import (
-        BasedModel,
-        basedfield,
-        based_validator,
-        create_basedmodel,
+    # hammad.ai
+    # NOTE:
+    # TO USE MODULES FROM THE `hammad.ai` EXTENSION,
+    # REQUIRES INSTALLATION OF THE `hammad-python[ai]` PACKAGE.
+    from .ai import (
+        create_completion,
+        async_create_completion,
+        create_embeddings,
+        async_create_embeddings,
     )
-    from .based.utils import install, is_basedfield, is_basedmodel
 
-    # `hammad.cache`
-    from .cache import cached, auto_cached, create_cache
+    # hammad.base
+    from .base import Model, field, create_model, is_field, is_model, validator
 
-    # `hammad.cli`
-    from .cli import input, print, animate
+    # hammad.cache
+    from .cache import Cache, cached, auto_cached, create_cache
 
-    # `hammad.data`
-    from .data import create_collection, create_database
+    # hammad.cli
+    from .cli import print, animate, input
 
-    # `hammad.json`
-    from .json import convert_to_json_schema
+    # hammad.configuration
+    from .configuration import (
+        Configuration,
+        read_configuration_from_os_vars,
+        read_configuration_from_dotenv,
+        read_configuration_from_file,
+        read_configuration_from_url,
+        read_configuration_from_os_prefix,
+    )
 
-    # `hammad.logging`
+    # hammad.data
+    from .data import Collection, Database, create_collection, create_database
+
+    # hammad.json
+    from .json import encode_json, decode_json, convert_to_json_schema
+
+    # hammad.logging
     from .logging import (
+        Logger,
         create_logger,
-        create_logger_level,
-        # NOTE: decorators
         trace,
         trace_cls,
         trace_function,
+        trace_http,
+        install_trace_http,
     )
 
-    # `hammad.pydantic`
+    # hammad.multithreading
+    from .multithreading import (
+        run_parallel,
+        run_sequentially,
+        run_with_retry,
+        retry,
+    )
+
+    # hammad.pydantic
     from .pydantic import (
-        convert_to_pydantic_model,
         convert_to_pydantic_field,
-        create_confirmation_pydantic_model,
-        create_selection_pydantic_model,
+        convert_to_pydantic_model,
     )
 
-    # `hammad.text`
+    # hammad.text
     from .text import (
-        convert_docstring_to_text,
+        Text,
+        OutputText,
+        SimpleText,
         convert_to_text,
         convert_type_to_text,
+        convert_docstring_to_text,
     )
 
-    # `hammad.web`
+    # hammad.web
     from .web import (
         create_http_client,
         create_openapi_client,
         create_search_client,
-        read_web_page,
-        read_web_pages,
-        run_web_request,
         search_news,
         search_web,
+        run_web_request,
+        read_web_page,
+        read_web_pages,
         extract_page_links,
     )
 
+    # hammad.yaml
+    from .yaml import encode_yaml, decode_yaml, read_yaml_file
+
 
 __all__ = (
-    "BasedModel",
-    "basedfield",
-    "based_validator",
-    "create_basedmodel",
-    "install",
-    "is_basedfield",
-    "is_basedmodel",
+    # hammad.ai
+    "create_completion",
+    "async_create_completion",
+    "create_embeddings",
+    "async_create_embeddings",
+    # hammad.base
+    "Model",
+    "field",
+    "create_model",
+    # hammad.cache
+    "Cache",
     "cached",
     "auto_cached",
     "create_cache",
-    "input",
+    # hammad.cli
     "print",
     "animate",
+    "input",
+    # hammad.configuration
+    "Configuration",
+    "read_configuration_from_os_vars",
+    "read_configuration_from_dotenv",
+    "read_configuration_from_file",
+    "read_configuration_from_url",
+    "read_configuration_from_os_prefix",
+    # hammad.data
+    "Collection",
+    "Database",
     "create_collection",
     "create_database",
+    # hammad.json
+    "encode_json",
+    "decode_json",
     "convert_to_json_schema",
+    # hammad.logging
+    "Logger",
     "create_logger",
-    "create_logger_level",
     "trace",
     "trace_cls",
     "trace_function",
-    "convert_to_pydantic_model",
+    "trace_http",
+    "install_trace_http",
+    # hammad.multithreading
+    "run_parallel",
+    "run_sequentially",
+    "run_with_retry",
+    "retry",
+    # hammad.pydantic
     "convert_to_pydantic_field",
-    "create_confirmation_pydantic_model",
-    "create_selection_pydantic_model",
-    "convert_docstring_to_text",
+    "convert_to_pydantic_model",
+    # hammad.text
+    "Text",
+    "OutputText",
+    "SimpleText",
     "convert_to_text",
     "convert_type_to_text",
+    "convert_docstring_to_text",
+    # hammad.web
     "create_http_client",
     "create_openapi_client",
     "create_search_client",
-    "read_web_page",
-    "read_web_pages",
-    "run_web_request",
     "search_news",
     "search_web",
+    "run_web_request",
+    "read_web_page",
+    "read_web_pages",
     "extract_page_links",
+    # hammad.yaml
+    "encode_yaml",
+    "decode_yaml",
+    "read_yaml_file",
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:

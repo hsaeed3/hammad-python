@@ -1,37 +1,82 @@
 """hammad.text"""
 
 from typing import TYPE_CHECKING
-from ..based.utils import auto_create_lazy_loader
+from .._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
-    from .text import (
-        Text,
-        CodeSection,
-        SchemaSection,
-        SimpleText,
-        OutputText,
+    from .converters import (
+        convert_collection_to_text,
+        convert_dataclass_to_text,
+        convert_dict_to_text,
+        convert_docstring_to_text,
+        convert_function_to_text,
+        convert_pydantic_to_text,
+        convert_type_to_text,
+        convert_to_text,
     )
-    from .utils.converters import convert_docstring_to_text, convert_type_to_text
-    from .utils.markdown.converters import (
-        convert_to_markdown as convert_to_text,
+    from .markdown import (
+        markdown_blockquote,
+        markdown_bold,
+        markdown_code,
+        markdown_code_block,
+        markdown_heading,
+        markdown_horizontal_rule,
+        markdown_italic,
+        markdown_link,
+        markdown_list_item,
+        markdown_table,
+        markdown_table_row,
+    )
+    from .text import (
+        BaseText,
+        Text,
+        OutputText,
+        OutputFormat,
+        HeadingStyle,
+        CodeSection,
+        SimpleText,
+        SchemaSection,
+        UserResponse,
     )
 
 
 __all__ = (
-    "Text",
-    "CodeSection",
-    "SchemaSection",
-    "SimpleText",
-    "OutputText",
+    # hammad.text.converters
+    "convert_collection_to_text",
+    "convert_dataclass_to_text",
+    "convert_dict_to_text",
     "convert_docstring_to_text",
+    "convert_function_to_text",
+    "convert_pydantic_to_text",
     "convert_type_to_text",
     "convert_to_text",
+    # hammad.text.markdown
+    "markdown_blockquote",
+    "markdown_bold",
+    "markdown_code",
+    "markdown_code_block",
+    "markdown_heading",
+    "markdown_horizontal_rule",
+    "markdown_italic",
+    "markdown_link",
+    "markdown_list_item",
+    "markdown_table",
+    "markdown_table_row",
+    # hammad.text.text
+    "BaseText",
+    "Text",
+    "OutputText",
+    "OutputFormat",
+    "HeadingStyle",
+    "CodeSection",
+    "SimpleText",
+    "SchemaSection",
+    "UserResponse",
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:
-    """Get the attributes of the text module."""
     return list(__all__)

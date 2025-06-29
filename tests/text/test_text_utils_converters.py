@@ -1,7 +1,7 @@
 import pytest
-from hammad.text.utils.converters import (
-    convert_docstring_to_text,
+from hammad.text.converters import (
     convert_type_to_text,
+    convert_docstring_to_text,
 )
 from dataclasses import dataclass
 from typing import Optional, Union, List, Dict

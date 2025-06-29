@@ -1,30 +1,48 @@
-"""hammad.cache"""
+"""hammad.cache
+
+Contains helpful resources for creating simple cache systems, and
+decorators that implement "automatic" hashing & caching of function calls.
+"""
 
 from typing import TYPE_CHECKING
-from ..based.utils import auto_create_lazy_loader
+from .._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
-    from ._cache import (
-        TTLCache,
-        DiskCache,
-        CacheParams,
-        CacheReturn,
+    from .base_cache import BaseCache, CacheParams, CacheReturn, CacheType
+    from .file_cache import FileCache
+    from .ttl_cache import TTLCache
+    from .cache import Cache, create_cache
+    from .decorators import (
         cached,
         auto_cached,
-        create_cache,
+        get_decorator_cache,
+        clear_decorator_cache,
     )
 
 
 __all__ = (
-    "auto_cached",
-    "cached",
+    # hammad.cache.base_cache
+    "BaseCache",
+    "CacheParams",
+    "CacheReturn",
+    "CacheType",
+    # hammad.cache.file_cache
+    "FileCache",
+    # hammad.cache.ttl_cache
+    "TTLCache",
+    # hammad.cache.cache
+    "Cache",
     "create_cache",
+    # hammad.cache.decorators
+    "cached",
+    "auto_cached",
+    "get_decorator_cache",
+    "clear_decorator_cache",
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:
-    """Get the attributes of the cache module."""
     return list(__all__)

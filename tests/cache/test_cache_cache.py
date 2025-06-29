@@ -1,5 +1,10 @@
 import pytest
-from hammad.cache._cache import cached, auto_cached, Cache, DiskCache, TTLCache
+
+from hammad.cache.cache import Cache
+from hammad.cache.decorators import cached, auto_cached
+from hammad.cache.file_cache import FileCache
+from hammad.cache.ttl_cache import TTLCache
+
 import tempfile
 import shutil
 from typing import Any, Optional, Type
@@ -120,9 +125,9 @@ def test_ttlcache_eviction_and_expiry(monkeypatch):
     assert f(1) == 2  # Should recompute, as expired
 
 
-def test_diskcache_persistence():
+def test_filecache_persistence():
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache = DiskCache(location=tmpdir)
+        cache = FileCache(location=tmpdir)
 
         @cached(cache=cache)
         def f(x):
@@ -131,7 +136,7 @@ def test_diskcache_persistence():
         assert f(5) == 15
         assert f(5) == 15  # Should be cached
         # Remove from memory, reload from disk
-        cache2 = DiskCache(location=tmpdir)
+        cache2 = FileCache(location=tmpdir)
 
         @cached(cache=cache2)
         def g(x):
@@ -147,8 +152,8 @@ def test_cache_factory_ttl_and_disk():
     assert ttl_cache.ttl == 10
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        disk_cache = Cache(type="disk", location=tmpdir)
-        assert isinstance(disk_cache, DiskCache)
+        disk_cache = Cache(type="file", location=tmpdir)
+        assert isinstance(disk_cache, FileCache)
         assert disk_cache.location == tmpdir
 
 
@@ -157,8 +162,8 @@ def test_cache_factory_invalid_type():
         Cache(type="unknown")
 
 
-def test_diskcache_clear(tmp_path):
-    cache = DiskCache(location=str(tmp_path))
+def test_filecache_clear(tmp_path):
+    cache = FileCache(location=str(tmp_path))
 
     @cached(cache=cache)
     def f(x):

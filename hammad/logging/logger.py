@@ -35,7 +35,7 @@ from ..cli.styles.types import (
     CLIStyleType,
 )
 from ..cli.styles.settings import CLIStyleRenderableSettings, CLIStyleBackgroundSettings
-from ..cli.styles.animations import (
+from ..cli.animations import (
     animate_spinning,
 )
 

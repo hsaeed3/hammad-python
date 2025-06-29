@@ -1,6 +1,6 @@
 """hammad.logging.tracers"""
 
-from functools import wraps, update_wrapper
+from functools import wraps
 from typing import (
     Any,
     Callable,
@@ -10,9 +10,10 @@ from typing import (
     overload,
     Union,
     Type,
-    Dict,
     Optional,
+    Awaitable,
 )
+import asyncio
 
 import logging
 import time
@@ -31,6 +32,8 @@ __all__ = (
     "trace_function",
     "trace_cls",
     "trace",
+    "trace_http",
+    "install_trace_http",
 )
 
 
@@ -430,3 +433,402 @@ def trace(
     else:
         # Called directly: @log
         return decorator(func_or_cls)
+
+
+def trace_http(
+    fn_or_call: Union[Callable[_P, _R], Callable[_P, Awaitable[_R]], Any, None] = None,
+    *,
+    show_request: bool = True,
+    show_response: bool = True,
+    request_exclude_none: bool = True,
+    response_exclude_none: bool = False,
+    logger: Union[logging.Logger, Logger, None] = None,
+    level: Union[LoggerLevelName, str, int] = "debug",
+    rich: bool = True,
+    style: Union[CLIStyleType, str] = "white",
+    bg: Union[CLIStyleBackgroundType, str] = None,  # noqa: ARG001
+) -> Any:
+    """Wraps any function that makes HTTP requests, and displays only the request / response
+    bodies in a pretty panel. Can be used as a decorator or direct function wrapper.
+
+    Usage patterns:
+    1. As decorator: @trace_http
+    2. As decorator with params: @trace_http(show_request=False)
+    3. Direct function call: trace_http(my_function(), show_request=True)
+    4. Direct async function call: await trace_http(my_async_function(), show_request=True)
+
+    Args:
+        fn_or_call: The function to wrap, or the result of a function call.
+        show_request: Whether to show the request body.
+        show_response: Whether to show the response body.
+        request_exclude_none: Whether to exclude None values from request logging.
+        response_exclude_none: Whether to exclude None values from response logging.
+        logger: The logger to use.
+        level: The logging level.
+        rich: Whether to use rich formatting.
+        style: The style to use for the logging.
+        bg: The background to use for the logging (kept for API consistency).
+
+    Returns:
+        The decorated function, a decorator function, or the traced result.
+    """
+
+    def _get_logger(name: str) -> Logger:
+        """Get or create a logger."""
+        if logger is None:
+            return create_logger(name=name, level=level, rich=rich)
+        elif isinstance(logger, Logger):
+            return logger
+        else:
+            # It's a standard logging.Logger, wrap it
+            _logger = create_logger(name=logger.name)
+            _logger._logger = logger
+            return _logger
+
+    def _log_request_info(
+        bound_args: inspect.BoundArguments,
+        func_name: str,
+        module_name: str,
+        _logger: Logger,
+    ):
+        """Log HTTP request information."""
+        if not show_request:
+            return
+
+        # Simply log all arguments passed to the function
+        args_info = []
+        for param_name, param_value in bound_args.arguments.items():
+            # Skip None values if requested
+            if request_exclude_none and param_value is None:
+                continue
+            args_info.append(f"{param_name}: {repr(param_value)}")
+
+        if args_info:
+            if rich:
+                request_msg = f"[{style}]🌐 HTTP Request from {module_name}.{func_name}()[/{style}]"
+                request_msg += f"\n  " + "\n  ".join(args_info)
+            else:
+                request_msg = f"🌐 HTTP Request from {module_name}.{func_name}()"
+                request_msg += f"\n  " + "\n  ".join(args_info)
+
+            _logger.log(level, request_msg)
+
+    def _log_response_info(
+        result: Any, exec_time: float, func_name: str, module_name: str, _logger: Logger
+    ):
+        """Log HTTP response information."""
+        if not show_response:
+            return
+
+        # Skip None responses if requested
+        if response_exclude_none and result is None:
+            return
+
+        # Simply log the response as a string representation
+        result_str = str(result)
+        truncated_result = result_str[:500] + ("..." if len(result_str) > 500 else "")
+
+        if rich:
+            response_msg = f"[{style}]📥 HTTP Response to {module_name}.{func_name}() [dim](took {exec_time:.3f}s)[/dim][/{style}]"
+            response_msg += f"\n  Response: {truncated_result}"
+        else:
+            response_msg = f"📥 HTTP Response to {module_name}.{func_name}() (took {exec_time:.3f}s)"
+            response_msg += f"\n  Response: {truncated_result}"
+
+        _logger.log(level, response_msg)
+
+    def _log_error_info(
+        e: Exception,
+        exec_time: float,
+        func_name: str,
+        module_name: str,
+        _logger: Logger,
+    ):
+        """Log HTTP error information."""
+        error_style = "bold red" if rich else None
+        if rich:
+            error_msg = f"[{error_style}]❌ HTTP Error in {module_name}.{func_name}() [dim](after {exec_time:.3f}s)[/dim][/{error_style}]"
+            error_msg += f"\n  [red]{type(e).__name__}: {str(e)}[/red]"
+        else:
+            error_msg = (
+                f"❌ HTTP Error in {module_name}.{func_name}() (after {exec_time:.3f}s)"
+            )
+            error_msg += f"\n  {type(e).__name__}: {str(e)}"
+
+        _logger.error(error_msg)
+
+    def decorator(
+        target_fn: Union[Callable[_P, _R], Callable[_P, Awaitable[_R]]],
+    ) -> Union[Callable[_P, _R], Callable[_P, Awaitable[_R]]]:
+        """Decorator that wraps sync or async functions."""
+
+        if asyncio.iscoroutinefunction(target_fn):
+            # Async function
+            @wraps(target_fn)
+            async def async_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                _logger = _get_logger(
+                    f"http.{target_fn.__module__}.{target_fn.__name__}"
+                )
+
+                # Get function signature for parameter inspection
+                sig = inspect.signature(target_fn)
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+
+                func_name = target_fn.__name__
+                module_name = target_fn.__module__
+
+                # Log request info
+                _log_request_info(bound_args, func_name, module_name, _logger)
+
+                # Track execution time
+                start_time = time.time()
+
+                try:
+                    # Execute the async function
+                    result = await target_fn(*args, **kwargs)
+
+                    # Calculate execution time
+                    exec_time = time.time() - start_time
+
+                    # Log response info
+                    _log_response_info(
+                        result, exec_time, func_name, module_name, _logger
+                    )
+
+                    return result
+
+                except Exception as e:
+                    # Calculate execution time
+                    exec_time = time.time() - start_time
+
+                    # Log error info
+                    _log_error_info(e, exec_time, func_name, module_name, _logger)
+
+                    # Re-raise the exception
+                    raise
+
+            return async_wrapper
+        else:
+            # Sync function
+            @wraps(target_fn)
+            def sync_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                _logger = _get_logger(
+                    f"http.{target_fn.__module__}.{target_fn.__name__}"
+                )
+
+                # Get function signature for parameter inspection
+                sig = inspect.signature(target_fn)
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+
+                func_name = target_fn.__name__
+                module_name = target_fn.__module__
+
+                # Log request info
+                _log_request_info(bound_args, func_name, module_name, _logger)
+
+                # Track execution time
+                start_time = time.time()
+
+                try:
+                    # Execute the function
+                    result = target_fn(*args, **kwargs)
+
+                    # Calculate execution time
+                    exec_time = time.time() - start_time
+
+                    # Log response info
+                    _log_response_info(
+                        result, exec_time, func_name, module_name, _logger
+                    )
+
+                    return result
+
+                except Exception as e:
+                    # Calculate execution time
+                    exec_time = time.time() - start_time
+
+                    # Log error info
+                    _log_error_info(e, exec_time, func_name, module_name, _logger)
+
+                    # Re-raise the exception
+                    raise
+
+            return sync_wrapper
+
+    # Handle different usage patterns
+    if fn_or_call is None:
+        # Called with parameters: @trace_http(show_request=False)
+        return decorator
+    elif callable(fn_or_call):
+        # Called directly as decorator: @trace_http
+        return decorator(fn_or_call)
+    else:
+        # Called with a function result: trace_http(some_function(), ...)
+        # In this case, we can't trace the function call since it's already executed
+        # But we can still log the response
+        _logger = _get_logger("http.direct_call")
+
+        if show_response and fn_or_call is not None:
+            _log_response_info(fn_or_call, 0.0, "direct_call", "trace_http", _logger)
+
+        return fn_or_call
+
+
+def install_trace_http(
+    *,
+    show_request: bool = True,
+    show_response: bool = True,
+    request_exclude_none: bool = True,
+    response_exclude_none: bool = False,
+    logger: Union[logging.Logger, Logger, None] = None,
+    level: Union[LoggerLevelName, str, int] = "debug",
+    rich: bool = True,
+    style: Union[CLIStyleType, str] = "white",
+    bg: Union[CLIStyleBackgroundType, str] = None,  # noqa: ARG001
+    patch_imports: bool = True,
+) -> None:
+    """Install global HTTP tracing for all HTTP-related functions.
+
+    This function patches common HTTP libraries to automatically trace all
+    HTTP requests and responses without needing to manually decorate functions.
+
+    Args:
+        show_request: Whether to show the request body.
+        show_response: Whether to show the response body.
+        request_exclude_none: Whether to exclude None values from request logging.
+        response_exclude_none: Whether to exclude None values from response logging.
+        logger: The logger to use.
+        level: The logging level.
+        rich: Whether to use rich formatting.
+        style: The style to use for the logging.
+        bg: The background to use for the logging (kept for API consistency).
+        patch_imports: Whether to also patch the import mechanism for future imports.
+    """
+    import sys
+
+    # Create a tracer function with the specified settings
+    def create_tracer(original_func):
+        return trace_http(
+            original_func,
+            show_request=show_request,
+            show_response=show_response,
+            request_exclude_none=request_exclude_none,
+            response_exclude_none=response_exclude_none,
+            logger=logger,
+            level=level,
+            rich=rich,
+            style=style,
+            bg=bg,
+        )
+
+    # List of common HTTP libraries and their functions to patch
+    patches = [
+        # requests library
+        ("requests", "get"),
+        ("requests", "post"),
+        ("requests", "put"),
+        ("requests", "delete"),
+        ("requests", "patch"),
+        ("requests", "head"),
+        ("requests", "options"),
+        ("requests", "request"),
+        # httpx library
+        ("httpx", "get"),
+        ("httpx", "post"),
+        ("httpx", "put"),
+        ("httpx", "delete"),
+        ("httpx", "patch"),
+        ("httpx", "head"),
+        ("httpx", "options"),
+        ("httpx", "request"),
+        # urllib3
+        ("urllib3", "request"),
+        # aiohttp
+        ("aiohttp", "request"),
+    ]
+
+    patched_functions = []
+
+    for module_name, func_name in patches:
+        try:
+            # Check if module is already imported
+            if module_name in sys.modules:
+                module = sys.modules[module_name]
+
+                # Handle nested module paths like "openai.chat.completions"
+                if "." in module_name:
+                    module_parts = module_name.split(".")
+                    for part in module_parts[1:]:
+                        if hasattr(module, part):
+                            module = getattr(module, part)
+                        else:
+                            break
+                    else:
+                        # Successfully navigated to nested module
+                        if hasattr(module, func_name):
+                            original_func = getattr(module, func_name)
+                            traced_func = create_tracer(original_func)
+                            setattr(module, func_name, traced_func)
+                            patched_functions.append(f"{module_name}.{func_name}")
+                else:
+                    # Simple module path
+                    if hasattr(module, func_name):
+                        original_func = getattr(module, func_name)
+                        traced_func = create_tracer(original_func)
+                        setattr(module, func_name, traced_func)
+                        patched_functions.append(f"{module_name}.{func_name}")
+
+                        # Special handling for litellm - also patch litellm.main if available
+                        if module_name == "litellm" and "litellm.main" in sys.modules:
+                            main_module = sys.modules["litellm.main"]
+                            if hasattr(main_module, func_name):
+                                setattr(main_module, func_name, traced_func)
+
+            # Also check if the nested module exists in sys.modules for litellm.main case
+            elif "." in module_name and module_name in sys.modules:
+                module = sys.modules[module_name]
+                if hasattr(module, func_name):
+                    original_func = getattr(module, func_name)
+                    traced_func = create_tracer(original_func)
+                    setattr(module, func_name, traced_func)
+                    patched_functions.append(f"{module_name}.{func_name}")
+
+                    # If this is litellm.main, also patch the main litellm module
+                    if module_name == "litellm.main" and "litellm" in sys.modules:
+                        main_litellm = sys.modules["litellm"]
+                        if hasattr(main_litellm, func_name):
+                            setattr(main_litellm, func_name, traced_func)
+
+        except (ImportError, AttributeError):
+            # Module not available or function doesn't exist
+            continue
+
+    # Log what was patched
+    if patched_functions:
+        _logger = (
+            logger
+            if isinstance(logger, Logger)
+            else create_logger(name="http.install_trace", level=level, rich=rich)
+        )
+
+        if rich:
+            install_msg = f"[{style}]✨ Installed HTTP tracing on {len(patched_functions)} functions[/{style}]"
+            install_msg += f"\n  " + "\n  ".join(patched_functions)
+        else:
+            install_msg = (
+                f"✨ Installed HTTP tracing on {len(patched_functions)} functions"
+            )
+            install_msg += f"\n  " + "\n  ".join(patched_functions)
+
+        _logger.info(install_msg)
+    else:
+        _logger = (
+            logger
+            if isinstance(logger, Logger)
+            else create_logger(name="http.install_trace", level=level, rich=rich)
+        )
+        _logger.warning(
+            "No HTTP functions found to patch. Import HTTP libraries first."
+        )

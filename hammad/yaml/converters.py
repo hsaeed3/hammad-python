@@ -1,7 +1,7 @@
 """hammad.yaml.converters"""
 
 from msgspec.yaml import encode as encode_yaml, decode as decode_yaml
-from ..data.types import Configuration as Yaml
+from ..configuration.configuration import Configuration as Yaml
 
 __all__ = ("encode_yaml", "decode_yaml", "read_yaml_file", "Yaml")
 

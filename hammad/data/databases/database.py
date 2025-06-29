@@ -6,6 +6,7 @@ from typing import (
     Dict,
     Optional,
     List,
+    Literal,
     TypeVar,
     Generic,
     Callable,
@@ -14,6 +15,25 @@ from typing import (
     TYPE_CHECKING,
 )
 from datetime import datetime, timezone, timedelta
+import json
+import os
+
+try:
+    from sqlalchemy import (
+        create_engine,
+        Column,
+        String,
+        Text,
+        DateTime,
+        Integer,
+        MetaData,
+        Table,
+    )
+    from sqlalchemy.orm import sessionmaker, declarative_base
+    from sqlalchemy.sql import select, insert, update, delete
+except ImportError:
+    # SQLAlchemy not available - file storage will not work
+    create_engine = None
 
 from ..collections.base_collection import BaseCollection, Filters, Schema
 from ..collections.collection import create_collection
@@ -25,6 +45,8 @@ if TYPE_CHECKING:
 __all__ = ("Database",)
 
 DatabaseEntryType = TypeVar("DatabaseEntryType", bound=Any)
+
+DatabaseLocation = Literal["memory", "file"]
 
 
 class Database(Generic[DatabaseEntryType]):
@@ -40,15 +62,22 @@ class Database(Generic[DatabaseEntryType]):
     - TTL support and filtering
     """
 
-    def __init__(self, location: str = "memory", default_ttl: Optional[int] = None):
+    def __init__(
+        self,
+        location: DatabaseLocation = "memory",
+        path: str = "database.db",
+        default_ttl: Optional[int] = None,
+    ):
         """
         Initialize the database.
 
         Args:
-            location: Storage location ("memory" for in-memory, or path for persistent)
+            location: Storage location ("memory" for in-memory, "file" for persistent)
+            path: Path to the database file when using "file" location (default: "database.db")
             default_ttl: Default TTL for items in seconds
         """
         self.location = location
+        self.path = path
         self.default_ttl = default_ttl
 
         # Storage for traditional collections
@@ -59,11 +88,208 @@ class Database(Generic[DatabaseEntryType]):
         # Registry for modern collections (searchable/vector)
         self._collections: Dict[str, BaseCollection] = {}
 
+        # SQLAlchemy setup for file storage
+        self._engine = None
+        self._SessionLocal = None
+        self._metadata = None
+        self._tables: Dict[str, Table] = {}
+
+        if location == "file":
+            self._init_file_storage()
+
+    def _init_file_storage(self) -> None:
+        """Initialize SQLAlchemy for file-based storage."""
+        if create_engine is None:
+            raise ImportError(
+                "SQLAlchemy is required for file storage. "
+                "Install with: pip install sqlalchemy"
+            )
+
+        # Create database directory if it doesn't exist
+        db_dir = os.path.dirname(os.path.abspath(self.path))
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+
+        # Create SQLAlchemy engine
+        self._engine = create_engine(f"sqlite:///{self.path}", echo=False)
+        self._SessionLocal = sessionmaker(bind=self._engine)
+        self._metadata = MetaData()
+
+        # Create default table
+        self._create_collection_table("default")
+
+    def _create_collection_table(self, collection_name: str) -> Table:
+        """Create a table for a collection."""
+        if collection_name in self._tables:
+            return self._tables[collection_name]
+
+        table = Table(
+            f"collection_{collection_name}",
+            self._metadata,
+            Column("id", String, primary_key=True),
+            Column("value", Text),
+            Column("filters", Text),
+            Column("created_at", DateTime),
+            Column("updated_at", DateTime),
+            Column("expires_at", DateTime, nullable=True),
+        )
+
+        self._tables[collection_name] = table
+
+        # Create table in database
+        if self._engine:
+            self._metadata.create_all(self._engine)
+
+        return table
+
+    def _get_from_file(
+        self, id: str, collection: str, filters: Optional[Filters] = None
+    ) -> Optional[DatabaseEntryType]:
+        """Get an item from file storage."""
+        if collection not in self._schemas:
+            return None
+
+        table = self._tables.get(collection)
+        if table is None:
+            return None
+
+        with self._SessionLocal() as session:
+            stmt = select(table).where(table.c.id == id)
+            result = session.execute(stmt).fetchone()
+
+            if not result:
+                return None
+
+            # Check expiration
+            if result.expires_at and self._is_expired(result.expires_at):
+                # Delete expired item
+                delete_stmt = delete(table).where(table.c.id == id)
+                session.execute(delete_stmt)
+                session.commit()
+                return None
+
+            # Check filters
+            stored_filters = json.loads(result.filters) if result.filters else {}
+            if not self._match_filters(stored_filters, filters):
+                return None
+
+            return json.loads(result.value)
+
+    def _add_to_file(
+        self,
+        entry: DatabaseEntryType,
+        id: Optional[str],
+        collection: str,
+        filters: Optional[Filters],
+        ttl: Optional[int],
+    ) -> None:
+        """Add an item to file storage."""
+        if collection not in self._schemas:
+            self.create_collection(collection)
+
+        table = self._tables.get(collection)
+        if table is None:
+            return
+
+        item_id = id or str(uuid.uuid4())
+        expires_at = self._calculate_expires_at(ttl)
+        now = datetime.now(timezone.utc)
+
+        with self._SessionLocal() as session:
+            # Check if item exists
+            existing = session.execute(
+                select(table).where(table.c.id == item_id)
+            ).fetchone()
+
+            if existing:
+                # Update existing item
+                stmt = (
+                    update(table)
+                    .where(table.c.id == item_id)
+                    .values(
+                        value=json.dumps(entry),
+                        filters=json.dumps(filters or {}),
+                        updated_at=now,
+                        expires_at=expires_at,
+                    )
+                )
+            else:
+                # Insert new item
+                stmt = insert(table).values(
+                    id=item_id,
+                    value=json.dumps(entry),
+                    filters=json.dumps(filters or {}),
+                    created_at=now,
+                    updated_at=now,
+                    expires_at=expires_at,
+                )
+
+            session.execute(stmt)
+            session.commit()
+
+    def _query_from_file(
+        self,
+        collection: str,
+        filters: Optional[Filters],
+        search: Optional[str],
+        limit: Optional[int],
+    ) -> List[DatabaseEntryType]:
+        """Query items from file storage."""
+        if collection not in self._schemas:
+            return []
+
+        table = self._tables.get(collection)
+        if table is None:
+            return []
+
+        with self._SessionLocal() as session:
+            stmt = select(table)
+
+            # Apply limit
+            if limit:
+                stmt = stmt.limit(limit)
+
+            results = session.execute(stmt).fetchall()
+
+            items = []
+            expired_ids = []
+
+            for result in results:
+                # Check expiration
+                if result.expires_at and self._is_expired(result.expires_at):
+                    expired_ids.append(result.id)
+                    continue
+
+                # Check filters
+                stored_filters = json.loads(result.filters) if result.filters else {}
+                if not self._match_filters(stored_filters, filters):
+                    continue
+
+                # Basic search implementation
+                value = json.loads(result.value)
+                if search:
+                    item_text = str(value).lower()
+                    if search.lower() not in item_text:
+                        continue
+
+                items.append(value)
+                if limit and len(items) >= limit:
+                    break
+
+            # Clean up expired items
+            if expired_ids:
+                delete_stmt = delete(table).where(table.c.id.in_(expired_ids))
+                session.execute(delete_stmt)
+                session.commit()
+
+            return items
+
     def __repr__(self) -> str:
         all_collections = set(self._schemas.keys()) | set(self._collections.keys())
-        return (
-            f"<Database location='{self.location}' collections={list(all_collections)}>"
-        )
+        location_info = f"location='{self.location}'"
+        if self.location == "file":
+            location_info += f" path='{self.path}'"
+        return f"<Database {location_info} collections={list(all_collections)}>"
 
     @overload
     def create_searchable_collection(
@@ -92,13 +318,29 @@ class Database(Generic[DatabaseEntryType]):
         default_ttl: Optional[int] = None,
         distance_metric: Optional[Any] = None,
         embedding_function: Optional[Callable[[Any], List[float]]] = None,
+        model: Optional[str] = None,
+        # Common embedding parameters
+        format: bool = False,
+        # LiteLLM parameters
+        dimensions: Optional[int] = None,
+        encoding_format: Optional[str] = None,
+        timeout: Optional[int] = None,
+        api_base: Optional[str] = None,
+        api_version: Optional[str] = None,
+        api_key: Optional[str] = None,
+        api_type: Optional[str] = None,
+        caching: bool = False,
+        user: Optional[str] = None,
+        # FastEmbed parameters
+        parallel: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        # Qdrant configuration parameters
         path: Optional[str] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         grpc_port: Optional[int] = None,
         prefer_grpc: Optional[bool] = None,
-        api_key: Optional[str] = None,
-        timeout: Optional[float] = None,
+        qdrant_timeout: Optional[float] = None,
     ) -> "VectorCollection[DatabaseEntryType]":
         """Create a vector collection using Qdrant for semantic similarity search."""
         ...
@@ -142,15 +384,87 @@ class Database(Generic[DatabaseEntryType]):
         default_ttl: Optional[int] = None,
         distance_metric: Optional[Any] = None,
         embedding_function: Optional[Callable[[Any], List[float]]] = None,
+        model: Optional[str] = None,
+        # Common embedding parameters
+        format: bool = False,
+        # LiteLLM parameters
+        dimensions: Optional[int] = None,
+        encoding_format: Optional[str] = None,
+        timeout: Optional[int] = None,
+        api_base: Optional[str] = None,
+        api_version: Optional[str] = None,
+        api_key: Optional[str] = None,
+        api_type: Optional[str] = None,
+        caching: bool = False,
+        user: Optional[str] = None,
+        # FastEmbed parameters
+        parallel: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        # Qdrant configuration parameters
         path: Optional[str] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         grpc_port: Optional[int] = None,
         prefer_grpc: Optional[bool] = None,
-        api_key: Optional[str] = None,
-        timeout: Optional[float] = None,
+        qdrant_timeout: Optional[float] = None,
     ) -> "VectorCollection[DatabaseEntryType]":
-        """Create a vector collection using Qdrant for semantic similarity search."""
+        """Create a vector collection using Qdrant for semantic similarity search.
+
+        Args:
+            model: Model name (e.g., 'fastembed/BAAI/bge-small-en-v1.5', 'openai/text-embedding-3-small')
+            format: Whether to format each non-string input as a markdown string
+
+            # LiteLLM-specific parameters:
+            dimensions: The dimensions of the embedding
+            encoding_format: The encoding format (e.g. "float", "base64")
+            timeout: The timeout for embedding requests
+            api_base: API base URL for remote models
+            api_version: The version of the embedding API
+            api_key: API key for remote models
+            api_type: The type of the embedding API
+            caching: Whether to cache embeddings
+            user: The user for the embedding
+
+            # FastEmbed-specific parameters:
+            parallel: Number of parallel processes for embedding
+            batch_size: Batch size for embedding
+
+            # Qdrant configuration parameters:
+            path: Path for local Qdrant storage
+            host: Qdrant server host
+            port: Qdrant server port
+            grpc_port: Qdrant gRPC port
+            prefer_grpc: Whether to prefer gRPC over HTTP
+            qdrant_timeout: Request timeout for Qdrant operations
+        """
+
+        # Build qdrant config, using database defaults and unified path
+        qdrant_config = getattr(self, "_default_qdrant_settings", {}).copy()
+
+        # Override with method parameters if provided
+        if path is not None:
+            qdrant_config["path"] = path
+        elif host is not None:
+            qdrant_config["host"] = host
+        elif (
+            self.location == "file"
+            and "path" not in qdrant_config
+            and "host" not in qdrant_config
+        ):
+            # Use unified path approach for file storage
+            qdrant_path = self.path.replace(".db", f"_qdrant_{name}")
+            qdrant_config["path"] = qdrant_path
+
+        # Override other parameters
+        if port is not None:
+            qdrant_config["port"] = port
+        if grpc_port is not None:
+            qdrant_config["grpc_port"] = grpc_port
+        if prefer_grpc is not None:
+            qdrant_config["prefer_grpc"] = prefer_grpc
+        if qdrant_timeout is not None:
+            qdrant_config["timeout"] = qdrant_timeout
+
         collection = create_collection(
             "vector",
             name,
@@ -160,13 +474,29 @@ class Database(Generic[DatabaseEntryType]):
             storage_backend=self,
             distance_metric=distance_metric,
             embedding_function=embedding_function,
-            path=path,
-            host=host,
-            port=port,
-            grpc_port=grpc_port,
-            prefer_grpc=prefer_grpc,
-            api_key=api_key,
+            model=model,
+            # Common embedding parameters
+            format=format,
+            # LiteLLM parameters
+            dimensions=dimensions,
+            encoding_format=encoding_format,
             timeout=timeout,
+            api_base=api_base,
+            api_version=api_version,
+            api_key=api_key,
+            api_type=api_type,
+            caching=caching,
+            user=user,
+            # FastEmbed parameters
+            parallel=parallel,
+            batch_size=batch_size,
+            # Qdrant config
+            path=qdrant_config.get("path"),
+            host=qdrant_config.get("host"),
+            port=qdrant_config.get("port"),
+            grpc_port=qdrant_config.get("grpc_port"),
+            prefer_grpc=qdrant_config.get("prefer_grpc"),
+            qdrant_timeout=qdrant_config.get("timeout"),
         )
         self._collections[name] = collection
         return collection
@@ -185,7 +515,11 @@ class Database(Generic[DatabaseEntryType]):
         """Create a traditional collection (backward compatibility)."""
         self._schemas[name] = schema
         self._collection_ttls[name] = default_ttl
-        self._storage.setdefault(name, {})
+
+        if self.location == "file":
+            self._create_collection_table(name)
+        else:
+            self._storage.setdefault(name, {})
 
     def _calculate_expires_at(self, ttl: Optional[int]) -> Optional[datetime]:
         """Calculate expiry time based on TTL."""
@@ -233,7 +567,11 @@ class Database(Generic[DatabaseEntryType]):
             finally:
                 coll._storage_backend = original_backend
 
-        # Traditional collection logic
+        # File storage
+        if self.location == "file":
+            return self._get_from_file(id, collection, filters)
+
+        # Traditional in-memory collection logic
         if collection not in self._schemas:
             return None
 
@@ -275,7 +613,12 @@ class Database(Generic[DatabaseEntryType]):
                 coll._storage_backend = original_backend
             return
 
-        # Traditional collection logic
+        # File storage
+        if self.location == "file":
+            self._add_to_file(entry, id, collection, filters, ttl)
+            return
+
+        # Traditional in-memory collection logic
         if collection not in self._schemas:
             self.create_collection(collection)
 
@@ -312,7 +655,11 @@ class Database(Generic[DatabaseEntryType]):
             finally:
                 coll._storage_backend = original_backend
 
-        # Traditional collection logic
+        # File storage
+        if self.location == "file":
+            return self._query_from_file(collection, filters, search, limit)
+
+        # Traditional in-memory collection logic
         if collection not in self._schemas:
             return []
 
@@ -426,8 +773,9 @@ class Database(Generic[DatabaseEntryType]):
 @overload
 def create_database(
     type: Literal["searchable"],
-    location: str = "memory",
+    location: DatabaseLocation = "memory",
     *,
+    path: str = "database.db",
     default_ttl: Optional[int] = None,
     heap_size: Optional[int] = None,
     num_threads: Optional[int] = None,
@@ -441,10 +789,10 @@ def create_database(
 @overload
 def create_database(
     type: Literal["vector"],
-    location: str = "memory",
+    location: DatabaseLocation = "memory",
     *,
+    path: str = "database.db",
     default_ttl: Optional[int] = None,
-    path: Optional[str] = None,
     host: Optional[str] = None,
     port: Optional[int] = None,
     grpc_port: Optional[int] = None,
@@ -456,8 +804,9 @@ def create_database(
 
 def create_database(
     type: Literal["searchable", "vector"],
-    location: str = "memory",
+    location: DatabaseLocation = "memory",
     *,
+    path: str = "database.db",
     default_ttl: Optional[int] = None,
     # Tantivy parameters (searchable databases only)
     heap_size: Optional[int] = None,
@@ -467,7 +816,6 @@ def create_database(
     writer_memory: Optional[int] = None,
     reload_policy: Optional[str] = None,
     # Qdrant parameters (vector databases only)
-    path: Optional[str] = None,
     host: Optional[str] = None,
     port: Optional[int] = None,
     grpc_port: Optional[int] = None,
@@ -480,7 +828,8 @@ def create_database(
 
     Args:
         type: Type of database to create ("searchable" or "vector")
-        location: Database location (default: "memory")
+        location: Database location ("memory" or "file")
+        path: Path to the database file when using "file" location
         default_ttl: Default TTL for items in seconds
 
         Tantivy parameters (searchable databases only):
@@ -492,8 +841,7 @@ def create_database(
         reload_policy: Policy for reloading tantivy index
 
         Qdrant parameters (vector databases only):
-        path: Path for local Qdrant storage
-        host: Qdrant server host
+        host: Qdrant server host (if not provided, uses local storage with unified 'path')
         port: Qdrant server port
         grpc_port: Qdrant gRPC port
         prefer_grpc: Whether to prefer gRPC over HTTP
@@ -503,7 +851,7 @@ def create_database(
     Returns:
         A Database instance optimized for the specified collection type
     """
-    database = Database(location=location, default_ttl=default_ttl)
+    database = Database(location=location, path=path, default_ttl=default_ttl)
 
     # Store the database type for future collection creation optimization
     database._database_type = type
@@ -530,9 +878,12 @@ def create_database(
     elif type == "vector":
         # Build default qdrant settings from individual parameters
         qdrant_defaults = {}
-        if path is not None:
-            qdrant_defaults["path"] = path
-        if host is not None:
+        # Use the unified path for local Qdrant storage when no host is provided
+        if host is None and location == "file":
+            # For file storage, create a directory path for Qdrant
+            qdrant_path = path.replace(".db", "_qdrant")
+            qdrant_defaults["path"] = qdrant_path
+        elif host is not None:
             qdrant_defaults["host"] = host
         if port is not None:
             qdrant_defaults["port"] = port

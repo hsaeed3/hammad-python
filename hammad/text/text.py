@@ -25,13 +25,11 @@ from typing import (
     Generic,
 )
 
-from .utils.markdown.formatting import (
-    heading as md_heading,
-    code_block as md_code_block,
+from .markdown import (
+    markdown_heading,
+    markdown_code_block,
 )
-from .utils.markdown.converters import (
-    convert_to_markdown,
-)
+from .converters import convert_to_text
 
 
 # -----------------------------------------------------------------------------
@@ -234,7 +232,7 @@ class BaseText(ABC):
             if isinstance(self.content, str):
                 parts.append(self.content)
             else:
-                parts.append(convert_to_markdown(self.content, **kwargs))
+                parts.append(convert_to_text(self.content, **kwargs))
 
         # Handle subsections
         for section in self.sections:
@@ -250,7 +248,7 @@ class BaseText(ABC):
 
         # Handle title
         if self.title:
-            parts.append(md_heading(self.title, self.heading_level))
+            parts.append(markdown_heading(self.title, self.heading_level))
 
         # Handle description
         if self.description:
@@ -261,7 +259,7 @@ class BaseText(ABC):
             if isinstance(self.content, str):
                 parts.append(self.content)
             else:
-                parts.append(convert_to_markdown(self.content, **kwargs))
+                parts.append(convert_to_text(self.content, **kwargs))
 
         # Add table of contents if requested (only for top-level documents)
         if kwargs.get("add_toc", False) and self.heading_level == 1:
@@ -271,9 +269,9 @@ class BaseText(ABC):
                     toc_headings.append((section.heading_level, section.title))
 
             if toc_headings:
-                from .utils.markdown.converters import create_markdown_toc
+                from .markdown import markdown_table
 
-                parts.append(create_markdown_toc(toc_headings))
+                parts.append(markdown_table(toc_headings))
 
         # Handle subsections
         for section in self.sections:
@@ -437,13 +435,13 @@ class CodeSection(BaseText):
         parts = []
 
         if self.title:
-            parts.append(md_heading(self.title, self.heading_level))
+            parts.append(markdown_heading(self.title, self.heading_level))
 
         if self.description:
             parts.append(self.description)
 
         if self.content:
-            parts.append(md_code_block(str(self.content), self.language or ""))
+            parts.append(markdown_code_block(str(self.content), self.language or ""))
 
         # Handle subsections
         for section in self.sections:
@@ -466,7 +464,7 @@ class SchemaSection(BaseText):
     def _to_markdown(self, **kwargs) -> str:
         """Convert schema to Markdown documentation."""
         if self.schema_object:
-            return convert_to_markdown(
+            return convert_to_text(
                 self.schema_object,
                 name=self.title,
                 description=self.description,

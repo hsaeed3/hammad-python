@@ -1,49 +1,37 @@
 """hammad.data"""
 
 from typing import TYPE_CHECKING
-from ..based.utils import auto_create_lazy_loader
+from .._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
-    from .collections.base_collection import BaseCollection
-    from .collections.searchable_collection import SearchableCollection
-    from .collections.vector_collection import (
+    from .collections import (
+        Collection,
+        BaseCollection,
         VectorCollection,
-    )
-    from .collections.collection import (
-        create_collection,
         VectorCollectionSettings,
+        SearchableCollection,
         SearchableCollectionSettings,
+        create_collection,
     )
-    from .databases.database import (
-        Database,
-        create_database,
-    )
-    from .types.files.file import File, FileSource
-    from .types.files.audio import Audio
-    from .types.files.image import Image
-    from .types.files.configuration import Configuration
-    from .types.files.document import Document
+    from .databases import Database, create_database
 
 
 __all__ = (
-    "create_collection",
+    # hammad.data.collections
+    "Collection",
+    "BaseCollection",
     "VectorCollection",
     "VectorCollectionSettings",
     "SearchableCollection",
     "SearchableCollectionSettings",
-    "BaseCollection",
-    "create_database",
+    "create_collection",
+    # hammad.data.databases
     "Database",
-    "File",
-    "FileSource",
-    "Audio",
-    "Image",
-    "Configuration",
-    "Document",
+    "create_database",
 )
 
 
-__getattr__ = auto_create_lazy_loader(__all__)
+__getattr__ = _auto_create_getattr_loader(__all__)
 
 
 def __dir__() -> list[str]:

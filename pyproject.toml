@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.11"
+version = "0.0.13"
 description = """hammad - *Nightly* hyper-fast opinionated resources and modules built for quick development."""
 readme = "README.md"
 requires-python = ">=3.11"
@@ -22,6 +22,7 @@ dependencies = [
     "docstring-parser>=0.16",
     "pyyaml>=6.0.2",
     "python-dotenv>=1.1.0",
+    "sqlalchemy>=2.0.41",
 ]
 
 [build-system]
@@ -31,12 +32,28 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["hammad"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/docs",
+    "/.venv",
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+    "Thumbs.db",
+]
+
 [project.optional-dependencies]
 ai = [
     "instructor>=1.9.0",
     "litellm>=1.72.4",
     "openai-agents>=0.0.19",
     "qdrant-client>=1.14.3",
+]
+fastembed = [
+    "fastembed"
 ]
 serve = [
     "fastapi>=0.115.8",
@@ -52,6 +69,9 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "twine>=6.1.0",
+
+    "ipython",
+    "ipykernel",
 
     "mkdocs",
     "mkdocstrings[python]",
