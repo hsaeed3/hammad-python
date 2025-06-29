@@ -2,6 +2,7 @@
 
 from typing import Any, List, Literal, Optional
 import sys
+
 if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
@@ -96,16 +97,16 @@ LiteLlmEmbeddingModel = Literal[
 class LiteLlmEmbeddingModelSettings(TypedDict):
     """Valid settings for the `litellm` embedding models."""
 
-    model : LiteLlmEmbeddingModel | str
-    dimensions : Optional[int]
-    encoding_format : Optional[str]
-    timeout : Optional[int]
-    api_base : Optional[str]
-    api_version : Optional[str]
-    api_key : Optional[str]
-    api_type : Optional[str]
-    caching : bool
-    user : Optional[str]
+    model: LiteLlmEmbeddingModel | str
+    dimensions: Optional[int]
+    encoding_format: Optional[str]
+    timeout: Optional[int]
+    api_base: Optional[str]
+    api_version: Optional[str]
+    api_key: Optional[str]
+    api_type: Optional[str]
+    caching: bool
+    user: Optional[str]
 
 
 class LiteLlmEmbeddingError(Exception):

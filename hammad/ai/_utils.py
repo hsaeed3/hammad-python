@@ -28,6 +28,7 @@ def get_instructor():
     if INSTRUCTOR_MODULE is None:
         try:
             import instructor
+
             INSTRUCTOR_MODULE = instructor
         except ImportError:
             raise ImportError(
@@ -79,6 +80,7 @@ def get_fastembed():
     if FASTEMBED_MODULE is None:
         try:
             import fastembed
+
             FASTEMBED_MODULE = fastembed
         except ImportError:
             raise ImportError(
@@ -88,23 +90,23 @@ def get_fastembed():
     return FASTEMBED_MODULE
 
 
-FASTEMBED_LOADED_TEXT_EMBEDDING_MODELS : dict = {}
+FASTEMBED_LOADED_TEXT_EMBEDDING_MODELS: dict = {}
 
 
 def get_fastembed_text_embedding_model(
-        model : str,
-        cache_dir: Optional[str] = None,
-        threads: Optional[int] = None,
-        providers: Optional[Sequence[Any]] = None,
-        cuda: bool = False,
-        device_ids: Optional[list[int]] = None,
-        lazy_load: bool = False
-    ):
+    model: str,
+    cache_dir: Optional[str] = None,
+    threads: Optional[int] = None,
+    providers: Optional[Sequence[Any]] = None,
+    cuda: bool = False,
+    device_ids: Optional[list[int]] = None,
+    lazy_load: bool = False,
+):
     """Initializes a fastembed model instance for a given
     model name using a global library level singleton.
-    
+
     NOTE: Custom models are not supported yet.
-    
+
     Args:
         model (str) : The model name to load.
         cache_dir (Optional[str]) : The directory to cache the model in.

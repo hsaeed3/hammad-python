@@ -31,17 +31,17 @@ class Audio(File):
             # Extract format from MIME type (e.g., 'audio/mp3' -> 'mp3')
             self._format = self.type.split("/")[-1].upper()
         return self._format
-    
+
     @property
     def duration(self) -> float | None:
         """Get the duration of the audio file in seconds."""
         return self._duration
-    
+
     @property
     def sample_rate(self) -> int | None:
         """Get the sample rate of the audio file in Hz."""
         return self._sample_rate
-    
+
     @property
     def channels(self) -> int | None:
         """Get the number of channels in the audio file."""

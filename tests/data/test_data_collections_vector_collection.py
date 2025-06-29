@@ -26,12 +26,12 @@ def test_vector_collection_with_config():
 def test_vector_collection_with_embedding_parameters():
     """Test VectorCollection with embedding parameters."""
     collection = Collection(
-        name="test", 
+        name="test",
         vector_size=384,
         model="fastembed/BAAI/bge-small-en-v1.5",
         format=True,
         parallel=2,
-        batch_size=16
+        batch_size=16,
     )
     assert collection.name == "test"
     assert collection.vector_size == 384
@@ -44,13 +44,13 @@ def test_vector_collection_with_embedding_parameters():
 def test_vector_collection_with_litellm_parameters():
     """Test VectorCollection with LiteLLM parameters."""
     collection = Collection(
-        name="test", 
+        name="test",
         vector_size=1536,
         model="text-embedding-ada-002",
         dimensions=1536,
         api_key="test-key",
         timeout=600,
-        caching=True
+        caching=True,
     )
     assert collection.name == "test"
     assert collection.vector_size == 1536
@@ -202,16 +202,18 @@ def test_query_with_search_string():
     """Test querying with search string (new interface)."""
     collection = Collection(name="test", vector_size=3)
 
-    # Add test data 
+    # Add test data
     data1 = {"vector": [1.0, 0.0, 0.0], "content": "hello world"}
     data2 = {"vector": [0.0, 1.0, 0.0], "content": "goodbye world"}
-    
+
     collection.add(data1, "item1")
     collection.add(data2, "item2")
 
     # Test new query interface with search as first positional parameter
     # This should fail without an embedding function
-    with pytest.raises(ValueError, match="Search query provided but no embedding_function"):
+    with pytest.raises(
+        ValueError, match="Search query provided but no embedding_function"
+    ):
         collection.query("hello")
 
     # Test query with None (no search)
@@ -243,7 +245,7 @@ def test_embedding_function():
     assert len(results) <= 1
 
 
-@patch('hammad.ai.embeddings.create.create_embeddings')
+@patch("hammad.ai.embeddings.create.create_embeddings")
 def test_embedding_model_integration(mock_create_embeddings):
     """Test integration with embedding models."""
     # Mock the embedding response
@@ -252,11 +254,11 @@ def test_embedding_model_integration(mock_create_embeddings):
     mock_create_embeddings.return_value = mock_response
 
     collection = Collection(
-        name="test", 
+        name="test",
         vector_size=3,
         model="fastembed/BAAI/bge-small-en-v1.5",
         format=True,
-        parallel=2
+        parallel=2,
     )
 
     # Add text that should be embedded
@@ -274,7 +276,7 @@ def test_embedding_model_integration(mock_create_embeddings):
     assert collection.get("text1") == "hello world"
 
 
-@patch('hammad.ai.embeddings.create.create_embeddings')
+@patch("hammad.ai.embeddings.create.create_embeddings")
 def test_semantic_search_with_model(mock_create_embeddings):
     """Test semantic search using embedding model."""
     # Mock the embedding response
@@ -283,11 +285,11 @@ def test_semantic_search_with_model(mock_create_embeddings):
     mock_create_embeddings.return_value = mock_response
 
     collection = Collection(
-        name="test", 
+        name="test",
         vector_size=3,
         model="text-embedding-ada-002",
         dimensions=3,
-        api_key="test-key"
+        api_key="test-key",
     )
 
     # Add some documents
@@ -296,10 +298,10 @@ def test_semantic_search_with_model(mock_create_embeddings):
 
     # Reset mock for search call
     mock_create_embeddings.reset_mock()
-    
+
     # Perform semantic search
     results = collection.query("AI and ML", limit=1)
-    
+
     # Verify embedding was called for the search query
     mock_create_embeddings.assert_called_once()
     call_kwargs = mock_create_embeddings.call_args.kwargs
@@ -394,13 +396,13 @@ def test_embedding_parameter_validation():
         model="fastembed/BAAI/bge-small-en-v1.5",
         parallel=4,
         batch_size=32,
-        format=True
+        format=True,
     )
-    
+
     assert collection._embedding_params["parallel"] == 4
     assert collection._embedding_params["batch_size"] == 32
     assert collection._embedding_params["format"] is True
-    
+
     # Test that LiteLLM-specific parameters are stored
     collection2 = Collection(
         name="test2",
@@ -411,9 +413,9 @@ def test_embedding_parameter_validation():
         timeout=600,
         api_base="https://api.openai.com/v1",
         api_key="sk-test",
-        caching=True
+        caching=True,
     )
-    
+
     assert collection2._embedding_params["dimensions"] == 1536
     assert collection2._embedding_params["encoding_format"] == "float"
     assert collection2._embedding_params["timeout"] == 600
@@ -425,11 +427,9 @@ def test_embedding_parameter_validation():
 def test_model_without_embedding_function():
     """Test that providing a model creates an embedding function."""
     collection = Collection(
-        name="test",
-        vector_size=384,
-        model="fastembed/BAAI/bge-small-en-v1.5"
+        name="test", vector_size=384, model="fastembed/BAAI/bge-small-en-v1.5"
     )
-    
+
     # Should have created an embedding function
     assert collection._embedding_function is not None
     assert collection._model == "fastembed/BAAI/bge-small-en-v1.5"
@@ -438,7 +438,7 @@ def test_model_without_embedding_function():
 def test_no_model_no_embedding_function():
     """Test collection without model or embedding function."""
     collection = Collection(name="test", vector_size=3)
-    
+
     # Should not have an embedding function
     assert collection._embedding_function is None
     assert collection._model is None
@@ -447,27 +447,27 @@ def test_no_model_no_embedding_function():
 def test_vector_search_default_limit():
     """Test that vector_search has a sensible default limit."""
     collection = Collection(name="test", vector_size=3)
-    
+
     # Add test vectors
     for i in range(15):
         collection.add([float(i), 0.0, 0.0], f"vec{i}")
-    
+
     # Default limit should be 10
     results = collection.vector_search([1.0, 0.0, 0.0])
     assert len(results) == 10
-    
+
     # Custom limit should work
     results = collection.vector_search([1.0, 0.0, 0.0], limit=5)
     assert len(results) == 5
 
 
-@patch('hammad.ai.embeddings.create.create_embeddings')
+@patch("hammad.ai.embeddings.create.create_embeddings")
 def test_embedding_function_parameter_filtering(mock_create_embeddings):
     """Test that only non-None parameters are passed to embedding function."""
     mock_response = Mock()
     mock_response.data = [Mock(embedding=[0.1, 0.2, 0.3])]
     mock_create_embeddings.return_value = mock_response
-    
+
     collection = Collection(
         name="test",
         vector_size=3,
@@ -476,12 +476,12 @@ def test_embedding_function_parameter_filtering(mock_create_embeddings):
         timeout=None,  # This should be filtered out
         api_key="test-key",
         encoding_format=None,  # This should be filtered out
-        caching=False
+        caching=False,
     )
-    
+
     # Add a document to trigger embedding
     collection.add("test document", "doc1")
-    
+
     # Check that only non-None parameters were passed
     call_kwargs = mock_create_embeddings.call_args.kwargs
     assert "timeout" not in call_kwargs

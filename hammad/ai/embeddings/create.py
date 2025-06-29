@@ -16,33 +16,30 @@ from .client.litellm_embeddings_client import (
 )
 
 
-__all__ = (
-    "async_create_embeddings",
-    "create_embeddings"
-)
+__all__ = ("async_create_embeddings", "create_embeddings")
 
 
 async def async_create_embeddings(
-    input : List[Any] | Any,
-    model : FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str,
-    format : bool = False,
+    input: List[Any] | Any,
+    model: FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str,
+    format: bool = False,
     # LiteLLM Settings
-    dimensions : Optional[int] = None,
-    encoding_format : Optional[str] = None,
-    timeout : Optional[int] = None,
-    api_base : Optional[str] = None,
-    api_version : Optional[str] = None,
-    api_key : Optional[str] = None,
-    api_type : Optional[str] = None,
-    caching : bool = False,
-    user : Optional[str] = None,
+    dimensions: Optional[int] = None,
+    encoding_format: Optional[str] = None,
+    timeout: Optional[int] = None,
+    api_base: Optional[str] = None,
+    api_version: Optional[str] = None,
+    api_key: Optional[str] = None,
+    api_type: Optional[str] = None,
+    caching: bool = False,
+    user: Optional[str] = None,
     # FastEmbed Settings
-    parallel : Optional[int] = None,
-    batch_size : Optional[int] = None,
-    **kwargs : Any,
+    parallel: Optional[int] = None,
+    batch_size: Optional[int] = None,
+    **kwargs: Any,
 ) -> EmbeddingResponse:
     """Asynchronously create embeddings for the given input using the specified model.
-    
+
     Args:
         input (List[Any] | Any) : The input text / content to generate embeddings for.
         model (FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str) : The model to use for generating embeddings.
@@ -63,7 +60,7 @@ async def async_create_embeddings(
     Returns:
         EmbeddingResponse : The embedding response from the embedding client.
     """
- 
+
     if model.startswith("fastembed/"):
         model = model.split("fastembed/")[1]
         return await FastEmbedTextEmbeddingsClient.async_embed(
@@ -90,29 +87,29 @@ async def async_create_embeddings(
             format=format,
             **kwargs,
         )
-    
+
 
 def create_embeddings(
-    input : List[Any] | Any,
-    model : FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str,
-    format : bool = False,
+    input: List[Any] | Any,
+    model: FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str,
+    format: bool = False,
     # LiteLLM Settings
-    dimensions : Optional[int] = None,
-    encoding_format : Optional[str] = None,
-    timeout : Optional[int] = None,
-    api_base : Optional[str] = None,
-    api_version : Optional[str] = None,
-    api_key : Optional[str] = None,
-    api_type : Optional[str] = None,
-    caching : bool = False,
-    user : Optional[str] = None,
+    dimensions: Optional[int] = None,
+    encoding_format: Optional[str] = None,
+    timeout: Optional[int] = None,
+    api_base: Optional[str] = None,
+    api_version: Optional[str] = None,
+    api_key: Optional[str] = None,
+    api_type: Optional[str] = None,
+    caching: bool = False,
+    user: Optional[str] = None,
     # FastEmbed Settings
-    parallel : Optional[int] = None,
-    batch_size : Optional[int] = None,
-    **kwargs : Any,
+    parallel: Optional[int] = None,
+    batch_size: Optional[int] = None,
+    **kwargs: Any,
 ) -> EmbeddingResponse:
     """Asynchronously create embeddings for the given input using the specified model.
-    
+
     Args:
         input (List[Any] | Any) : The input text / content to generate embeddings for.
         model (FastEmbedTextEmbeddingModel | LiteLlmEmbeddingModel | str) : The model to use for generating embeddings.

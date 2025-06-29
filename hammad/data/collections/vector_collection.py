@@ -99,7 +99,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
             embedding_function: Optional function to convert objects to vectors
             model: Optional model name (e.g., 'fastembed/BAAI/bge-small-en-v1.5', 'openai/text-embedding-3-small')
             format: Whether to format each non-string input as a markdown string
-            
+
             # LiteLLM-specific parameters:
             dimensions: The dimensions of the embedding
             encoding_format: The encoding format of the embedding (e.g. "float", "base64")
@@ -110,7 +110,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
             api_type: The type of the embedding API
             caching: Whether to cache the embedding
             user: The user for the embedding
-            
+
             # FastEmbed-specific parameters:
             parallel: The number of parallel processes to use for the embedding
             batch_size: The batch size to use for the embedding
@@ -123,7 +123,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
         self._storage_backend = storage_backend
         self._embedding_function = embedding_function
         self._model = model
-        
+
         # Store embedding parameters
         self._embedding_params = {
             "format": format,
@@ -169,7 +169,9 @@ class VectorCollection(BaseCollection, Generic[Object]):
                 text = str(text)
 
             # Filter out None values from embedding parameters
-            embedding_kwargs = {k: v for k, v in self._embedding_params.items() if v is not None}
+            embedding_kwargs = {
+                k: v for k, v in self._embedding_params.items() if v is not None
+            }
             embedding_kwargs["model"] = model_name
             embedding_kwargs["input"] = text
 
@@ -349,13 +351,13 @@ class VectorCollection(BaseCollection, Generic[Object]):
         ttl: Optional[int] = None,
     ) -> str:
         """Add an item to the collection.
-        
+
         Args:
             entry: The object/data to store
             id: Optional ID for the item (will generate UUID if not provided)
             filters: Optional metadata filters
             ttl: Time-to-live in seconds
-            
+
         Returns:
             The ID of the added item
         """
@@ -408,7 +410,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
         point = PointStruct(id=uuid_id, vector=vector, payload=payload)
 
         self._client.upsert(collection_name=self.name, points=[point])
-        
+
         return item_id
 
     def query(
@@ -419,7 +421,7 @@ class VectorCollection(BaseCollection, Generic[Object]):
         limit: Optional[int] = None,
     ) -> List[Object]:
         """Query items from the collection.
-        
+
         Args:
             query: Search query string. If provided, performs semantic similarity search.
             filters: Optional filters to apply

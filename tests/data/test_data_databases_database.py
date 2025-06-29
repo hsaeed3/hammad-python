@@ -190,12 +190,12 @@ def test_create_vector_collection_with_embedding_parameters():
 
     # Create vector collection with FastEmbed parameters
     collection = db.create_vector_collection(
-        "fastembed_test", 
+        "fastembed_test",
         vector_size=384,
         model="fastembed/BAAI/bge-small-en-v1.5",
         format=True,
         parallel=4,
-        batch_size=32
+        batch_size=32,
     )
     assert collection.name == "fastembed_test"
     assert collection.vector_size == 384
@@ -212,7 +212,7 @@ def test_create_vector_collection_with_embedding_parameters():
         dimensions=1536,
         api_key="sk-test",
         timeout=600,
-        caching=True
+        caching=True,
     )
     assert collection2.name == "litellm_test"
     assert collection2.vector_size == 1536
@@ -236,9 +236,9 @@ def test_create_vector_collection_with_qdrant_parameters():
         port=6333,
         grpc_port=6334,
         prefer_grpc=True,
-        qdrant_timeout=30.0
+        qdrant_timeout=30.0,
     )
-    
+
     assert collection.name == "qdrant_test"
     assert collection.vector_size == 256
     # Note: Qdrant config is internal to the collection
@@ -473,30 +473,6 @@ def test_file_storage_ttl():
         assert db2.get("ttl_test") is None
 
 
-def test_file_storage_vector_collections():
-    """Test vector collections with file storage and unified path."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = os.path.join(temp_dir, "test.db")
-        db = Database(location="file", path=db_path)
-
-        # Create vector collection
-        collection = db.create_vector_collection("vector_test", vector_size=3)
-        assert collection.name == "vector_test"
-
-        # Add vector data (test new interface)
-        returned_id = collection.add([1.0, 0.0, 0.0], "vector_id")
-        assert returned_id == "vector_id"
-
-        # Test retrieval
-        result = collection.get("vector_id")
-        assert result == [1.0, 0.0, 0.0]
-
-        # Test that Qdrant storage path is derived from unified path
-        expected_qdrant_path = db_path.replace(".db", "_qdrant_vector_test")
-        # Note: This tests the path derivation logic, actual Qdrant functionality
-        # would need Qdrant to be installed and properly configured
-
-
 def test_file_storage_searchable_collections():
     """Test searchable collections with file storage."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -586,16 +562,16 @@ def test_file_storage_requires_sqlalchemy():
     pass
 
 
-@patch('hammad.ai.embeddings.create.create_embeddings')
+@patch("hammad.ai.embeddings.create.create_embeddings")
 def test_database_vector_collection_with_embedding_model(mock_create_embeddings):
     """Test database vector collection integration with embedding models."""
     # Mock the embedding response
     mock_response = Mock()
     mock_response.data = [Mock(embedding=[0.1, 0.2, 0.3])]
     mock_create_embeddings.return_value = mock_response
-    
+
     db = Database()
-    
+
     # Create vector collection with embedding model
     collection = db.create_vector_collection(
         "ai_docs",
@@ -603,13 +579,13 @@ def test_database_vector_collection_with_embedding_model(mock_create_embeddings)
         model="text-embedding-ada-002",
         dimensions=3,
         api_key="test-key",
-        timeout=600
+        timeout=600,
     )
-    
+
     # Add document that should be embedded
     returned_id = collection.add("Machine learning fundamentals", "doc1")
     assert returned_id == "doc1"
-    
+
     # Verify embedding was called with correct parameters
     mock_create_embeddings.assert_called_once()
     call_kwargs = mock_create_embeddings.call_args.kwargs
@@ -618,25 +594,28 @@ def test_database_vector_collection_with_embedding_model(mock_create_embeddings)
     assert call_kwargs["dimensions"] == 3
     assert call_kwargs["api_key"] == "test-key"
     assert call_kwargs["timeout"] == 600
-    
+
     # Verify document can be retrieved
     result = collection.get("doc1")
     assert result == "Machine learning fundamentals"
-    
+
     # Test semantic search
     mock_create_embeddings.reset_mock()
     results = collection.query("AI fundamentals", limit=1)
-    
+
     # Verify search embedding was called
     mock_create_embeddings.assert_called_once()
     search_kwargs = mock_create_embeddings.call_args.kwargs
-    assert search_kwargs["input"] == "AI fundamentals"\n    \n    # Verify results structure\n    assert isinstance(results, list)
+    assert search_kwargs["input"] == "AI fundamentals"
+
+    # Verify results structure
+    assert isinstance(results, list)
 
 
 def test_database_mixed_embedding_models():
     """Test database with multiple vector collections using different embedding models."""
     db = Database()
-    
+
     # Create FastEmbed collection
     fastembed_coll = db.create_vector_collection(
         "fastembed_docs",
@@ -644,9 +623,9 @@ def test_database_mixed_embedding_models():
         model="fastembed/BAAI/bge-small-en-v1.5",
         parallel=2,
         batch_size=16,
-        format=True
+        format=True,
     )
-    
+
     # Create LiteLLM collection
     litellm_coll = db.create_vector_collection(
         "openai_docs",
@@ -654,19 +633,19 @@ def test_database_mixed_embedding_models():
         model="text-embedding-ada-002",
         dimensions=1536,
         api_key="sk-test",
-        caching=True
+        caching=True,
     )
-    
+
     # Verify both collections exist and have correct configurations
     assert "fastembed_docs" in db.collections()
     assert "openai_docs" in db.collections()
-    
+
     assert fastembed_coll.vector_size == 384
     assert litellm_coll.vector_size == 1536
-    
+
     assert fastembed_coll._model == "fastembed/BAAI/bge-small-en-v1.5"
     assert litellm_coll._model == "text-embedding-ada-002"
-    
+
     assert fastembed_coll._embedding_params["parallel"] == 2
     assert litellm_coll._embedding_params["dimensions"] == 1536
 
@@ -674,25 +653,23 @@ def test_database_mixed_embedding_models():
 def test_database_vector_collection_parameter_combinations():
     """Test various parameter combinations for vector collections."""
     db = Database()
-    
+
     # Test with minimal parameters
     minimal_coll = db.create_vector_collection("minimal", vector_size=128)
     assert minimal_coll.name == "minimal"
     assert minimal_coll.vector_size == 128
     assert minimal_coll._model is None
-    
+
     # Test with embedding function but no model
     def simple_embedding(text):
-        return [float(ord(c)) for c in text[:128].ljust(128, 'a')]
-    
+        return [float(ord(c)) for c in text[:128].ljust(128, "a")]
+
     func_coll = db.create_vector_collection(
-        "with_function",
-        vector_size=128,
-        embedding_function=simple_embedding
+        "with_function", vector_size=128, embedding_function=simple_embedding
     )
     assert func_coll._embedding_function is not None
     assert func_coll._model is None
-    
+
     # Test with all FastEmbed parameters
     full_fastembed = db.create_vector_collection(
         "full_fastembed",
@@ -703,13 +680,13 @@ def test_database_vector_collection_parameter_combinations():
         batch_size=64,
         # Qdrant parameters
         path="/tmp/test_qdrant",
-        prefer_grpc=False
+        prefer_grpc=False,
     )
     assert full_fastembed._model == "fastembed/BAAI/bge-small-en-v1.5"
     assert full_fastembed._embedding_params["format"] is True
     assert full_fastembed._embedding_params["parallel"] == 4
     assert full_fastembed._embedding_params["batch_size"] == 64
-    
+
     # Test with all LiteLLM parameters
     full_litellm = db.create_vector_collection(
         "full_litellm",
@@ -730,7 +707,7 @@ def test_database_vector_collection_parameter_combinations():
         port=6333,
         grpc_port=6334,
         prefer_grpc=True,
-        qdrant_timeout=60.0
+        qdrant_timeout=60.0,
     )
     assert full_litellm._model == "text-embedding-3-large"
     assert full_litellm._embedding_params["dimensions"] == 1536

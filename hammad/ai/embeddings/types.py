@@ -58,7 +58,7 @@ class EmbeddingResponse(Model):
     def dimensions(self) -> int:
         """The dimensions of the embedding."""
         return len(self.data[0].embedding)
-    
+
     def __str__(self) -> str:
         return (
             "Embedding Response:\n"

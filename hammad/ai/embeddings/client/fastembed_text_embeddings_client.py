@@ -2,6 +2,7 @@
 
 from typing import Any, List, Optional, Union, Literal
 import sys
+
 if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
@@ -59,41 +60,43 @@ FastEmbedTextEmbeddingModel = Literal[
 class FastEmbedTextEmbeddingModelSettings(TypedDict):
     """Valid settings for the `fastembed` text embedding models."""
 
-    model : FastEmbedTextEmbeddingModel | str
-    parallel : Optional[int]
-    batch_size : Optional[int]
-    format : bool
+    model: FastEmbedTextEmbeddingModel | str
+    parallel: Optional[int]
+    batch_size: Optional[int]
+    format: bool
 
 
 class FastEmbedTextEmbeddingError(Exception):
     """Exception raised when an error occurs while generating embeddings
     using `fastembed` text embedding models."""
-    
-    def __init__(self, message : str, response : Any):
+
+    def __init__(self, message: str, response: Any):
         self.message = message
         self.response = response
 
 
 def _parse_fastembed_response_to_embedding_response(
-        response : Any,
-        model : FastEmbedTextEmbeddingModel | str,
-    ) -> EmbeddingResponse:
+    response: Any,
+    model: FastEmbedTextEmbeddingModel | str,
+) -> EmbeddingResponse:
     """Parse the response from the `fastembed` text embedding model to an `EmbeddingResponse` object."""
     try:
-        embedding_data : List[Embedding] = []
-        
+        embedding_data: List[Embedding] = []
+
         # Convert generator to list if needed
-        if hasattr(response, '__iter__') and not isinstance(response, (list, tuple)):
+        if hasattr(response, "__iter__") and not isinstance(response, (list, tuple)):
             response = list(response)
 
         for i, item in enumerate(response):
             # Ensure item is a list of floats
-            if hasattr(item, 'tolist'):
+            if hasattr(item, "tolist"):
                 item = item.tolist()
             elif not isinstance(item, list):
                 item = list(item)
-            
-            embedding_data.append(Embedding(embedding=item, index=i, object="embedding"))
+
+            embedding_data.append(
+                Embedding(embedding=item, index=i, object="embedding")
+            )
 
         return EmbeddingResponse(
             data=embedding_data,
@@ -106,23 +109,23 @@ def _parse_fastembed_response_to_embedding_response(
             f"Failed to parse fastembed response to embedding response: {e}",
             response,
         )
-    
+
 
 class FastEmbedTextEmbeddingsClient(BaseEmbeddingsClient):
     """Client for the `fastembed` text embedding models."""
 
     @staticmethod
     def embed(
-        input : List[Any] | Any,
-        model : FastEmbedTextEmbeddingModel | str,
-        parallel : Optional[int] = None,
-        batch_size : Optional[int] = None,
-        format : bool = False,
-        **kwargs : Any,
+        input: List[Any] | Any,
+        model: FastEmbedTextEmbeddingModel | str,
+        parallel: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        format: bool = False,
+        **kwargs: Any,
     ) -> EmbeddingResponse:
         """Generate embeddings for the given input using
         a valid `fastembed` text embedding model.
-        
+
         Args:
             input (List[Any] | Any) : The input text / content to generate embeddings for.
             model (FastEmbedTextEmbeddingModel | str) : The model to use for generating embeddings.
@@ -163,19 +166,19 @@ class FastEmbedTextEmbeddingsClient(BaseEmbeddingsClient):
             )
 
         return _parse_fastembed_response_to_embedding_response(response, str(model))
-    
+
     @staticmethod
     async def async_embed(
-        input : List[Any] | Any,
-        model : FastEmbedTextEmbeddingModel | str,
-        parallel : Optional[int] = None,
-        batch_size : Optional[int] = None,
-        format : bool = False,
-        **kwargs : Any,
+        input: List[Any] | Any,
+        model: FastEmbedTextEmbeddingModel | str,
+        parallel: Optional[int] = None,
+        batch_size: Optional[int] = None,
+        format: bool = False,
+        **kwargs: Any,
     ) -> EmbeddingResponse:
         """Async generate embeddings for the given input using
         a valid `fastembed` text embedding model.
-        
+
         Args:
             input (List[Any] | Any) : The input text / content to generate embeddings for.
             model (FastEmbedTextEmbeddingModel | str) : The model to use for generating embeddings.

@@ -413,7 +413,7 @@ class Database(Generic[DatabaseEntryType]):
         Args:
             model: Model name (e.g., 'fastembed/BAAI/bge-small-en-v1.5', 'openai/text-embedding-3-small')
             format: Whether to format each non-string input as a markdown string
-            
+
             # LiteLLM-specific parameters:
             dimensions: The dimensions of the embedding
             encoding_format: The encoding format (e.g. "float", "base64")
@@ -424,11 +424,11 @@ class Database(Generic[DatabaseEntryType]):
             api_type: The type of the embedding API
             caching: Whether to cache embeddings
             user: The user for the embedding
-            
+
             # FastEmbed-specific parameters:
             parallel: Number of parallel processes for embedding
             batch_size: Batch size for embedding
-            
+
             # Qdrant configuration parameters:
             path: Path for local Qdrant storage
             host: Qdrant server host
@@ -491,7 +491,12 @@ class Database(Generic[DatabaseEntryType]):
             parallel=parallel,
             batch_size=batch_size,
             # Qdrant config
-            path=qdrant_config.get(\"path\"),\n            host=qdrant_config.get(\"host\"),\n            port=qdrant_config.get(\"port\"),\n            grpc_port=qdrant_config.get(\"grpc_port\"),\n            prefer_grpc=qdrant_config.get(\"prefer_grpc\"),\n            qdrant_timeout=qdrant_config.get(\"timeout\"),
+            path=qdrant_config.get("path"),
+            host=qdrant_config.get("host"),
+            port=qdrant_config.get("port"),
+            grpc_port=qdrant_config.get("grpc_port"),
+            prefer_grpc=qdrant_config.get("prefer_grpc"),
+            qdrant_timeout=qdrant_config.get("timeout"),
         )
         self._collections[name] = collection
         return collection
