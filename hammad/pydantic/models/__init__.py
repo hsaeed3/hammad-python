@@ -1,7 +1,7 @@
 """hammad.pydantic.models"""
 
 from typing import TYPE_CHECKING
-from ..._common._loader import _auto_create_getattr_loader
+from ..._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .arbitrary_model import ArbitraryModel

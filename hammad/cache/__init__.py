@@ -5,7 +5,7 @@ decorators that implement "automatic" hashing & caching of function calls.
 """
 
 from typing import TYPE_CHECKING
-from .._common._loader import _auto_create_getattr_loader
+from .._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
     from .base_cache import BaseCache, CacheParams, CacheReturn, CacheType

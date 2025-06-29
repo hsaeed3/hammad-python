@@ -1,0 +1,1 @@
+"""hammad.ai.embeddings.client"""
