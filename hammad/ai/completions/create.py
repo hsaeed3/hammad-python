@@ -41,6 +41,8 @@ async def async_create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -91,6 +93,8 @@ async def async_create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -140,6 +144,8 @@ async def async_create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -206,6 +212,10 @@ async def async_create_completion(
             - A Pydantic BaseModel class for structured output
             - Basic Python types (int, float, bool, list, dict)
             Defaults to str.
+        response_field_name (str, optional): The name of the field in the response to return.
+            Defaults to "content".
+        response_field_instruction (str, optional): The instruction for the response field.
+            Defaults to "A response in the correct type as requested by the user, or relevant content."
         instructor_mode (InstructorModeParam, optional): The instructor mode for
             structured outputs ("tool_call", "json", "json_schema", "markdown_json_schema",
             "function_call"). Defaults to "tool_call".
@@ -321,6 +331,8 @@ async def async_create_completion(
         instructions=instructions,
         model=model,
         type=type,
+        response_field_name=response_field_name,
+        response_field_instruction=response_field_instruction,
         instructor_mode=instructor_mode,
         max_retries=max_retries,
         strict=strict,
@@ -367,6 +379,8 @@ def create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -417,6 +431,8 @@ def create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -466,6 +482,8 @@ def create_completion(
     instructions: Optional[str] = None,
     model: str | CompletionsModelName = "openai/gpt-4o-mini",
     type: CompletionsOutputType = str,
+    response_field_name: str = "content",
+    response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
     instructor_mode: InstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
@@ -532,6 +550,10 @@ def create_completion(
             - A Pydantic BaseModel class for structured output
             - Basic Python types (int, float, bool, list, dict)
             Defaults to str.
+        response_field_name (str, optional): The name of the field in the response to return.
+            Defaults to "content".
+        response_field_instruction (str, optional): The instruction for the response field.
+            Defaults to "A response in the correct type as requested by the user, or relevant content."
         instructor_mode (InstructorModeParam, optional): The instructor mode for
             structured outputs ("tool_call", "json", "json_schema", "markdown_json_schema",
             "function_call"). Defaults to "tool_call".
@@ -647,6 +669,8 @@ def create_completion(
         instructions=instructions,
         model=model,
         type=type,
+        response_field_name=response_field_name,
+        response_field_instruction=response_field_instruction,
         instructor_mode=instructor_mode,
         max_retries=max_retries,
         strict=strict,
