@@ -19,6 +19,13 @@ if TYPE_CHECKING:
         async_create_completion,
         create_embeddings,
         async_create_embeddings,
+        MCPClient,
+        MCPClientService,
+        MCPClientSettings,
+        MCPServerService,
+        launch_sse_mcp_server,
+        launch_stdio_mcp_server,
+        launch_streamable_http_mcp_server
     )
 
     # hammad.base
@@ -104,6 +111,13 @@ __all__ = (
     "async_create_completion",
     "create_embeddings",
     "async_create_embeddings",
+    "MCPClient",
+    "MCPClientService",
+    "MCPClientSettings",
+    "MCPServerService",
+    "launch_sse_mcp_server",
+    "launch_stdio_mcp_server",
+    "launch_streamable_http_mcp_server",
     # hammad.base
     "Model",
     "field",

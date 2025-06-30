@@ -514,8 +514,8 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             response_model = convert_to_pydantic_model(
                 target=type,
                 name="Response",
-                field_name="value",
-                description="A single field response in the correct type.",
+                field_name="content",
+                description="A response in the correct type as requested by the user, or relevant content.",
             )
         else:
             response_model = type
@@ -545,8 +545,8 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             )
 
             # Extract the actual value if using converted pydantic model
-            if not is_pydantic_basemodel(type) and hasattr(response, "value"):
-                actual_output = response.value
+            if not is_pydantic_basemodel(type) and hasattr(response, "content"):
+                actual_output = response.content
             else:
                 actual_output = response
 
@@ -717,8 +717,8 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             response_model = convert_to_pydantic_model(
                 target=type,
                 name="Response",
-                field_name="value",
-                description="A single field response in the correct type.",
+                field_name="content",
+                description="A single field response in the correct type as requested by the user, or relevant context.",
             )
         else:
             response_model = type
@@ -746,8 +746,8 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             )
 
             # Extract the actual value if using converted pydantic model
-            if not is_pydantic_basemodel(type) and hasattr(response, "value"):
-                actual_output = response.value
+            if not is_pydantic_basemodel(type) and hasattr(response, "content"):
+                actual_output = response.content
             else:
                 actual_output = response
 

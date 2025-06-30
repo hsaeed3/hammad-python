@@ -29,6 +29,7 @@ from typing import (
 from pydantic import BaseModel, Field, create_model
 
 from ..cache.decorators import cached
+from ..typing import get_origin, get_args, is_generic_type
 
 logger = logging.getLogger(__name__)
 
@@ -517,6 +518,12 @@ def convert_to_pydantic_model(
                 name=name,
                 description=description,
             )
+
+    # Handle generic types (like list[str], dict[str, int], etc.)
+    if is_generic_type(target) or get_origin(target) is not None:
+        return convert_type_to_pydantic_model(
+            target, name, description, field_name, default
+        )
 
     # Handle standard Python types (int, str, etc.)
     if isinstance(target, type):
