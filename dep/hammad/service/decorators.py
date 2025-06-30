@@ -23,7 +23,9 @@ def serve(
     *,
     # Overrides
     name: Optional[str] = None,
-    method: Literal["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"] = "POST",
+    method: Literal[
+        "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+    ] = "POST",
     path: str = "/",
     # Server configuration
     host: str = "0.0.0.0",
@@ -42,9 +44,9 @@ def serve(
     description: Optional[str] = None,
 ) -> Union[Callable[ServiceFunctionParams, ServiceFunctionReturn], Callable]:
     """Decorator to serve a function as a FastAPI endpoint.
-    
+
     Can be used as a decorator (@serve) or as a function (serve(func)).
-    
+
     Args:
         func: Function to serve (when used as decorator, this is None initially)
         name: Service name (defaults to function name)
@@ -63,51 +65,56 @@ def serve(
         dependencies: FastAPI dependencies
         tags: API tags
         description: API description
-        
+
     Returns:
         The original function (when used as decorator)
     """
     from .create import create_service
     from ..ai.mcp.servers.launcher import find_next_free_port
-    
-    def decorator(f: Callable[ServiceFunctionParams, ServiceFunctionReturn]) -> Callable[ServiceFunctionParams, ServiceFunctionReturn]:
+
+    def decorator(
+        f: Callable[ServiceFunctionParams, ServiceFunctionReturn],
+    ) -> Callable[ServiceFunctionParams, ServiceFunctionReturn]:
         # Find next available port if auto_start is True
         actual_port = port
         if auto_start:
             actual_port = find_next_free_port(port, host)
-        
+
         # Handle dependencies - convert raw functions to FastAPI Depends
         processed_dependencies = None
         if dependencies is not None:
             from fastapi import Depends
-            processed_dependencies = [Depends(dep) if callable(dep) else dep for dep in dependencies]
-        
+
+            processed_dependencies = [
+                Depends(dep) if callable(dep) else dep for dep in dependencies
+            ]
+
         # Store the service configuration on the function
         f._service_config = {
-            'name': name or f.__name__,
-            'method': method,
-            'path': path,
-            'host': host,
-            'port': actual_port,
-            'log_level': log_level,
-            'reload': reload,
-            'workers': workers,
-            'timeout_keep_alive': timeout_keep_alive,
-            'access_log': access_log,
-            'use_colors': use_colors,
-            'auto_start': auto_start,
-            'include_in_schema': include_in_schema,
-            'dependencies': processed_dependencies,
-            'tags': tags,
-            'description': description,
+            "name": name or f.__name__,
+            "method": method,
+            "path": path,
+            "host": host,
+            "port": actual_port,
+            "log_level": log_level,
+            "reload": reload,
+            "workers": workers,
+            "timeout_keep_alive": timeout_keep_alive,
+            "access_log": access_log,
+            "use_colors": use_colors,
+            "auto_start": auto_start,
+            "include_in_schema": include_in_schema,
+            "dependencies": processed_dependencies,
+            "tags": tags,
+            "description": description,
         }
-        
+
         # Create and start the service immediately if auto_start is True
         if auto_start:
             create_service(f, **f._service_config)
-        
+
         return f
-    
+
     if func is None:
         # Called as @serve(...)
         return decorator
@@ -147,13 +154,13 @@ def serve_mcp(
     single_func_description: Optional[str] = None,
 ) -> Union[Callable, List[Callable]]:
     """Decorator/function to serve functions as MCP server tools.
-    
+
     Can be used in multiple ways:
     1. As a decorator: @serve_mcp
     2. As a decorator with params: @serve_mcp(name="MyServer")
     3. As a function with single function: serve_mcp(my_func)
     4. As a function with multiple functions: serve_mcp([func1, func2])
-    
+
     Args:
         func_or_funcs: Function or list of functions to serve
         name: MCP server name
@@ -177,7 +184,7 @@ def serve_mcp(
         check_interval: Health check interval in seconds
         single_func_name: Name override for single function
         single_func_description: Description for single function
-        
+
     Returns:
         Original function(s) unchanged
     """
@@ -187,8 +194,10 @@ def serve_mcp(
         SSEServerSettings,
         StreamableHTTPServerSettings,
     )
-    
-    def _create_server_config(tools: List[Callable], server_name: str, server_instructions: Optional[str]):
+
+    def _create_server_config(
+        tools: List[Callable], server_name: str, server_instructions: Optional[str]
+    ):
         """Create the appropriate server configuration based on transport type."""
         base_config = {
             "name": server_name,
@@ -199,7 +208,7 @@ def serve_mcp(
             "debug_mode": debug_mode,
             "cwd": cwd,
         }
-        
+
         if transport == "stdio":
             return StdioServerSettings(**base_config)
         elif transport == "sse":
@@ -229,7 +238,7 @@ def serve_mcp(
             )
         else:
             raise ValueError(f"Unsupported transport: {transport}")
-    
+
     def _launch_server(server_config):
         """Launch the MCP server with the given configuration."""
         launch_mcp_servers(
@@ -237,29 +246,29 @@ def serve_mcp(
             check_interval=check_interval,
             auto_restart=auto_restart,
         )
-    
+
     def decorator(f: Callable) -> Callable:
         """Decorator for single function."""
         func_name = single_func_name or name or f.__name__
         func_instructions = single_func_description or instructions or f.__doc__
-        
+
         # Create server configuration and launch
         server_config = _create_server_config([f], func_name, func_instructions)
         _launch_server(server_config)
-        
+
         return f
-    
+
     def handle_multiple_functions(funcs: List[Callable]) -> List[Callable]:
         """Handle multiple functions."""
         server_name = name or "MCPServer"
         server_instructions = instructions or f"MCP server with {len(funcs)} tools"
-        
+
         # Create server configuration and launch
         server_config = _create_server_config(funcs, server_name, server_instructions)
         _launch_server(server_config)
-        
+
         return funcs
-    
+
     # Handle different call patterns
     if func_or_funcs is None:
         # Called as @serve_mcp(...) - return decorator
@@ -271,4 +280,6 @@ def serve_mcp(
         # Called as serve_mcp([func1, func2, ...])
         return handle_multiple_functions(func_or_funcs)
     else:
-        raise TypeError(f"Expected callable or list of callables, got {type(func_or_funcs)}")
+        raise TypeError(
+            f"Expected callable or list of callables, got {type(func_or_funcs)}"
+        )

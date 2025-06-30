@@ -28,10 +28,7 @@ if TYPE_CHECKING:
         create_service,
         async_create_service,
     )
-    from .decorators import (
-        serve,
-        serve_mcp
-    )
+    from .decorators import serve, serve_mcp
 
 
 __all__ = (

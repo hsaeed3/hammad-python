@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         MCPServerService,
         SSEServerSettings,
         StdioServerSettings,
-        StreamableHTTPServerSettings
+        StreamableHTTPServerSettings,
     )
 
 

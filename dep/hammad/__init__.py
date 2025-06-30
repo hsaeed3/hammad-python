@@ -78,14 +78,9 @@ if TYPE_CHECKING:
         convert_to_pydantic_field,
         convert_to_pydantic_model,
     )
-    
+
     # hammad.service
-    from .service import (
-        create_service,
-        async_create_service,
-        serve,
-        serve_mcp
-    )
+    from .service import create_service, async_create_service, serve, serve_mcp
 
     # hammad.text
     from .text import (

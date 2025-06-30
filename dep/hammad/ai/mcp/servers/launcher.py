@@ -29,22 +29,18 @@ logger = logging.getLogger(__name__)
 __all__ = [
     # Main launch function
     "launch_mcp_servers",
-    
     # Server configuration classes
     "StdioServerSettings",
-    "SSEServerSettings", 
+    "SSEServerSettings",
     "StreamableHTTPServerSettings",
     "ServerSettings",
-    
     # Server management
     "MCPServerService",
     "ServerInfo",
     "get_server_service",
     "shutdown_all_servers",
-    
     # Utility functions
     "find_next_free_port",
-    
     # Legacy functions (deprecated - will be removed in future)
     "launch_stdio_mcp_server",
     "launch_sse_mcp_server",
@@ -56,12 +52,13 @@ __all__ = [
 @dataclass
 class ServerInfo:
     """Information about a launched server."""
+
     name: str
     transport: str
     process: subprocess.Popen
     host: Optional[str] = None
     port: Optional[int] = None
-    
+
     @property
     def url(self) -> Optional[str]:
         """Get the server URL if applicable."""
@@ -73,6 +70,7 @@ class ServerInfo:
 @dataclass
 class BaseServerSettings:
     """Base configuration for all MCP servers."""
+
     name: str
     instructions: Optional[str] = None
     tools: List[Callable] = field(default_factory=list)
@@ -85,12 +83,14 @@ class BaseServerSettings:
 @dataclass
 class StdioServerSettings(BaseServerSettings):
     """Configuration for stdio transport MCP servers."""
+
     transport: Literal["stdio"] = field(default="stdio", init=False)
 
 
 @dataclass
 class SSEServerSettings(BaseServerSettings):
     """Configuration for SSE transport MCP servers."""
+
     transport: Literal["sse"] = field(default="sse", init=False)
     host: str = "127.0.0.1"
     start_port: int = 8000
@@ -106,6 +106,7 @@ class SSEServerSettings(BaseServerSettings):
 @dataclass
 class StreamableHTTPServerSettings(BaseServerSettings):
     """Configuration for StreamableHTTP transport MCP servers."""
+
     transport: Literal["streamable-http"] = field(default="streamable-http", init=False)
     host: str = "127.0.0.1"
     start_port: int = 8000
@@ -118,7 +119,9 @@ class StreamableHTTPServerSettings(BaseServerSettings):
 
 
 # Type alias for any server settings
-ServerSettings = Union[StdioServerSettings, SSEServerSettings, StreamableHTTPServerSettings]
+ServerSettings = Union[
+    StdioServerSettings, SSEServerSettings, StreamableHTTPServerSettings
+]
 
 
 def _monitor_process_output(process: subprocess.Popen, name: str, stream_name: str):
@@ -126,7 +129,7 @@ def _monitor_process_output(process: subprocess.Popen, name: str, stream_name: s
     stream = process.stdout if stream_name == "stdout" else process.stderr
     if not stream:
         return
-        
+
     try:
         for line in stream:
             if line:
@@ -409,32 +412,32 @@ class MCPServerService:
             # Verify the process started successfully before adding to active_servers
             if self._verify_process_started(process, name):
                 self.active_servers.append(process)
-                
+
                 # Create server info
                 info = ServerInfo(
                     name=name,
                     transport=transport,
                     process=process,
                     host=server_settings.get("host"),
-                    port=server_settings.get("port")
+                    port=server_settings.get("port"),
                 )
                 self.server_info.append(info)
-                
+
                 # Start output monitoring threads
                 stdout_thread = threading.Thread(
                     target=_monitor_process_output,
                     args=(process, name, "stdout"),
-                    daemon=True
+                    daemon=True,
                 )
                 stderr_thread = threading.Thread(
                     target=_monitor_process_output,
                     args=(process, name, "stderr"),
-                    daemon=True
+                    daemon=True,
                 )
                 stdout_thread.start()
                 stderr_thread.start()
                 self.output_threads.extend([stdout_thread, stderr_thread])
-                
+
                 logger.info(
                     f"Server '{name}' (PID {process.pid}) verified as started successfully."
                 )
@@ -622,20 +625,20 @@ def launch_mcp_servers(
 ) -> List[subprocess.Popen]:
     """
     Launch multiple MCP servers with different configurations.
-    
+
     This provides a unified interface for launching and managing multiple MCP servers
     with different transport types. It automatically provides a uvicorn-like experience
     with proper startup messages and graceful shutdown.
-    
+
     Args:
-        servers: List of server configurations (StdioServerSettings, SSEServerSettings, 
+        servers: List of server configurations (StdioServerSettings, SSEServerSettings,
                 or StreamableHTTPServerSettings)
         check_interval: How often to check server health (seconds)
         auto_restart: Whether to automatically restart failed servers
-        
+
     Returns:
         List of subprocess.Popen objects for the launched servers
-        
+
     Example:
         servers = [
             StdioServerSettings(
@@ -644,22 +647,22 @@ def launch_mcp_servers(
                 tools=[my_tool]
             ),
             SSEServerSettings(
-                name="sse_server", 
+                name="sse_server",
                 instructions="An SSE server",
                 tools=[another_tool],
                 start_port=8080
             )
         ]
-        
+
         launch_mcp_servers(servers)
     """
     if not servers:
         logger.warning("No server configurations provided.")
         return []
-        
+
     service = get_server_service()
     processes = []
-    
+
     # Launch all servers
     for config in servers:
         try:
@@ -694,7 +697,7 @@ def launch_mcp_servers(
             else:  # StdioServerSettings
                 server_settings = {}
                 transport = "stdio"
-                
+
             # Launch the server
             process = service.launch_server_process(
                 name=config.name,
@@ -708,26 +711,26 @@ def launch_mcp_servers(
                 cwd=config.cwd,
             )
             processes.append(process)
-            
+
         except Exception as e:
             logger.error(f"Failed to launch server '{config.name}': {e}")
-            
+
     # Display startup information
     if service.server_info:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("MCP Server Manager")
-        print("="*60)
-        
+        print("=" * 60)
+
         for info in service.server_info:
             print(f"\n✓ {info.name} ({info.transport})")
             print(f"  PID: {info.process.pid}")
             if info.url:
                 print(f"  URL: {info.url}")
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("Press CTRL+C to shutdown all servers")
-        print("="*60 + "\n")
-        
+        print("=" * 60 + "\n")
+
         # Keep servers running
         try:
             while service._keep_running:
@@ -740,11 +743,11 @@ def launch_mcp_servers(
                             f"Server '{info.name}' (PID {info.process.pid}) "
                             f"exited with code {info.process.poll()}"
                         )
-                
+
                 # Clean up dead servers
                 if dead_servers:
                     service.cleanup_dead_servers()
-                    
+
                     # If auto_restart is enabled, restart dead servers
                     if auto_restart:
                         for dead_info in dead_servers:
@@ -754,25 +757,31 @@ def launch_mcp_servers(
                                     logger.info(f"Restarting server '{config.name}'...")
                                     try:
                                         # Re-launch the server with same config
-                                        launch_mcp_servers([config], check_interval=check_interval, auto_restart=False)
+                                        launch_mcp_servers(
+                                            [config],
+                                            check_interval=check_interval,
+                                            auto_restart=False,
+                                        )
                                     except Exception as e:
-                                        logger.error(f"Failed to restart server '{config.name}': {e}")
+                                        logger.error(
+                                            f"Failed to restart server '{config.name}': {e}"
+                                        )
                                     break
-                    
+
                     # If all servers are dead and no auto-restart, exit
                     if not service.server_info and not auto_restart:
                         logger.error("All servers have exited. Shutting down.")
                         break
-                
+
                 time.sleep(check_interval)
-                
+
         except KeyboardInterrupt:
             print("\n\nShutting down servers...")
         finally:
             # Ensure cleanup happens
             shutdown_all_servers()
             print("All servers stopped.")
-    
+
     return processes
 
 
@@ -780,17 +789,18 @@ def _is_main_module() -> bool:
     """Check if we're running as the main module."""
     import __main__
     import sys
-    
+
     # Check if we're in an interactive session
-    if hasattr(__main__, '__file__'):
+    if hasattr(__main__, "__file__"):
         # We have a file, check if it's being run directly
         try:
             # Get the calling frame
             import inspect
+
             frame = inspect.currentframe()
             if frame and frame.f_back and frame.f_back.f_back:
                 caller_frame = frame.f_back.f_back
-                return caller_frame.f_globals.get('__name__') == '__main__'
+                return caller_frame.f_globals.get("__name__") == "__main__"
         except:
             pass
     return False
@@ -804,6 +814,7 @@ def _auto_keep_running_if_main():
             # Schedule keep_servers_running to run after a brief delay
             # This allows all launch calls to complete first
             import threading
+
             timer = threading.Timer(0.1, keep_servers_running)
             timer.daemon = False
             timer.start()
@@ -812,35 +823,35 @@ def _auto_keep_running_if_main():
 def keep_servers_running(check_interval: float = 1.0) -> None:
     """
     Keep the main process running and monitor all launched servers.
-    
+
     This provides a uvicorn-like experience where the script keeps running
     until interrupted with Ctrl+C. It displays startup information and
     monitors server health.
-    
+
     Args:
         check_interval: How often to check server health (seconds)
     """
     service = get_server_service()
-    
+
     if not service.server_info:
         logger.warning("No servers have been launched. Call launch_* functions first.")
         return
-    
+
     # Display startup information
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("MCP Server Manager")
-    print("="*60)
-    
+    print("=" * 60)
+
     for info in service.server_info:
         print(f"\n✓ {info.name} ({info.transport})")
         print(f"  PID: {info.process.pid}")
         if info.url:
             print(f"  URL: {info.url}")
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("Press CTRL+C to shutdown all servers")
-    print("="*60 + "\n")
-    
+    print("=" * 60 + "\n")
+
     try:
         while service._keep_running:
             # Check for dead servers
@@ -852,18 +863,18 @@ def keep_servers_running(check_interval: float = 1.0) -> None:
                         f"Server '{info.name}' (PID {info.process.pid}) "
                         f"exited with code {info.process.poll()}"
                     )
-            
+
             # Clean up dead servers
             if dead_servers:
                 service.cleanup_dead_servers()
-                
+
                 # If all servers are dead, exit
                 if not service.server_info:
                     logger.error("All servers have exited. Shutting down.")
                     break
-            
+
             time.sleep(check_interval)
-            
+
     except KeyboardInterrupt:
         print("\n\nShutting down servers...")
     finally:
@@ -922,10 +933,10 @@ def launch_stdio_mcp_server(
         server_settings={},
         cwd=cwd,
     )
-    
+
     # Auto-start keep_servers_running if this is the main module
     _auto_keep_running_if_main()
-    
+
     return process
 
 
@@ -1004,10 +1015,10 @@ def launch_sse_mcp_server(
         server_settings=server_http_settings,
         cwd=cwd,
     )
-    
+
     # Auto-start keep_servers_running if this is the main module
     _auto_keep_running_if_main()
-    
+
     return process
 
 
@@ -1088,10 +1099,10 @@ def launch_streamable_http_mcp_server(
         server_settings=server_http_settings,
         cwd=cwd,
     )
-    
+
     # Auto-start keep_servers_running if this is the main module
     _auto_keep_running_if_main()
-    
+
     return process
 
 
@@ -1100,9 +1111,9 @@ if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
+
     logger.info("MCP Launcher Example - New Configuration-Based API")
 
     # Dummy tool functions for testing
@@ -1111,7 +1122,7 @@ if __name__ == "__main__":
         return f"Example tool one received: {param}"
 
     import math
-    
+
     def example_tool_two(num: float) -> str:
         """Example tool that calculates square root."""
         return f"Square root of {num} is {math.sqrt(num)}"
@@ -1126,7 +1137,6 @@ if __name__ == "__main__":
             log_level="DEBUG",
             debug_mode=True,
         ),
-        
         # An SSE server
         SSEServerSettings(
             name="MySSEServer",
@@ -1136,7 +1146,6 @@ if __name__ == "__main__":
             log_level="DEBUG",
             debug_mode=True,
         ),
-        
         # A StreamableHTTP server
         StreamableHTTPServerSettings(
             name="MyStreamableHTTPServer",
@@ -1148,6 +1157,6 @@ if __name__ == "__main__":
             json_response=True,
         ),
     ]
-    
+
     # Launch all servers with unified interface
     launch_mcp_servers(servers, auto_restart=True)
