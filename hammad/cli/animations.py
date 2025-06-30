@@ -7,36 +7,15 @@ import threading
 from dataclasses import dataclass, field
 from typing import Literal, Optional, List, overload, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from rich import get_console
-    from rich.console import Console, ConsoleOptions, RenderResult, RenderableType
-    from rich.live import Live
-    from rich.text import Text
-    from rich.panel import Panel
+from rich import get_console
+from rich.console import Console, ConsoleOptions, RenderResult, RenderableType
+from rich.live import Live
+from rich.text import Text
+from rich.panel import Panel
 
 from .styles.types import (
     CLIStyleColorName,
 )
-
-
-def _get_rich_animation_classes():
-    """Lazy import for rich classes used in animations"""
-    from rich import get_console
-    from rich.console import Console, ConsoleOptions, RenderResult, RenderableType
-    from rich.live import Live
-    from rich.text import Text
-    from rich.panel import Panel
-
-    return {
-        "get_console": get_console,
-        "Console": Console,
-        "ConsoleOptions": ConsoleOptions,
-        "RenderResult": RenderResult,
-        "RenderableType": RenderableType,
-        "Live": Live,
-        "Text": Text,
-        "Panel": Panel,
-    }
 
 
 __all__ = (
@@ -87,8 +66,7 @@ class CLIAnimation:
         self.state = CLIAnimationState(last_update=None)
         """The current state of the animation."""
 
-        rich_classes = _get_rich_animation_classes()
-        self.rich_console = rich_classes["get_console"]()
+        self.rich_console = get_console()
         """The rich console responsible for rendering the animation."""
         self._animation_thread: threading.Thread | None = None
         """The thread responsible for running the animation."""
@@ -141,12 +119,9 @@ class CLIAnimation:
     ) -> None:
         """Animate this effect for the specified duration using Live."""
         animate_duration = duration or self.duration or 3.0
-        rich_classes = _get_rich_animation_classes()
-        Console = rich_classes["Console"]
-        Live = rich_classes["Live"]
 
         # Use provided console or create new one
-        live_console = console or Console()
+        live_console = console or get_console()
 
         with Live(
             self,
@@ -183,9 +158,6 @@ class CLIFlashingAnimation(CLIAnimation):
             self.colors = [on_color, off_color]
 
     def apply(self, console, options):
-        rich_classes = _get_rich_animation_classes()
-        Text = rich_classes["Text"]
-
         # Calculate which color to use based on time
         color_index = int(self.time_elapsed / self.speed) % len(self.colors)
         color = self.colors[color_index]
@@ -303,9 +275,6 @@ class CLITypingAnimation(CLIAnimation):
         self.show_cursor = show_cursor
 
     def apply(self, console: "Console", options: "ConsoleOptions") -> "RenderResult":
-        rich_classes = _get_rich_animation_classes()
-        Text = rich_classes["Text"]
-
         # Calculate how many characters to show
         chars_to_show = int(self.time_elapsed / self.speed)
         chars_to_show = min(chars_to_show, len(self.text))
@@ -404,7 +373,7 @@ class CLIRainbowAnimation(CLIAnimation):
     def apply(self, console: "Console", options: "ConsoleOptions") -> "RenderResult":
         if isinstance(self.renderable, str):
             # Apply rainbow to each character
-            result = _get_rich_animation_classes()["Text"]()
+            result = Text()
             for i, char in enumerate(self.renderable):
                 color_offset = int(
                     (self.time_elapsed / self.speed + i) % len(self.colors)
