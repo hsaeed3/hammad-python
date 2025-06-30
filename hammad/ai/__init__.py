@@ -26,6 +26,16 @@ if TYPE_CHECKING:
         create_embeddings,
         async_create_embeddings,
     )
+    # MCP
+    from .mcp import (
+        MCPServerService,
+        MCPClientService,
+        MCPClient,
+        MCPClientSettings,
+        launch_sse_mcp_server,
+        launch_stdio_mcp_server,
+        launch_streamable_http_mcp_server,
+    )
 
 
 __all__ = (
@@ -49,6 +59,12 @@ __all__ = (
     "LiteLlmEmbeddingsClient",
     "create_embeddings",
     "async_create_embeddings",
+    # hammad.ai.mcp
+    "MCPClient",
+    "MCPClientSettings",
+    "launch_sse_mcp_server",
+    "launch_stdio_mcp_server",
+    "launch_streamable_http_mcp_server",
 )
 
 

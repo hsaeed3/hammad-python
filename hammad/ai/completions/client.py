@@ -32,14 +32,13 @@ from .utils import (
     convert_response_to_completion,
     create_async_completion_stream,
     create_completion_stream,
+    InstructorStreamWrapper,
+    AsyncInstructorStreamWrapper,
 )
 from .types import (
     CompletionsInputParam,
     CompletionsOutputType,
     Completion,
-    CompletionChunk,
-    CompletionStream,
-    AsyncCompletionStream,
 )
 
 
@@ -522,15 +521,23 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             response_model = type
 
         if stream:
-            stream = await client.chat.completions.create_partial(
+            # Create wrapper to capture raw content via hooks
+            wrapper = AsyncInstructorStreamWrapper(
+                client=client,
                 response_model=response_model,
-                max_retries=max_retries,
-                strict=strict,
-                **{k: v for k, v in params.items() if v is not None},
+                params={
+                    "max_retries": max_retries,
+                    "strict": strict,
+                    **{k: v for k, v in params.items() if v is not None},
+                },
+                output_type=type,
+                model=model,
             )
-            return create_async_completion_stream(stream, output_type=type, model=model)
+            return create_async_completion_stream(
+                wrapper, output_type=type, model=model
+            )
         else:
-            response = await client.chat.completions.create(
+            response, completion = await client.chat.completions.create_with_completion(
                 response_model=response_model,
                 max_retries=max_retries,
                 strict=strict,
@@ -543,8 +550,22 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             else:
                 actual_output = response
 
+            # Extract content and tool calls from the completion
+            content = None
+            tool_calls = None
+            if hasattr(completion, "choices") and completion.choices:
+                choice = completion.choices[0]
+                if hasattr(choice, "message"):
+                    message = choice.message
+                    content = getattr(message, "content", None)
+                    tool_calls = getattr(message, "tool_calls", None)
+
             return Completion(
-                output=actual_output, model=model, content=None, completion=None
+                output=actual_output,
+                model=model,
+                content=content,
+                tool_calls=tool_calls,
+                completion=completion,
             )
 
     @staticmethod
@@ -703,15 +724,21 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             response_model = type
 
         if stream:
-            stream = client.chat.completions.create_partial(
+            # Create wrapper to capture raw content via hooks
+            wrapper = InstructorStreamWrapper(
+                client=client,
                 response_model=response_model,
-                max_retries=max_retries,
-                strict=strict,
-                **{k: v for k, v in params.items() if v is not None},
+                params={
+                    "max_retries": max_retries,
+                    "strict": strict,
+                    **{k: v for k, v in params.items() if v is not None},
+                },
+                output_type=type,
+                model=model,
             )
-            return create_completion_stream(stream, output_type=type, model=model)
+            return create_completion_stream(wrapper, output_type=type, model=model)
         else:
-            response = client.chat.completions.create(
+            response, completion = client.chat.completions.create_with_completion(
                 response_model=response_model,
                 max_retries=max_retries,
                 strict=strict,
@@ -724,6 +751,20 @@ class CompletionsClient(Generic[CompletionsOutputType]):
             else:
                 actual_output = response
 
+            # Extract content and tool calls from the completion
+            content = None
+            tool_calls = None
+            if hasattr(completion, "choices") and completion.choices:
+                choice = completion.choices[0]
+                if hasattr(choice, "message"):
+                    message = choice.message
+                    content = getattr(message, "content", None)
+                    tool_calls = getattr(message, "tool_calls", None)
+
             return Completion(
-                output=actual_output, model=model, content=None, completion=None
+                output=actual_output,
+                model=model,
+                content=content,
+                tool_calls=tool_calls,
+                completion=completion,
             )

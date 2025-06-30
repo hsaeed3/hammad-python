@@ -36,6 +36,8 @@ __all__ = (
     "create_async_completion_stream",
     "format_tool_calls",
     "convert_response_to_completion",
+    "InstructorStreamWrapper",
+    "AsyncInstructorStreamWrapper",
 )
 
 
@@ -372,3 +374,113 @@ def convert_response_to_completion(response: Any) -> Completion[str]:
         refusal=refusal,
         completion=response,
     )
+
+
+class InstructorStreamWrapper:
+    """Wrapper for instructor streaming that captures raw completion content using hooks."""
+
+    def __init__(self, client, response_model, params, output_type, model):
+        self.client = client
+        self.response_model = response_model
+        self.params = params
+        self.output_type = output_type
+        self.model = model
+        self._raw_content_chunks = []
+        self._raw_completion = None
+        self._tool_calls = None
+
+        # Set up hooks to capture raw content
+        self.client.on("completion:response", self._capture_completion)
+
+    def _capture_completion(self, completion):
+        """Capture the raw completion response."""
+        self._raw_completion = completion
+        if hasattr(completion, "choices") and completion.choices:
+            choice = completion.choices[0]
+            # Capture content chunks
+            if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
+                content = choice.delta.content
+                if content:
+                    self._raw_content_chunks.append(content)
+            # Capture tool calls from message (final chunk)
+            if hasattr(choice, "message") and hasattr(choice.message, "tool_calls"):
+                self._tool_calls = choice.message.tool_calls
+
+    def __iter__(self):
+        """Create the stream and yield wrapped chunks."""
+        stream = self.client.chat.completions.create_partial(
+            response_model=self.response_model, **self.params
+        )
+
+        for chunk in stream:
+            yield chunk
+
+        # Clean up hooks
+        self.client.off("completion:response", self._capture_completion)
+
+    def get_raw_content(self):
+        """Get the accumulated raw content."""
+        return "".join(self._raw_content_chunks)
+
+    def get_raw_completion(self):
+        """Get the raw completion object."""
+        return self._raw_completion
+
+    def get_tool_calls(self):
+        """Get the tool calls from the completion."""
+        return self._tool_calls
+
+    def get_tool_calls(self):
+        """Get the tool calls from the completion."""
+        return self._tool_calls
+
+
+class AsyncInstructorStreamWrapper:
+    """Async wrapper for instructor streaming that captures raw completion content using hooks."""
+
+    def __init__(self, client, response_model, params, output_type, model):
+        self.client = client
+        self.response_model = response_model
+        self.params = params
+        self.output_type = output_type
+        self.model = model
+        self._raw_content_chunks = []
+        self._raw_completion = None
+        self._tool_calls = None
+
+        # Set up hooks to capture raw content
+        self.client.on("completion:response", self._capture_completion)
+
+    def _capture_completion(self, completion):
+        """Capture the raw completion response."""
+        self._raw_completion = completion
+        if hasattr(completion, "choices") and completion.choices:
+            choice = completion.choices[0]
+            # Capture content chunks
+            if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
+                content = choice.delta.content
+                if content:
+                    self._raw_content_chunks.append(content)
+            # Capture tool calls from message (final chunk)
+            if hasattr(choice, "message") and hasattr(choice.message, "tool_calls"):
+                self._tool_calls = choice.message.tool_calls
+
+    async def __aiter__(self):
+        """Create the stream and yield wrapped chunks."""
+        stream = await self.client.chat.completions.create_partial(
+            response_model=self.response_model, **self.params
+        )
+
+        async for chunk in stream:
+            yield chunk
+
+        # Clean up hooks
+        self.client.off("completion:response", self._capture_completion)
+
+    def get_raw_content(self):
+        """Get the accumulated raw content."""
+        return "".join(self._raw_content_chunks)
+
+    def get_raw_completion(self):
+        """Get the raw completion object."""
+        return self._raw_completion
