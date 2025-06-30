@@ -16,22 +16,124 @@ import inspect
 import signal
 import time
 import atexit
+import threading
 from dataclasses import dataclass, field
-from typing import Callable, List, Literal, Dict, Any
+from typing import Callable, List, Literal, Dict, Any, Optional, Tuple, Union
+from queue import Queue
+import os
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    # Main launch function
+    "launch_mcp_servers",
+    
+    # Server configuration classes
+    "StdioServerSettings",
+    "SSEServerSettings", 
+    "StreamableHTTPServerSettings",
+    "ServerSettings",
+    
+    # Server management
     "MCPServerService",
+    "ServerInfo",
+    "get_server_service",
+    "shutdown_all_servers",
+    
+    # Utility functions
+    "find_next_free_port",
+    
+    # Legacy functions (deprecated - will be removed in future)
     "launch_stdio_mcp_server",
     "launch_sse_mcp_server",
     "launch_streamable_http_mcp_server",
-    "find_next_free_port",
-    "get_server_service",
-    "shutdown_all_servers",
+    "keep_servers_running",
 ]
+
+
+@dataclass
+class ServerInfo:
+    """Information about a launched server."""
+    name: str
+    transport: str
+    process: subprocess.Popen
+    host: Optional[str] = None
+    port: Optional[int] = None
+    
+    @property
+    def url(self) -> Optional[str]:
+        """Get the server URL if applicable."""
+        if self.host and self.port:
+            return f"http://{self.host}:{self.port}"
+        return None
+
+
+@dataclass
+class BaseServerSettings:
+    """Base configuration for all MCP servers."""
+    name: str
+    instructions: Optional[str] = None
+    tools: List[Callable] = field(default_factory=list)
+    dependencies: List[str] = field(default_factory=list)
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    debug_mode: bool = False
+    cwd: Optional[str] = None
+
+
+@dataclass
+class StdioServerSettings(BaseServerSettings):
+    """Configuration for stdio transport MCP servers."""
+    transport: Literal["stdio"] = field(default="stdio", init=False)
+
+
+@dataclass
+class SSEServerSettings(BaseServerSettings):
+    """Configuration for SSE transport MCP servers."""
+    transport: Literal["sse"] = field(default="sse", init=False)
+    host: str = "127.0.0.1"
+    start_port: int = 8000
+    mount_path: str = "/"
+    sse_path: str = "/sse"
+    message_path: str = "/messages/"
+    json_response: bool = False
+    stateless_http: bool = False
+    warn_on_duplicate_resources: bool = True
+    warn_on_duplicate_tools: bool = True
+
+
+@dataclass
+class StreamableHTTPServerSettings(BaseServerSettings):
+    """Configuration for StreamableHTTP transport MCP servers."""
+    transport: Literal["streamable-http"] = field(default="streamable-http", init=False)
+    host: str = "127.0.0.1"
+    start_port: int = 8000
+    mount_path: str = "/"
+    streamable_http_path: str = "/mcp"
+    json_response: bool = False
+    stateless_http: bool = False
+    warn_on_duplicate_resources: bool = True
+    warn_on_duplicate_tools: bool = True
+
+
+# Type alias for any server settings
+ServerSettings = Union[StdioServerSettings, SSEServerSettings, StreamableHTTPServerSettings]
+
+
+def _monitor_process_output(process: subprocess.Popen, name: str, stream_name: str):
+    """Monitor and log process output in a separate thread."""
+    stream = process.stdout if stream_name == "stdout" else process.stderr
+    if not stream:
+        return
+        
+    try:
+        for line in stream:
+            if line:
+                # Add server name prefix to make multi-server logs clearer
+                logger.info(f"[{name}] {line.rstrip()}")
+    except Exception as e:
+        logger.error(f"Error reading {stream_name} from {name}: {e}")
 
 
 def find_next_free_port(start_port: int = 8000, host: str = "127.0.0.1") -> int:
@@ -96,10 +198,13 @@ class MCPServerService:
     """
 
     active_servers: List[subprocess.Popen] = field(default_factory=list)
+    server_info: List[ServerInfo] = field(default_factory=list)
+    output_threads: List[threading.Thread] = field(default_factory=list)
     python_executable: str = sys.executable
     process_startup_timeout: float = (
         10.0  # seconds to wait for process startup verification
     )
+    _keep_running: bool = field(default=True, init=False)
 
     def __post_init__(self):
         """Register signal handlers when service is created."""
@@ -304,11 +409,35 @@ class MCPServerService:
             # Verify the process started successfully before adding to active_servers
             if self._verify_process_started(process, name):
                 self.active_servers.append(process)
+                
+                # Create server info
+                info = ServerInfo(
+                    name=name,
+                    transport=transport,
+                    process=process,
+                    host=server_settings.get("host"),
+                    port=server_settings.get("port")
+                )
+                self.server_info.append(info)
+                
+                # Start output monitoring threads
+                stdout_thread = threading.Thread(
+                    target=_monitor_process_output,
+                    args=(process, name, "stdout"),
+                    daemon=True
+                )
+                stderr_thread = threading.Thread(
+                    target=_monitor_process_output,
+                    args=(process, name, "stderr"),
+                    daemon=True
+                )
+                stdout_thread.start()
+                stderr_thread.start()
+                self.output_threads.extend([stdout_thread, stderr_thread])
+                
                 logger.info(
                     f"Server '{name}' (PID {process.pid}) verified as started successfully."
                 )
-                # TODO: Optionally, start threads here to read process.stdout and process.stderr
-                # and log them using eval_interface.common.logger for better visibility.
                 return process
             else:
                 # Process failed to start properly, clean it up
@@ -383,6 +512,9 @@ class MCPServerService:
         self.active_servers = [
             server for server in self.active_servers if server.poll() is None
         ]
+        self.server_info = [
+            info for info in self.server_info if info.process.poll() is None
+        ]
         cleaned_count = original_count - len(self.active_servers)
         if cleaned_count > 0:
             logger.info(
@@ -429,6 +561,8 @@ class MCPServerService:
                 )
 
         self.active_servers = []
+        self.server_info = []
+        self._keep_running = False
         logger.info("All managed MCP server services shut down.")
 
     def __enter__(self):
@@ -477,6 +611,268 @@ def shutdown_all_servers(force_kill_timeout: float = 5.0):
 
 
 # ------------------------------------------------------------------------------
+# Server Management Functions
+# ------------------------------------------------------------------------------
+
+
+def launch_mcp_servers(
+    servers: List[ServerSettings],
+    check_interval: float = 1.0,
+    auto_restart: bool = False,
+) -> List[subprocess.Popen]:
+    """
+    Launch multiple MCP servers with different configurations.
+    
+    This provides a unified interface for launching and managing multiple MCP servers
+    with different transport types. It automatically provides a uvicorn-like experience
+    with proper startup messages and graceful shutdown.
+    
+    Args:
+        servers: List of server configurations (StdioServerSettings, SSEServerSettings, 
+                or StreamableHTTPServerSettings)
+        check_interval: How often to check server health (seconds)
+        auto_restart: Whether to automatically restart failed servers
+        
+    Returns:
+        List of subprocess.Popen objects for the launched servers
+        
+    Example:
+        servers = [
+            StdioServerSettings(
+                name="stdio_server",
+                instructions="A stdio server",
+                tools=[my_tool]
+            ),
+            SSEServerSettings(
+                name="sse_server", 
+                instructions="An SSE server",
+                tools=[another_tool],
+                start_port=8080
+            )
+        ]
+        
+        launch_mcp_servers(servers)
+    """
+    if not servers:
+        logger.warning("No server configurations provided.")
+        return []
+        
+    service = get_server_service()
+    processes = []
+    
+    # Launch all servers
+    for config in servers:
+        try:
+            # Prepare server settings based on transport type
+            if isinstance(config, SSEServerSettings):
+                actual_port = find_next_free_port(config.start_port, config.host)
+                server_settings = {
+                    "host": config.host,
+                    "port": actual_port,
+                    "mount_path": config.mount_path,
+                    "sse_path": config.sse_path,
+                    "message_path": config.message_path,
+                    "json_response": config.json_response,
+                    "stateless_http": config.stateless_http,
+                    "warn_on_duplicate_resources": config.warn_on_duplicate_resources,
+                    "warn_on_duplicate_tools": config.warn_on_duplicate_tools,
+                }
+                transport = "sse"
+            elif isinstance(config, StreamableHTTPServerSettings):
+                actual_port = find_next_free_port(config.start_port, config.host)
+                server_settings = {
+                    "host": config.host,
+                    "port": actual_port,
+                    "mount_path": config.mount_path,
+                    "streamable_http_path": config.streamable_http_path,
+                    "json_response": config.json_response,
+                    "stateless_http": config.stateless_http,
+                    "warn_on_duplicate_resources": config.warn_on_duplicate_resources,
+                    "warn_on_duplicate_tools": config.warn_on_duplicate_tools,
+                }
+                transport = "streamable-http"
+            else:  # StdioServerSettings
+                server_settings = {}
+                transport = "stdio"
+                
+            # Launch the server
+            process = service.launch_server_process(
+                name=config.name,
+                instructions=config.instructions,
+                tools=config.tools,
+                dependencies=config.dependencies,
+                log_level=config.log_level,
+                debug_mode=config.debug_mode,
+                transport=transport,
+                server_settings=server_settings,
+                cwd=config.cwd,
+            )
+            processes.append(process)
+            
+        except Exception as e:
+            logger.error(f"Failed to launch server '{config.name}': {e}")
+            
+    # Display startup information
+    if service.server_info:
+        print("\n" + "="*60)
+        print("MCP Server Manager")
+        print("="*60)
+        
+        for info in service.server_info:
+            print(f"\n✓ {info.name} ({info.transport})")
+            print(f"  PID: {info.process.pid}")
+            if info.url:
+                print(f"  URL: {info.url}")
+        
+        print("\n" + "="*60)
+        print("Press CTRL+C to shutdown all servers")
+        print("="*60 + "\n")
+        
+        # Keep servers running
+        try:
+            while service._keep_running:
+                # Check for dead servers
+                dead_servers = []
+                for info in service.server_info:
+                    if info.process.poll() is not None:
+                        dead_servers.append(info)
+                        logger.error(
+                            f"Server '{info.name}' (PID {info.process.pid}) "
+                            f"exited with code {info.process.poll()}"
+                        )
+                
+                # Clean up dead servers
+                if dead_servers:
+                    service.cleanup_dead_servers()
+                    
+                    # If auto_restart is enabled, restart dead servers
+                    if auto_restart:
+                        for dead_info in dead_servers:
+                            # Find the original config
+                            for config in servers:
+                                if config.name == dead_info.name:
+                                    logger.info(f"Restarting server '{config.name}'...")
+                                    try:
+                                        # Re-launch the server with same config
+                                        launch_mcp_servers([config], check_interval=check_interval, auto_restart=False)
+                                    except Exception as e:
+                                        logger.error(f"Failed to restart server '{config.name}': {e}")
+                                    break
+                    
+                    # If all servers are dead and no auto-restart, exit
+                    if not service.server_info and not auto_restart:
+                        logger.error("All servers have exited. Shutting down.")
+                        break
+                
+                time.sleep(check_interval)
+                
+        except KeyboardInterrupt:
+            print("\n\nShutting down servers...")
+        finally:
+            # Ensure cleanup happens
+            shutdown_all_servers()
+            print("All servers stopped.")
+    
+    return processes
+
+
+def _is_main_module() -> bool:
+    """Check if we're running as the main module."""
+    import __main__
+    import sys
+    
+    # Check if we're in an interactive session
+    if hasattr(__main__, '__file__'):
+        # We have a file, check if it's being run directly
+        try:
+            # Get the calling frame
+            import inspect
+            frame = inspect.currentframe()
+            if frame and frame.f_back and frame.f_back.f_back:
+                caller_frame = frame.f_back.f_back
+                return caller_frame.f_globals.get('__name__') == '__main__'
+        except:
+            pass
+    return False
+
+
+def _auto_keep_running_if_main():
+    """Automatically keep servers running if this is the main module."""
+    if _is_main_module():
+        service = get_server_service()
+        if service.server_info:
+            # Schedule keep_servers_running to run after a brief delay
+            # This allows all launch calls to complete first
+            import threading
+            timer = threading.Timer(0.1, keep_servers_running)
+            timer.daemon = False
+            timer.start()
+
+
+def keep_servers_running(check_interval: float = 1.0) -> None:
+    """
+    Keep the main process running and monitor all launched servers.
+    
+    This provides a uvicorn-like experience where the script keeps running
+    until interrupted with Ctrl+C. It displays startup information and
+    monitors server health.
+    
+    Args:
+        check_interval: How often to check server health (seconds)
+    """
+    service = get_server_service()
+    
+    if not service.server_info:
+        logger.warning("No servers have been launched. Call launch_* functions first.")
+        return
+    
+    # Display startup information
+    print("\n" + "="*60)
+    print("MCP Server Manager")
+    print("="*60)
+    
+    for info in service.server_info:
+        print(f"\n✓ {info.name} ({info.transport})")
+        print(f"  PID: {info.process.pid}")
+        if info.url:
+            print(f"  URL: {info.url}")
+    
+    print("\n" + "="*60)
+    print("Press CTRL+C to shutdown all servers")
+    print("="*60 + "\n")
+    
+    try:
+        while service._keep_running:
+            # Check for dead servers
+            dead_servers = []
+            for info in service.server_info:
+                if info.process.poll() is not None:
+                    dead_servers.append(info)
+                    logger.error(
+                        f"Server '{info.name}' (PID {info.process.pid}) "
+                        f"exited with code {info.process.poll()}"
+                    )
+            
+            # Clean up dead servers
+            if dead_servers:
+                service.cleanup_dead_servers()
+                
+                # If all servers are dead, exit
+                if not service.server_info:
+                    logger.error("All servers have exited. Shutting down.")
+                    break
+            
+            time.sleep(check_interval)
+            
+    except KeyboardInterrupt:
+        print("\n\nShutting down servers...")
+    finally:
+        # Ensure cleanup happens
+        shutdown_all_servers()
+        print("All servers stopped.")
+
+
+# ------------------------------------------------------------------------------
 # Simplified Launch Functions (No Service Manager Required)
 # ------------------------------------------------------------------------------
 
@@ -489,6 +885,7 @@ def launch_stdio_mcp_server(
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO",
     debug_mode: bool = False,
     cwd: str | None = None,
+    auto_keep_running: bool = True,
 ) -> subprocess.Popen:
     """
     Quickly launches an MCP server using FastMCP with stdio transport in a subprocess.
@@ -514,7 +911,7 @@ def launch_stdio_mcp_server(
 
     logger.info(f"Preparing to launch STDIN/OUT MCP Server: {name}")
     service = get_server_service()
-    return service.launch_server_process(
+    process = service.launch_server_process(
         name=name,
         instructions=instructions,
         tools=tools,
@@ -525,6 +922,11 @@ def launch_stdio_mcp_server(
         server_settings={},
         cwd=cwd,
     )
+    
+    # Auto-start keep_servers_running if this is the main module
+    _auto_keep_running_if_main()
+    
+    return process
 
 
 def launch_sse_mcp_server(
@@ -591,7 +993,7 @@ def launch_sse_mcp_server(
     }
 
     service = get_server_service()
-    return service.launch_server_process(
+    process = service.launch_server_process(
         name=name,
         instructions=instructions,
         tools=tools,
@@ -602,6 +1004,11 @@ def launch_sse_mcp_server(
         server_settings=server_http_settings,
         cwd=cwd,
     )
+    
+    # Auto-start keep_servers_running if this is the main module
+    _auto_keep_running_if_main()
+    
+    return process
 
 
 def launch_streamable_http_mcp_server(
@@ -670,7 +1077,7 @@ def launch_streamable_http_mcp_server(
     }
 
     service = get_server_service()
-    return service.launch_server_process(
+    process = service.launch_server_process(
         name=name,
         instructions=instructions,
         tools=tools,
@@ -681,83 +1088,66 @@ def launch_streamable_http_mcp_server(
         server_settings=server_http_settings,
         cwd=cwd,
     )
+    
+    # Auto-start keep_servers_running if this is the main module
+    _auto_keep_running_if_main()
+    
+    return process
 
 
 # Example Usage (optional, for testing this module directly):
 if __name__ == "__main__":
-    logger.info("MCP Launcher Example")
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    logger.info("MCP Launcher Example - New Configuration-Based API")
 
     # Dummy tool functions for testing
     def example_tool_one(param: str) -> str:
-        # This tool relies on NO external imports from its original scope
+        """Example tool that echoes input."""
         return f"Example tool one received: {param}"
 
-    import math  # Test if tool using its own internal import works
-
+    import math
+    
     def example_tool_two(num: float) -> str:
+        """Example tool that calculates square root."""
         return f"Square root of {num} is {math.sqrt(num)}"
 
-    # Launch servers directly - no need to create service manager!
-
-    # Launch a stdio server
-    stdio_server_process = launch_stdio_mcp_server(
-        name="MyStdioServer",
-        instructions="This is a test stdio server.",
-        tools=[example_tool_one, example_tool_two],
-        log_level="DEBUG",
-        debug_mode=True,
-    )
-
-    # Launch an SSE server
-    sse_server_process = launch_sse_mcp_server(
-        name="MySSEServer",
-        instructions="This is a test SSE server.",
-        tools=[example_tool_one],
-        start_port=8080,
-        log_level="DEBUG",
-        debug_mode=True,
-    )
-
-    # Launch a StreamableHTTP server
-    streamable_http_server_process = launch_streamable_http_mcp_server(
-        name="MyStreamableHTTPServer",
-        instructions="This is a test StreamableHTTP server.",
-        tools=[example_tool_two],
-        start_port=8090,  # Start search from 8090
-        log_level="DEBUG",
-        debug_mode=True,
-        json_response=True,  # Example of a specific setting
-    )
-
-    logger.info(f"Launched Stdio server PID: {stdio_server_process.pid}")
-    logger.info(
-        f"Launched SSE server PID: {sse_server_process.pid} on some port (check logs)"
-    )
-    logger.info(
-        f"Launched StreamableHTTP server PID: {streamable_http_server_process.pid} on some port (check logs)"
-    )
-
-    try:
-        # Keep main process alive for a bit to see servers run
-        logger.info("Servers running... press Ctrl+C to shut down example.")
-
-        # This is just so the example runs for a moment.
-        # Replace with actual application logic.
-        for _ in range(10):  # Simulate some work or waiting period
-            if (
-                stdio_server_process.poll() is not None
-                or sse_server_process.poll() is not None
-                or streamable_http_server_process.poll() is not None
-            ):
-                logger.info("A server process has exited.")
-                break
-            import time  # Ensure time is imported for sleep
-
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received.")
-    finally:
-        logger.info("Shutting down all example servers...")
-        shutdown_all_servers()  # Use the singleton shutdown function
-        logger.info("Example finished.")
+    # Configure servers using the new settings classes
+    servers = [
+        # A stdio server
+        StdioServerSettings(
+            name="MyStdioServer",
+            instructions="This is a test stdio server.",
+            tools=[example_tool_one, example_tool_two],
+            log_level="DEBUG",
+            debug_mode=True,
+        ),
+        
+        # An SSE server
+        SSEServerSettings(
+            name="MySSEServer",
+            instructions="This is a test SSE server.",
+            tools=[example_tool_one],
+            start_port=8080,
+            log_level="DEBUG",
+            debug_mode=True,
+        ),
+        
+        # A StreamableHTTP server
+        StreamableHTTPServerSettings(
+            name="MyStreamableHTTPServer",
+            instructions="This is a test StreamableHTTP server.",
+            tools=[example_tool_two],
+            start_port=9090,
+            log_level="DEBUG",
+            debug_mode=True,
+            json_response=True,
+        ),
+    ]
+    
+    # Launch all servers with unified interface
+    launch_mcp_servers(servers, auto_restart=True)

@@ -549,3 +549,7 @@ class TestSignalHandling:
         # Check that signal handlers were registered
         assert mock_signal.call_count >= 2  # At least SIGTERM and SIGINT
         mock_atexit.assert_called_once()
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-vs"])
