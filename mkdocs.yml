@@ -53,6 +53,13 @@ plugins:
   - mkdocstrings
   - search
   - tags
+  - mkdocs-jupyter:
+      highlight_extra_classes: "CodeMirror"
+      ignore_h1_titles: true
+      include_source: true
+      show_input: true
+      execute: false
+      include_buttons: true
 
 markdown_extensions:
   - pymdownx.highlight:
