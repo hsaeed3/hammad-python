@@ -23,9 +23,10 @@ if TYPE_CHECKING:
         MCPClientService,
         MCPClientSettings,
         MCPServerService,
-        launch_sse_mcp_server,
-        launch_stdio_mcp_server,
-        launch_streamable_http_mcp_server,
+        SSEServerSettings,
+        StdioServerSettings,
+        StreamableHTTPServerSettings,
+        launch_mcp_servers,
     )
 
     # hammad.base
@@ -77,6 +78,14 @@ if TYPE_CHECKING:
         convert_to_pydantic_field,
         convert_to_pydantic_model,
     )
+    
+    # hammad.service
+    from .service import (
+        create_service,
+        async_create_service,
+        serve,
+        serve_mcp
+    )
 
     # hammad.text
     from .text import (
@@ -115,9 +124,10 @@ __all__ = (
     "MCPClientService",
     "MCPClientSettings",
     "MCPServerService",
-    "launch_sse_mcp_server",
-    "launch_stdio_mcp_server",
-    "launch_streamable_http_mcp_server",
+    "SSEServerSettings",
+    "StdioServerSettings",
+    "StreamableHTTPServerSettings",
+    "launch_mcp_servers",
     # hammad.base
     "Model",
     "field",
@@ -163,6 +173,11 @@ __all__ = (
     # hammad.pydantic
     "convert_to_pydantic_field",
     "convert_to_pydantic_model",
+    # hammad.service
+    "create_service",
+    "async_create_service",
+    "serve",
+    "serve_mcp",
     # hammad.text
     "Text",
     "OutputText",

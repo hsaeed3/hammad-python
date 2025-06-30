@@ -33,9 +33,10 @@ if TYPE_CHECKING:
         MCPClientService,
         MCPClient,
         MCPClientSettings,
-        launch_sse_mcp_server,
-        launch_stdio_mcp_server,
-        launch_streamable_http_mcp_server,
+        SSEServerSettings,
+        StdioServerSettings,
+        StreamableHTTPServerSettings,
+        launch_mcp_servers
     )
 
 
@@ -61,11 +62,14 @@ __all__ = (
     "create_embeddings",
     "async_create_embeddings",
     # hammad.ai.mcp
+    "MCPServerService",
+    "MCPClientService",
     "MCPClient",
     "MCPClientSettings",
-    "launch_sse_mcp_server",
-    "launch_stdio_mcp_server",
-    "launch_streamable_http_mcp_server",
+    "SSEServerSettings",
+    "StdioServerSettings",
+    "StreamableHTTPServerSettings",
+    "launch_mcp_servers",
 )
 
 
