@@ -22,6 +22,7 @@ __all__ = (
 
 class MCPClientStdioSettings(TypedDict, total=False):
     """Settings for the stdio MCP client."""
+
     command: Required[str]
     """The executable to run to start the server. For example, `python` or `node`."""
     args: NotRequired[list[str]]
@@ -38,6 +39,7 @@ class MCPClientStdioSettings(TypedDict, total=False):
 
 class MCPClientSseSettings(TypedDict, total=False):
     """Settings for the SSE MCP client."""
+
     url: Required[str]
     """The URL to connect to the server."""
     headers: NotRequired[dict[str, str]]
@@ -50,6 +52,7 @@ class MCPClientSseSettings(TypedDict, total=False):
 
 class MCPClientStreamableHttpSettings(TypedDict, total=False):
     """Settings for the streamable HTTP MCP client."""
+
     url: Required[str]
     """The URL to connect to the server."""
     headers: NotRequired[dict[str, str]]
@@ -62,7 +65,9 @@ class MCPClientStreamableHttpSettings(TypedDict, total=False):
     """Whether to terminate the connection on close."""
 
 
-MCPClientSettingsType = MCPClientStdioSettings | MCPClientSseSettings | MCPClientStreamableHttpSettings
+MCPClientSettingsType = (
+    MCPClientStdioSettings | MCPClientSseSettings | MCPClientStreamableHttpSettings
+)
 """Union type of the 3 different MCP client settings types."""
 
 
@@ -75,9 +80,10 @@ class MCPClientSettings:
     This object can be used within a `MCPClient` object
     to create a connection to an MCP server.
     """
-    type : Literal["stdio", "sse", "streamable_http"]
+
+    type: Literal["stdio", "sse", "streamable_http"]
     """The type of MCP client this object represents."""
-    settings : MCPClientSettingsType
+    settings: MCPClientSettingsType
     """The settings for the MCP client."""
 
     @classmethod
@@ -91,7 +97,7 @@ class MCPClientSettings:
         encoding_error_handler: Literal["strict", "ignore", "replace"] | None = None,
     ) -> MCPClientSettings:
         """Create a settings object for a stdio MCP client.
-        
+
         Args:
             command: The executable to run to start the server. For example, `python` or `node`.
             args: Command line args to pass to the `command` executable.
@@ -101,17 +107,17 @@ class MCPClientSettings:
             encoding_error_handler: The text encoding error handler. Defaults to `strict`.
         """
         return cls(
-            type = "stdio",
-            settings = {
+            type="stdio",
+            settings={
                 "command": command,
                 "args": args,
                 "env": env,
                 "cwd": cwd,
                 "encoding": encoding,
                 "encoding_error_handler": encoding_error_handler,
-            }
+            },
         )
-    
+
     @classmethod
     def sse(
         cls,
@@ -121,7 +127,7 @@ class MCPClientSettings:
         sse_read_timeout: float | None = None,
     ) -> MCPClientSettings:
         """Create a settings object for an SSE MCP client.
-        
+
         Args:
             url: The URL to connect to the server.
             headers: The HTTP headers to send with the request.
@@ -129,15 +135,15 @@ class MCPClientSettings:
             sse_read_timeout: The timeout for the SSE event reads in seconds.
         """
         return cls(
-            type = "sse",
-            settings = {
+            type="sse",
+            settings={
                 "url": url,
                 "headers": headers,
                 "timeout": timeout,
                 "sse_read_timeout": sse_read_timeout,
-            }
+            },
         )
-    
+
     @classmethod
     def streamable_http(
         cls,
@@ -146,25 +152,25 @@ class MCPClientSettings:
         timeout: float | None = None,
         sse_read_timeout: float | None = None,
         terminate_on_close: bool | None = None,
-    ) -> MCPClientSettings: 
+    ) -> MCPClientSettings:
         """Create a settings object for a streamable HTTP MCP client.
-        
+
         Args:
             url: The URL to connect to the server.
             headers: The HTTP headers to send with the request.
-            timeout: The timeout for the request in seconds.    
+            timeout: The timeout for the request in seconds.
             sse_read_timeout: The timeout for the SSE event reads in seconds.
             terminate_on_close: Whether to terminate the connection on close.
         """
         return cls(
-            type = "streamable_http",
-            settings = {    
+            type="streamable_http",
+            settings={
                 "url": url,
                 "headers": headers,
                 "timeout": timeout,
                 "sse_read_timeout": sse_read_timeout,
                 "terminate_on_close": terminate_on_close,
-            }
+            },
         )
 
 

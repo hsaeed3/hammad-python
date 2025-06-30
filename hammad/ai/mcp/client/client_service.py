@@ -28,6 +28,7 @@ except ImportError:
     )
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 from .settings import (
@@ -48,6 +49,7 @@ __all__ = (
 
 class UserError(Exception):
     """Exception raised when the user makes an error."""
+
     pass
 
 
@@ -81,7 +83,9 @@ class MCPClientService(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def call_tool(self, tool_name: str, arguments: dict[str, Any] | None) -> CallToolResult:
+    async def call_tool(
+        self, tool_name: str, arguments: dict[str, Any] | None
+    ) -> CallToolResult:
         """Invoke a tool on the server."""
         pass
 
@@ -89,7 +93,9 @@ class MCPClientService(abc.ABC):
 class _MCPClientServiceWithClientSession(MCPClientService, abc.ABC):
     """Base class for MCP client services that use a `ClientSession` to communicate with the server."""
 
-    def __init__(self, cache_tools_list: bool, client_session_timeout_seconds: float | None):
+    def __init__(
+        self, cache_tools_list: bool, client_session_timeout_seconds: float | None
+    ):
         """
         Args:
             cache_tools_list: Whether to cache the tools list. If `True`, the tools list will be
@@ -120,7 +126,7 @@ class _MCPClientServiceWithClientSession(MCPClientService, abc.ABC):
         tuple[
             MemoryObjectReceiveStream[SessionMessage | Exception],
             MemoryObjectSendStream[SessionMessage],
-            GetSessionIdCallback | None
+            GetSessionIdCallback | None,
         ]
     ]:
         """Create the streams for the server."""
@@ -166,7 +172,9 @@ class _MCPClientServiceWithClientSession(MCPClientService, abc.ABC):
     async def list_tools(self) -> list[MCPTool]:
         """List the tools available on the server."""
         if not self.session:
-            raise UserError("Server not initialized. Make sure you call `connect()` first.")
+            raise UserError(
+                "Server not initialized. Make sure you call `connect()` first."
+            )
 
         # Return from cache if caching is enabled, we have tools, and the cache is not dirty
         if self.cache_tools_list and not self._cache_dirty and self._tools_list:
@@ -179,10 +187,14 @@ class _MCPClientServiceWithClientSession(MCPClientService, abc.ABC):
         self._tools_list = (await self.session.list_tools()).tools
         return self._tools_list
 
-    async def call_tool(self, tool_name: str, arguments: dict[str, Any] | None) -> CallToolResult:
+    async def call_tool(
+        self, tool_name: str, arguments: dict[str, Any] | None
+    ) -> CallToolResult:
         """Invoke a tool on the server."""
         if not self.session:
-            raise UserError("Server not initialized. Make sure you call `connect()` first.")
+            raise UserError(
+                "Server not initialized. Make sure you call `connect()` first."
+            )
 
         return await self.session.call_tool(tool_name, arguments)
 
@@ -246,7 +258,7 @@ class MCPClientServiceStdio(_MCPClientServiceWithClientSession):
         tuple[
             MemoryObjectReceiveStream[SessionMessage | Exception],
             MemoryObjectSendStream[SessionMessage],
-            GetSessionIdCallback | None
+            GetSessionIdCallback | None,
         ]
     ]:
         """Create the streams for the server."""
@@ -301,7 +313,7 @@ class MCPClientServiceSse(_MCPClientServiceWithClientSession):
         tuple[
             MemoryObjectReceiveStream[SessionMessage | Exception],
             MemoryObjectSendStream[SessionMessage],
-            GetSessionIdCallback | None
+            GetSessionIdCallback | None,
         ]
     ]:
         """Create the streams for the server."""
@@ -362,7 +374,7 @@ class MCPClientServiceStreamableHttp(_MCPClientServiceWithClientSession):
         tuple[
             MemoryObjectReceiveStream[SessionMessage | Exception],
             MemoryObjectSendStream[SessionMessage],
-            GetSessionIdCallback | None
+            GetSessionIdCallback | None,
         ]
     ]:
         """Create the streams for the server."""
@@ -370,13 +382,13 @@ class MCPClientServiceStreamableHttp(_MCPClientServiceWithClientSession):
             url=self.settings["url"],
             headers=self.settings.get("headers", None),
             timeout=timedelta(seconds=self.settings.get("timeout", 30)),
-            sse_read_timeout=timedelta(seconds=self.settings.get("sse_read_timeout", 60 * 5)),
-            terminate_on_close=self.settings.get("terminate_on_close", True)
+            sse_read_timeout=timedelta(
+                seconds=self.settings.get("sse_read_timeout", 60 * 5)
+            ),
+            terminate_on_close=self.settings.get("terminate_on_close", True),
         )
 
     @property
     def name(self) -> str:
         """A readable name for the client service."""
         return self._name
-
-

@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Callable, List, Literal, Dict, Any
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -60,9 +61,11 @@ def _register_signal_handlers():
     global _signal_handlers_registered
     if _signal_handlers_registered:
         return
-        
+
     def signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}. Shutting down all MCP server services...")
+        logger.info(
+            f"Received signal {signum}. Shutting down all MCP server services..."
+        )
         global _singleton_service
         if _singleton_service is not None:
             try:
@@ -70,17 +73,17 @@ def _register_signal_handlers():
             except Exception as e:
                 logger.error(f"Error during signal-triggered shutdown: {e}")
         logger.info("Signal-triggered shutdown complete.")
-    
+
     # Register handlers for common termination signals
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     # Also register atexit handler as a fallback
     def atexit_handler():
         global _singleton_service
         if _singleton_service is not None:
             _singleton_service.shutdown_all()
-    
+
     atexit.register(atexit_handler)
     _signal_handlers_registered = True
 
@@ -91,9 +94,12 @@ class MCPServerService:
     Class that manages the lifecycles and startup/shutdown of
     configured MCP servers by running them as subprocesses.
     """
+
     active_servers: List[subprocess.Popen] = field(default_factory=list)
     python_executable: str = sys.executable
-    process_startup_timeout: float = 10.0  # seconds to wait for process startup verification
+    process_startup_timeout: float = (
+        10.0  # seconds to wait for process startup verification
+    )
 
     def __post_init__(self):
         """Register signal handlers when service is created."""
@@ -109,39 +115,39 @@ class MCPServerService:
         log_level: str,
         debug_mode: bool,
         transport: Literal["stdio", "sse", "streamable-http"],
-        server_settings: Dict[str, Any]
+        server_settings: Dict[str, Any],
     ) -> str:
         """
         Generates the Python script content that will be run by the subprocess.
         """
         import textwrap
-        
+
         # Properly dedent and format tool definitions
         formatted_tools = []
         for source in tools_source_code:
             # Remove common leading whitespace to fix indentation
             dedented_source = textwrap.dedent(source)
             formatted_tools.append(dedented_source)
-        
+
         tool_definitions_str = "\n\n".join(formatted_tools)
 
         tool_registrations_str = ""
         for func_name in tool_function_names:
             tool_registrations_str += f"    server.add_tool({func_name})\n"
-        
+
         # Safely represent instructions string, handling None and quotes
         if instructions is None:
             instructions_repr = "None"
         else:
-            escaped_instructions = instructions.replace("'''", "\'\'\'")
+            escaped_instructions = instructions.replace("'''", "'''")
             instructions_repr = f"'''{escaped_instructions}'''"
 
         script_lines = [
             "import sys",
             "from mcp.server.fastmcp import FastMCP",
             "from typing import Literal, List, Callable, Any, Dict",
-            "import anyio", # FastMCP.run might use it implicitly or explicitly
-            "import logging", # For basic logging within the script if needed
+            "import anyio",  # FastMCP.run might use it implicitly or explicitly
+            "import logging",  # For basic logging within the script if needed
             "",
             "# Set up logger for tool functions",
             "logger = logging.getLogger(__name__)",
@@ -153,7 +159,7 @@ class MCPServerService:
             "except ImportError as e:",
             "    logger.warning(f'Could not import UCP dependencies: {e}')",
             "    UCPSearchClient = None",
-            "    SearchContentItem = None", 
+            "    SearchContentItem = None",
             "    KnowledgeBit = None",
             "",
             "# --- Tool Function Definitions ---",
@@ -181,7 +187,7 @@ class MCPServerService:
             "    script_logger.info('Tools registered.')",
             "",
             f'    script_logger.info(f"Starting FastMCP server {name!r} with transport {transport!r}...")',
-            f"    server.run(transport={transport!r})", # mount_path for SSE is handled by FastMCP settings
+            f"    server.run(transport={transport!r})",  # mount_path for SSE is handled by FastMCP settings
             f'    script_logger.info(f"FastMCP server {name!r} has shut down.")',
             "",
             "if __name__ == '__main__':",
@@ -192,19 +198,19 @@ class MCPServerService:
     def _verify_process_started(self, process: subprocess.Popen, name: str) -> bool:
         """
         Verify that the process started successfully and is running.
-        
+
         Args:
             process: The subprocess to verify
             name: Name of the server for logging
-            
+
         Returns:
             True if process started successfully, False otherwise
         """
         start_time = time.time()
-        
+
         while time.time() - start_time < self.process_startup_timeout:
             poll_result = process.poll()
-            
+
             if poll_result is None:
                 # Process is still running - this is good
                 logger.debug(f"Server '{name}' (PID {process.pid}) is running")
@@ -216,19 +222,27 @@ class MCPServerService:
                     try:
                         stderr_output = process.stderr.read()
                     except Exception as e:
-                        logger.warning(f"Could not read stderr from failed process: {e}")
-                logger.error(f"Server '{name}' (PID {process.pid}) failed to start. Exit code: {poll_result}. Stderr: {stderr_output}")
+                        logger.warning(
+                            f"Could not read stderr from failed process: {e}"
+                        )
+                logger.error(
+                    f"Server '{name}' (PID {process.pid}) failed to start. Exit code: {poll_result}. Stderr: {stderr_output}"
+                )
                 return False
-            
+
             # Give it a moment before checking again
             time.sleep(0.1)
-        
+
         # Timeout reached
         if process.poll() is None:
-            logger.warning(f"Server '{name}' (PID {process.pid}) startup verification timed out after {self.process_startup_timeout}s, but process is still running")
+            logger.warning(
+                f"Server '{name}' (PID {process.pid}) startup verification timed out after {self.process_startup_timeout}s, but process is still running"
+            )
             return True
         else:
-            logger.error(f"Server '{name}' (PID {process.pid}) failed to start within {self.process_startup_timeout}s")
+            logger.error(
+                f"Server '{name}' (PID {process.pid}) failed to start within {self.process_startup_timeout}s"
+            )
             return False
 
     def launch_server_process(
@@ -240,8 +254,8 @@ class MCPServerService:
         log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         debug_mode: bool,
         transport: Literal["stdio", "sse", "streamable-http"],
-        server_settings: Dict[str, Any], # host, port etc. for sse/http
-        cwd: str | None = None
+        server_settings: Dict[str, Any],  # host, port etc. for sse/http
+        cwd: str | None = None,
     ) -> subprocess.Popen:
         """
         Prepares and launches an MCP server in a subprocess.
@@ -255,7 +269,9 @@ class MCPServerService:
                 tools_source_code.append(source)
                 tool_function_names.append(tool_func.__name__)
             except (TypeError, OSError) as e:
-                logger.error(f"Could not get source for tool '{tool_func.__name__}': {e}. This tool will be SKIPPED.")
+                logger.error(
+                    f"Could not get source for tool '{tool_func.__name__}': {e}. This tool will be SKIPPED."
+                )
                 continue
 
         script_content = self._generate_runner_script(
@@ -267,35 +283,41 @@ class MCPServerService:
             log_level=log_level,
             debug_mode=debug_mode,
             transport=transport,
-            server_settings=server_settings
+            server_settings=server_settings,
         )
-        logger.debug(f"Generated runner script for server '{name}' ({transport}):\n{script_content}")
+        logger.debug(
+            f"Generated runner script for server '{name}' ({transport}):\n{script_content}"
+        )
 
         process = None
         try:
             process = subprocess.Popen(
                 [self.python_executable, "-c", script_content],
                 cwd=cwd,
-                stdout=subprocess.PIPE, 
+                stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True # Decode stdout/stderr as text
+                text=True,  # Decode stdout/stderr as text
             )
-            
+
             logger.info(f"Launched {transport} server '{name}' with PID {process.pid}.")
-            
+
             # Verify the process started successfully before adding to active_servers
             if self._verify_process_started(process, name):
                 self.active_servers.append(process)
-                logger.info(f"Server '{name}' (PID {process.pid}) verified as started successfully.")
-                # TODO: Optionally, start threads here to read process.stdout and process.stderr 
+                logger.info(
+                    f"Server '{name}' (PID {process.pid}) verified as started successfully."
+                )
+                # TODO: Optionally, start threads here to read process.stdout and process.stderr
                 # and log them using eval_interface.common.logger for better visibility.
                 return process
             else:
                 # Process failed to start properly, clean it up
-                logger.error(f"Server '{name}' failed startup verification, cleaning up...")
+                logger.error(
+                    f"Server '{name}' failed startup verification, cleaning up..."
+                )
                 self._cleanup_single_process(process, name, force_kill_timeout=2.0)
                 raise RuntimeError(f"Server '{name}' failed to start properly")
-                
+
         except Exception as e:
             logger.critical(f"Failed to launch subprocess for server '{name}': {e}")
             if process and process.poll() is None:
@@ -303,10 +325,12 @@ class MCPServerService:
                 self._cleanup_single_process(process, name, force_kill_timeout=2.0)
             raise
 
-    def _cleanup_single_process(self, process: subprocess.Popen, name: str, force_kill_timeout: float = 5.0):
+    def _cleanup_single_process(
+        self, process: subprocess.Popen, name: str, force_kill_timeout: float = 5.0
+    ):
         """
         Clean up a single process with proper error handling.
-        
+
         Args:
             process: The process to clean up
             name: Name for logging
@@ -315,25 +339,33 @@ class MCPServerService:
         if process.poll() is not None:
             logger.debug(f"Process '{name}' (PID {process.pid}) already terminated.")
             return
-            
+
         logger.info(f"Terminating server process '{name}' (PID {process.pid})...")
         try:
-            process.terminate() # Ask nicely first
+            process.terminate()  # Ask nicely first
             try:
-                process.wait(timeout=force_kill_timeout) # Wait for graceful termination
-                logger.info(f"Server process '{name}' (PID {process.pid}) terminated gracefully.")
+                process.wait(
+                    timeout=force_kill_timeout
+                )  # Wait for graceful termination
+                logger.info(
+                    f"Server process '{name}' (PID {process.pid}) terminated gracefully."
+                )
             except subprocess.TimeoutExpired:
-                logger.warning(f"Server process '{name}' (PID {process.pid}) did not terminate gracefully after {force_kill_timeout}s, killing.")
-                process.kill() # Force kill
-                process.wait() # Ensure it's reaped
+                logger.warning(
+                    f"Server process '{name}' (PID {process.pid}) did not terminate gracefully after {force_kill_timeout}s, killing."
+                )
+                process.kill()  # Force kill
+                process.wait()  # Ensure it's reaped
                 logger.info(f"Server process '{name}' (PID {process.pid}) killed.")
         except Exception as e:
-            logger.error(f"Error during cleanup of process '{name}' (PID {process.pid}): {e}")
+            logger.error(
+                f"Error during cleanup of process '{name}' (PID {process.pid}): {e}"
+            )
 
     def get_running_servers(self) -> List[subprocess.Popen]:
         """
         Get a list of currently running server processes.
-        
+
         Returns:
             List of running Popen objects
         """
@@ -349,42 +381,53 @@ class MCPServerService:
         """
         original_count = len(self.active_servers)
         self.active_servers = [
-            server for server in self.active_servers 
-            if server.poll() is None
+            server for server in self.active_servers if server.poll() is None
         ]
         cleaned_count = original_count - len(self.active_servers)
         if cleaned_count > 0:
-            logger.info(f"Cleaned up {cleaned_count} dead server process(es) from active list.")
+            logger.info(
+                f"Cleaned up {cleaned_count} dead server process(es) from active list."
+            )
 
     def shutdown_all(self, force_kill_timeout: float = 5.0):
         """
         Shutdown all managed server processes.
-        
+
         Args:
             force_kill_timeout: How long to wait before force killing each process
         """
         if not self.active_servers:
             logger.info("No active MCP server services to shut down.")
             return
-            
-        logger.info(f"Shutting down {len(self.active_servers)} MCP server service(s)...")
-        
+
+        logger.info(
+            f"Shutting down {len(self.active_servers)} MCP server service(s)..."
+        )
+
         # Create a copy of the list to iterate over, in case of concurrent modifications
         servers_to_shutdown = self.active_servers.copy()
-        
+
         for server_process in servers_to_shutdown:
             try:
                 # Try to extract server name from the process args for better logging
                 server_name = "unknown"
-                if hasattr(server_process, 'args') and len(server_process.args) > 2:
+                if hasattr(server_process, "args") and len(server_process.args) > 2:
                     # Try to extract name from the script content
-                    script_snippet = server_process.args[2][:50] if server_process.args[2] else "unknown"
+                    script_snippet = (
+                        server_process.args[2][:50]
+                        if server_process.args[2]
+                        else "unknown"
+                    )
                     server_name = f"script:{script_snippet}..."
-                
-                self._cleanup_single_process(server_process, server_name, force_kill_timeout)
+
+                self._cleanup_single_process(
+                    server_process, server_name, force_kill_timeout
+                )
             except Exception as e:
-                logger.error(f"Error shutting down server process (PID {server_process.pid}): {e}")
-        
+                logger.error(
+                    f"Error shutting down server process (PID {server_process.pid}): {e}"
+                )
+
         self.active_servers = []
         logger.info("All managed MCP server services shut down.")
 
@@ -410,7 +453,7 @@ def get_server_service() -> MCPServerService:
     """
     Get the singleton MCPServerService instance.
     Creates one if it doesn't exist.
-    
+
     Returns:
         The singleton MCPServerService instance
     """
@@ -424,7 +467,7 @@ def get_server_service() -> MCPServerService:
 def shutdown_all_servers(force_kill_timeout: float = 5.0):
     """
     Shutdown all servers managed by the singleton service.
-    
+
     Args:
         force_kill_timeout: How long to wait before force killing each process
     """
@@ -445,11 +488,11 @@ def launch_stdio_mcp_server(
     dependencies: List[str] = None,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO",
     debug_mode: bool = False,
-    cwd: str | None = None
+    cwd: str | None = None,
 ) -> subprocess.Popen:
     """
     Quickly launches an MCP server using FastMCP with stdio transport in a subprocess.
-    
+
     The server is automatically managed by a singleton service instance.
 
     Args:
@@ -464,8 +507,10 @@ def launch_stdio_mcp_server(
     Returns:
         The Popen object for the launched subprocess.
     """
-    if tools is None: tools = []
-    if dependencies is None: dependencies = []
+    if tools is None:
+        tools = []
+    if dependencies is None:
+        dependencies = []
 
     logger.info(f"Preparing to launch STDIN/OUT MCP Server: {name}")
     service = get_server_service()
@@ -477,8 +522,8 @@ def launch_stdio_mcp_server(
         log_level=log_level,
         debug_mode=debug_mode,
         transport="stdio",
-        server_settings={}, 
-        cwd=cwd
+        server_settings={},
+        cwd=cwd,
     )
 
 
@@ -486,7 +531,7 @@ def launch_sse_mcp_server(
     name: str,
     instructions: str | None = None,
     host: str = "127.0.0.1",
-    start_port: int = 8000, 
+    start_port: int = 8000,
     mount_path: str = "/",
     sse_path: str = "/sse",
     message_path: str = "/messages/",
@@ -498,12 +543,12 @@ def launch_sse_mcp_server(
     dependencies: List[str] = None,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO",
     debug_mode: bool = False,
-    cwd: str | None = None
+    cwd: str | None = None,
 ) -> subprocess.Popen:
     """
     Quickly launches an MCP server using FastMCP with SSE transport in a subprocess.
     It will find the next available port starting from `start_port`.
-    
+
     The server is automatically managed by a singleton service instance.
 
     Args:
@@ -525,8 +570,10 @@ def launch_sse_mcp_server(
     Returns:
         The Popen object for the launched subprocess.
     """
-    if tools is None: tools = []
-    if dependencies is None: dependencies = []
+    if tools is None:
+        tools = []
+    if dependencies is None:
+        dependencies = []
 
     actual_port = find_next_free_port(start_port, host)
     logger.info(f"Preparing to launch SSE MCP Server: {name} on {host}:{actual_port}")
@@ -537,7 +584,7 @@ def launch_sse_mcp_server(
         "mount_path": mount_path,
         "sse_path": sse_path,
         "message_path": message_path,
-        "json_response": json_response, 
+        "json_response": json_response,
         "stateless_http": stateless_http,
         "warn_on_duplicate_resources": warn_on_duplicate_resources,
         "warn_on_duplicate_tools": warn_on_duplicate_tools,
@@ -553,7 +600,7 @@ def launch_sse_mcp_server(
         debug_mode=debug_mode,
         transport="sse",
         server_settings=server_http_settings,
-        cwd=cwd
+        cwd=cwd,
     )
 
 
@@ -562,8 +609,8 @@ def launch_streamable_http_mcp_server(
     instructions: str | None = None,
     host: str = "127.0.0.1",
     start_port: int = 8000,
-    mount_path: str = "/", 
-    streamable_http_path: str = "/mcp", 
+    mount_path: str = "/",
+    streamable_http_path: str = "/mcp",
     json_response: bool = False,
     stateless_http: bool = False,
     warn_on_duplicate_resources: bool = True,
@@ -572,12 +619,12 @@ def launch_streamable_http_mcp_server(
     dependencies: List[str] = None,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO",
     debug_mode: bool = False,
-    cwd: str | None = None
+    cwd: str | None = None,
 ) -> subprocess.Popen:
     """
     Quickly launches an MCP server using FastMCP with StreamableHTTP transport in a subprocess.
     It will find the next available port starting from `start_port`.
-    
+
     The server is automatically managed by a singleton service instance.
 
     Args:
@@ -585,7 +632,7 @@ def launch_streamable_http_mcp_server(
         instructions: Optional instructions for the MCP server.
         host: Host for the StreamableHTTP server.
         start_port: Port number to start searching for a free port.
-        mount_path: Mount path for the root Starlette application in FastMCP. 
+        mount_path: Mount path for the root Starlette application in FastMCP.
                     The StreamableHTTP endpoint will be relative to this.
         streamable_http_path: The specific path for the StreamableHTTP MCP endpoint.
         json_response: FastMCP setting for StreamableHTTP to send JSON responses.
@@ -601,11 +648,15 @@ def launch_streamable_http_mcp_server(
     Returns:
         The Popen object for the launched subprocess.
     """
-    if tools is None: tools = []
-    if dependencies is None: dependencies = []
+    if tools is None:
+        tools = []
+    if dependencies is None:
+        dependencies = []
 
     actual_port = find_next_free_port(start_port, host)
-    logger.info(f"Preparing to launch StreamableHTTP MCP Server: {name} on {host}:{actual_port}")
+    logger.info(
+        f"Preparing to launch StreamableHTTP MCP Server: {name} on {host}:{actual_port}"
+    )
 
     server_http_settings = {
         "host": host,
@@ -628,12 +679,12 @@ def launch_streamable_http_mcp_server(
         debug_mode=debug_mode,
         transport="streamable-http",
         server_settings=server_http_settings,
-        cwd=cwd
+        cwd=cwd,
     )
 
 
 # Example Usage (optional, for testing this module directly):
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.info("MCP Launcher Example")
 
     # Dummy tool functions for testing
@@ -641,19 +692,20 @@ if __name__ == '__main__':
         # This tool relies on NO external imports from its original scope
         return f"Example tool one received: {param}"
 
-    import math # Test if tool using its own internal import works
+    import math  # Test if tool using its own internal import works
+
     def example_tool_two(num: float) -> str:
         return f"Square root of {num} is {math.sqrt(num)}"
 
     # Launch servers directly - no need to create service manager!
-    
+
     # Launch a stdio server
     stdio_server_process = launch_stdio_mcp_server(
         name="MyStdioServer",
         instructions="This is a test stdio server.",
         tools=[example_tool_one, example_tool_two],
         log_level="DEBUG",
-        debug_mode=True
+        debug_mode=True,
     )
 
     # Launch an SSE server
@@ -663,7 +715,7 @@ if __name__ == '__main__':
         tools=[example_tool_one],
         start_port=8080,
         log_level="DEBUG",
-        debug_mode=True
+        debug_mode=True,
     )
 
     # Launch a StreamableHTTP server
@@ -671,31 +723,38 @@ if __name__ == '__main__':
         name="MyStreamableHTTPServer",
         instructions="This is a test StreamableHTTP server.",
         tools=[example_tool_two],
-        start_port=8090, # Start search from 8090
+        start_port=8090,  # Start search from 8090
         log_level="DEBUG",
         debug_mode=True,
-        json_response=True # Example of a specific setting
+        json_response=True,  # Example of a specific setting
     )
 
     logger.info(f"Launched Stdio server PID: {stdio_server_process.pid}")
-    logger.info(f"Launched SSE server PID: {sse_server_process.pid} on some port (check logs)")
-    logger.info(f"Launched StreamableHTTP server PID: {streamable_http_server_process.pid} on some port (check logs)")
+    logger.info(
+        f"Launched SSE server PID: {sse_server_process.pid} on some port (check logs)"
+    )
+    logger.info(
+        f"Launched StreamableHTTP server PID: {streamable_http_server_process.pid} on some port (check logs)"
+    )
 
     try:
         # Keep main process alive for a bit to see servers run
         logger.info("Servers running... press Ctrl+C to shut down example.")
-        
+
         # This is just so the example runs for a moment.
         # Replace with actual application logic.
-        for _ in range(10): # Simulate some work or waiting period
-            if stdio_server_process.poll() is not None or \
-               sse_server_process.poll() is not None or \
-               streamable_http_server_process.poll() is not None:
+        for _ in range(10):  # Simulate some work or waiting period
+            if (
+                stdio_server_process.poll() is not None
+                or sse_server_process.poll() is not None
+                or streamable_http_server_process.poll() is not None
+            ):
                 logger.info("A server process has exited.")
                 break
-            import time # Ensure time is imported for sleep
+            import time  # Ensure time is imported for sleep
+
             time.sleep(1)
-        
+
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received.")
     finally:

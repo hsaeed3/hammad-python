@@ -6,21 +6,18 @@ from typing import TYPE_CHECKING
 from ..._core._utils._import_utils import _auto_create_getattr_loader
 
 if TYPE_CHECKING:
-    from .client.client import (
-        MCPClient,
-        MCPClientSettings
-    )
+    from .client.client import MCPClient, MCPClientSettings
     from .client.client_service import (
         MCPClientService,
         MCPClientServiceSse,
         MCPClientServiceStdio,
         MCPClientServiceStreamableHttp,
-        MCPTool
+        MCPTool,
     )
     from .client.settings import (
         MCPClientSseSettings,
         MCPClientStdioSettings,
-        MCPClientStreamableHttpSettings
+        MCPClientStreamableHttpSettings,
     )
     from .servers.launcher import (
         launch_sse_mcp_server,

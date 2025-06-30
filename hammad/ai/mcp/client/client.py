@@ -17,7 +17,7 @@ import inspect
 try:
     from mcp.types import CallToolResult, Tool as MCPTool
     from openai.types.chat.chat_completion_tool_param import (
-        ChatCompletionToolParam as OpenAITool
+        ChatCompletionToolParam as OpenAITool,
     )
     from openai.types.shared import FunctionDefinition as Function
 except ImportError:
@@ -47,16 +47,14 @@ __all__ = (
 # -----------------------------------------------------------------------------
 
 
-def convert_mcp_tool_to_openai_tool(
-        mcp_tool : MCPTool
-) -> OpenAITool:
+def convert_mcp_tool_to_openai_tool(mcp_tool: MCPTool) -> OpenAITool:
     return OpenAITool(
-        type = "function",
-        function = Function(
-            name = mcp_tool.name,
-            description = mcp_tool.description,
-            parameters = mcp_tool.inputSchema if mcp_tool.inputSchema else {},
-        )
+        type="function",
+        function=Function(
+            name=mcp_tool.name,
+            description=mcp_tool.description,
+            parameters=mcp_tool.inputSchema if mcp_tool.inputSchema else {},
+        ),
     )
 
 
@@ -66,24 +64,25 @@ class MCPToolWrapper:
     Wrapper class that provides a runnable method and tool definitions
     for an MCP tool.
     """
-    server_name : str
-    tool_name : str
-    tool_description : str
-    tool_args : dict[str, Any]
-    mcp_tool : MCPTool
-    openai_tool : OpenAITool
-    function : Callable[..., Any]
+
+    server_name: str
+    tool_name: str
+    tool_description: str
+    tool_args: dict[str, Any]
+    mcp_tool: MCPTool
+    openai_tool: OpenAITool
+    function: Callable[..., Any]
 
 
 @dataclass
 class MCPClient:
     """
     High-level interface for connecting to MCP servers using different transports.
-    
+
     This class provides both synchronous and asynchronous methods for interacting
     with MCP servers, wrapping the lower-level client service implementations.
     """
-    
+
     client_service: MCPClientService
     _connected: bool = False
     _sync_loop: asyncio.AbstractEventLoop = field(default=None, init=False)
@@ -99,13 +98,13 @@ class MCPClient:
         client_session_timeout_seconds: float | None = 5,
     ) -> MCPClient:
         """Create an MCPClient from a settings object.
-        
+
         Args:
             settings: The MCP client settings object.
             cache_tools_list: Whether to cache the tools list.
             name: A readable name for the client.
             client_session_timeout_seconds: The read timeout for the MCP ClientSession.
-            
+
         Returns:
             An MCPClient instance.
         """
@@ -132,7 +131,7 @@ class MCPClient:
             )
         else:
             raise ValueError(f"Unsupported client type: {settings.type}")
-        
+
         return cls(client_service=client_service)
 
     @classmethod
@@ -149,7 +148,7 @@ class MCPClient:
         client_session_timeout_seconds: float | None = 5,
     ) -> MCPClient:
         """Create an MCPClient using the stdio transport.
-        
+
         Args:
             command: The executable to run to start the server.
             args: Command line args to pass to the executable.
@@ -160,7 +159,7 @@ class MCPClient:
             cache_tools_list: Whether to cache the tools list.
             name: A readable name for the client.
             client_session_timeout_seconds: The read timeout for the MCP ClientSession.
-            
+
         Returns:
             An MCPClient instance.
         """
@@ -172,7 +171,7 @@ class MCPClient:
             encoding=encoding,
             encoding_error_handler=encoding_error_handler,
         )
-        
+
         return cls.from_settings(
             settings=settings,
             cache_tools_list=cache_tools_list,
@@ -192,7 +191,7 @@ class MCPClient:
         client_session_timeout_seconds: float | None = 5,
     ) -> MCPClient:
         """Create an MCPClient using the SSE transport.
-        
+
         Args:
             url: The URL to connect to the server.
             headers: The HTTP headers to send with the request.
@@ -201,7 +200,7 @@ class MCPClient:
             cache_tools_list: Whether to cache the tools list.
             name: A readable name for the client.
             client_session_timeout_seconds: The read timeout for the MCP ClientSession.
-            
+
         Returns:
             An MCPClient instance.
         """
@@ -211,7 +210,7 @@ class MCPClient:
             timeout=timeout,
             sse_read_timeout=sse_read_timeout,
         )
-        
+
         return cls.from_settings(
             settings=settings,
             cache_tools_list=cache_tools_list,
@@ -232,7 +231,7 @@ class MCPClient:
         client_session_timeout_seconds: float | None = 5,
     ) -> MCPClient:
         """Create an MCPClient using the streamable HTTP transport.
-        
+
         Args:
             url: The URL to connect to the server.
             headers: The HTTP headers to send with the request.
@@ -242,7 +241,7 @@ class MCPClient:
             cache_tools_list: Whether to cache the tools list.
             name: A readable name for the client.
             client_session_timeout_seconds: The read timeout for the MCP ClientSession.
-            
+
         Returns:
             An MCPClient instance.
         """
@@ -253,7 +252,7 @@ class MCPClient:
             sse_read_timeout=sse_read_timeout,
             terminate_on_close=terminate_on_close,
         )
-        
+
         return cls.from_settings(
             settings=settings,
             cache_tools_list=cache_tools_list,
@@ -275,9 +274,9 @@ class MCPClient:
         """Create a persistent async context for sync operations."""
         if self._executor:
             self._executor.shutdown(wait=False)
-        
+
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        
+
         def run_loop():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -292,24 +291,27 @@ class MCPClient:
                 except Exception:
                     pass  # Ignore cleanup errors
                 loop.close()
-                
+
         self._sync_thread = threading.Thread(target=run_loop, daemon=True)
         self._sync_thread.start()
-        
+
         # Wait for the loop to be ready
         import time
+
         timeout = 5.0
         start_time = time.time()
-        while (self._sync_loop is None or not self._sync_loop.is_running()) and (time.time() - start_time) < timeout:
+        while (self._sync_loop is None or not self._sync_loop.is_running()) and (
+            time.time() - start_time
+        ) < timeout:
             time.sleep(0.01)
-        
+
         if self._sync_loop is None or not self._sync_loop.is_running():
             raise RuntimeError("Failed to start sync event loop")
 
     def _run_in_sync_context(self, coro):
         """Run a coroutine in the persistent sync context."""
         self._ensure_sync_context()
-        
+
         future = asyncio.run_coroutine_threadsafe(coro, self._sync_loop)
         return future.result()
 
@@ -348,39 +350,39 @@ class MCPClient:
 
     def list_tools(self) -> list[MCPTool]:
         """List the tools available on the server synchronously.
-        
+
         Returns:
             A list of available MCP tools.
         """
         return self._run_in_sync_context(self.async_list_tools())
-            
+
     def list_wrapped_tools(self) -> list[MCPToolWrapper]:
         """List the tools available on the server as wrapped tools with OpenAI compatibility.
-        
+
         Returns:
             A list of MCPToolWrapper objects that include both MCP and OpenAI tool formats,
             plus callable functions for each tool.
         """
         # Get the raw MCP tools
         mcp_tools = self.list_tools()
-        
+
         wrapped_tools = []
         for mcp_tool in mcp_tools:
             # Convert to OpenAI tool format
             openai_tool = convert_mcp_tool_to_openai_tool(mcp_tool)
-            
+
             # Create a callable function for this tool
             def create_tool_function(tool_name: str):
                 def tool_function(**kwargs) -> Any:
                     """Dynamically created function that calls the MCP tool."""
                     return self.call_tool(tool_name, kwargs if kwargs else None)
-                
+
                 # Set function metadata
                 tool_function.__name__ = tool_name
                 tool_function.__doc__ = f"MCP tool: {mcp_tool.description}"
-                
+
                 return tool_function
-            
+
             # Extract tool arguments from input schema
             tool_args = {}
             if mcp_tool.inputSchema and isinstance(mcp_tool.inputSchema, dict):
@@ -390,7 +392,7 @@ class MCPClient:
                         tool_args[prop_name] = prop_info.get("type", "any")
                     else:
                         tool_args[prop_name] = "any"
-            
+
             # Create the wrapper
             wrapper = MCPToolWrapper(
                 server_name=self.name,
@@ -399,16 +401,16 @@ class MCPClient:
                 tool_args=tool_args,
                 mcp_tool=mcp_tool,
                 openai_tool=openai_tool,
-                function=create_tool_function(mcp_tool.name)
+                function=create_tool_function(mcp_tool.name),
             )
-            
+
             wrapped_tools.append(wrapper)
-        
+
         return wrapped_tools
 
     async def async_list_tools(self) -> list[MCPTool]:
         """List the tools available on the server asynchronously.
-        
+
         Returns:
             A list of available MCP tools.
         """
@@ -417,32 +419,28 @@ class MCPClient:
         return await self.client_service.list_tools()
 
     def call_tool(
-        self,
-        tool_name: str,
-        arguments: dict[str, Any] | None = None
+        self, tool_name: str, arguments: dict[str, Any] | None = None
     ) -> CallToolResult:
         """Invoke a tool on the server synchronously.
-        
+
         Args:
             tool_name: The name of the tool to call.
             arguments: The arguments to pass to the tool.
-            
+
         Returns:
             The result of the tool call.
         """
         return self._run_in_sync_context(self.async_call_tool(tool_name, arguments))
 
     async def async_call_tool(
-        self,
-        tool_name: str,
-        arguments: dict[str, Any] | None = None
+        self, tool_name: str, arguments: dict[str, Any] | None = None
     ) -> CallToolResult:
         """Invoke a tool on the server asynchronously.
-        
+
         Args:
             tool_name: The name of the tool to call.
             arguments: The arguments to pass to the tool.
-            
+
         Returns:
             The result of the tool call.
         """
@@ -451,39 +449,38 @@ class MCPClient:
         return await self.client_service.call_tool(tool_name, arguments)
 
     def as_tool(
-        self,
-        tool_name: str,
-        func: Callable[..., Any] | None = None
+        self, tool_name: str, func: Callable[..., Any] | None = None
     ) -> Callable[..., Any]:
         """Decorator to convert a function into an MCP tool call.
-        
+
         This decorator allows you to use a function as if it were a local function,
         but it will actually call the corresponding MCP tool.
-        
+
         Args:
             tool_name: The name of the MCP tool to call.
             func: The function to decorate (optional, for decorator factory pattern).
-            
+
         Returns:
             A decorated function that calls the MCP tool.
-            
+
         Usage:
             @client.as_tool("my_tool")
             def my_function(arg1, arg2):
                 pass
-                
+
             # Or as a factory:
             my_function = client.as_tool("my_tool")
         """
+
         def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
             def wrapper(*args, **kwargs) -> Any:
                 # Get the function signature to map arguments properly
                 sig = inspect.signature(f)
                 parameters = list(sig.parameters.keys())
-                
+
                 # Create a dictionary mapping positional args to parameter names
                 arguments = {}
-                
+
                 # Map positional arguments to parameter names
                 for i, arg in enumerate(args):
                     if i < len(parameters):
@@ -491,16 +488,16 @@ class MCPClient:
                     else:
                         # If there are more positional args than parameters, use generic names
                         arguments[f"arg_{i}"] = arg
-                
+
                 # Add keyword arguments (these override positional if there's a conflict)
                 arguments.update(kwargs)
-                
+
                 # Call the MCP tool
                 result = self.call_tool(tool_name, arguments if arguments else None)
                 return result
-                
+
             return wrapper
-        
+
         if func is None:
             # Used as @client.as_tool("tool_name")
             return decorator
