@@ -147,7 +147,10 @@ def run_parallel(
         return results
 
 
+@overload
 def run_with_retry(
+    func: Callable[..., Return],
+    *,
     max_attempts: int = 3,
     initial_delay: float = 1.0,
     max_delay: float = 60.0,
@@ -157,13 +160,46 @@ def run_with_retry(
     reraise: bool = True,
     before_retry: Optional[Callable[[Exception], None]] = None,
     hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
-):
+) -> Callable[..., Return]:
+    ...
+
+@overload
+def run_with_retry(
+    *,
+    max_attempts: int = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 60.0,
+    backoff: float = 2.0,
+    jitter: Optional[float] = None,
+    exceptions: Optional[Tuple[Type[Exception], ...]] = None,
+    reraise: bool = True,
+    before_retry: Optional[Callable[[Exception], None]] = None,
+    hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
+) -> Callable[[Callable[..., Return]], Callable[..., Return]]:
+    ...
+
+def run_with_retry(
+    func: Optional[Callable[..., Return]] = None,
+    *,
+    max_attempts: int = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 60.0,
+    backoff: float = 2.0,
+    jitter: Optional[float] = None,
+    exceptions: Optional[Tuple[Type[Exception], ...]] = None,
+    reraise: bool = True,
+    before_retry: Optional[Callable[[Exception], None]] = None,
+    hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
+) -> Union[Callable[..., Return], Callable[[Callable[..., Return]], Callable[..., Return]]]:
     """
     Decorator that adds retry logic to functions using tenacity. Essential for robust parallel
     processing when dealing with network calls, database operations, or other
     operations that might fail transiently.
 
+    Can be used either as a decorator or as a function that takes a function as first argument.
+
     Args:
+        func: The function to decorate (when used directly rather than as a decorator)
         max_attempts: Maximum number of attempts (including the first try).
         initial_delay: Initial delay between retries in seconds.
         max_delay: Maximum delay between retries in seconds.
@@ -178,70 +214,78 @@ def run_with_retry(
                    returns (new_args_dict, new_kwargs_dict).
 
     Example:
-        def modify_params(e, args, kwargs):
-            if isinstance(e, TimeoutError):
-                kwargs['timeout'] = kwargs.get('timeout', 30) * 2
-            return args, kwargs
-
+        # As a decorator:
         @run_with_retry(
             max_attempts=3,
             initial_delay=0.5,
             max_delay=5.0,
             backoff=2.0,
             exceptions=(ConnectionError, TimeoutError),
-            before_retry=lambda e: print(f"Retrying due to: {e}"),
-            hook=modify_params
         )
         def fetch_data(url: str, timeout: int = 30) -> dict:
             return requests.get(url, timeout=timeout).json()
+
+        # As a function:
+        def fetch_data(url: str, timeout: int = 30) -> dict:
+            return requests.get(url, timeout=timeout).json()
+            
+        fetch_with_retry = run_with_retry(fetch_data, max_attempts=3)
     """
+    def decorator(f: Callable[..., Return]) -> Callable[..., Return]:
+        # Create retry configuration
+        wait_strategy = wait_exponential(
+            multiplier=initial_delay,
+            exp_base=backoff,
+            max=max_delay,
+        )
+        
+        # Build retry arguments
+        retry_args = {
+            'stop': stop_after_attempt(max_attempts),
+            'wait': wait_strategy,
+            'retry': retry_if_exception_type(exceptions) if exceptions else retry_if_exception(lambda e: True),
+            'reraise': reraise,
+        }
+        
+        if before_retry or hook:
+            # We need a stateful wrapper to handle callbacks with hooks
+            @functools.wraps(f)
+            def wrapper(*args, **kwargs) -> Return:
+                # Store current args/kwargs that can be modified by hook
+                current_args = args
+                current_kwargs = kwargs
+                
+                def before_sleep_callback(retry_state):
+                    nonlocal current_args, current_kwargs
+                    
+                    # Only process if there was an exception
+                    if retry_state.outcome and retry_state.outcome.failed:
+                        exc = retry_state.outcome.exception()
+                        
+                        if before_retry:
+                            before_retry(exc)
+                        
+                        if hook:
+                            # Convert args to dict for hook
+                            args_dict = dict(enumerate(current_args))
+                            # Call hook to potentially modify arguments
+                            new_args_dict, new_kwargs = hook(exc, args_dict, current_kwargs)
+                            # Convert back to args tuple
+                            current_args = tuple(new_args_dict[i] for i in range(len(new_args_dict)))
+                            current_kwargs = new_kwargs
+                
+                # Create a wrapped function that uses the current args/kwargs
+                @retry(**retry_args, before_sleep=before_sleep_callback)
+                def retryable_func():
+                    return f(*current_args, **current_kwargs)
+                
+                return retryable_func()
+            
+            return wrapper
+        else:
+            # Simple case without callbacks - use tenacity's retry decorator directly
+            return retry(**retry_args)(f)
 
-    def decorator(func: Callable[..., Return]) -> Callable[..., Return]:
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> Return:
-            # Convert args to dict for easier manipulation
-            args_dict = dict(enumerate(args))
-
-            def modified_func(**all_kwargs):
-                # Extract positional args back from dict
-                current_args = [all_kwargs.pop(i) for i in range(len(args_dict))]
-                return func(*current_args, **all_kwargs)
-
-            # Combine all parameters into kwargs for the retry hook
-            all_kwargs = {**args_dict, **kwargs}
-
-            def before_retry_with_hook(retry_state):
-                if before_retry:
-                    before_retry(retry_state.outcome.exception())
-
-                if hook:
-                    nonlocal all_kwargs
-                    args_dict, kwargs_dict = hook(
-                        retry_state.outcome.exception(),
-                        {i: all_kwargs[i] for i in range(len(args_dict))},
-                        {k: v for k, v in all_kwargs.items() if not isinstance(k, int)},
-                    )
-                    all_kwargs = {**args_dict, **kwargs_dict}
-
-                return all_kwargs
-
-            retry_config = retry(
-                stop=stop_after_attempt(max_attempts),
-                wait=wait_exponential(
-                    multiplier=initial_delay,
-                    exp_base=backoff,
-                    max=max_delay,
-                    jitter=jitter,
-                ),
-                retry=retry_if_exception_type(exceptions)
-                if exceptions
-                else retry_if_exception,
-                reraise=reraise,
-                before_sleep=before_retry_with_hook if (before_retry or hook) else None,
-            )
-
-            return retry_config(modified_func)(**all_kwargs)
-
-        return wrapper
-
+    if func is not None:
+        return decorator(func)
     return decorator
