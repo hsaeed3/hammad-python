@@ -14,6 +14,7 @@ The package is currently built into the following structures:
 - `hammad-python` : Contains most core functionality and resources.
 - `hammad-python[ai]` : Contains easy to use resources for Generative AI related tasks such as
    generating completions with language models, or creating embeddings.
+- `hammad-python[serve]` : Contains FastAPI / Uvicorn based resources for serving and running applications.
 
 ## Installation
 
@@ -24,6 +25,9 @@ pip install hammad-python
 
 # or install the `ai` extension
 # pip install 'hammad-python[ai]'
+
+# or install the `serve` extension
+# pip install 'hammad-python[serve]'
 ```
 
 ```bash
@@ -31,4 +35,7 @@ uv pip install hammad-python
 
 # or install the `ai` extension
 # uv pip install 'hammad-python[ai]'
+
+# or install the `serve` extension
+# uv pip install 'hammad-python[serve]'
 ```
