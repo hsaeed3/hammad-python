@@ -1,3 +1,0 @@
-"""
-eval-interface.mcp.client
-"""
