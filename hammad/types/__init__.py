@@ -13,4 +13,3 @@ if TYPE_CHECKING:
         BaseText,
         Text,
     )
-    

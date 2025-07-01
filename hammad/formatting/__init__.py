@@ -24,7 +24,6 @@ __all__ = (
     "convert_to_json_schema",
     "encode_json",
     "decode_json",
-
     # hammad.formatting.yaml
     "encode_yaml",
     "decode_yaml",

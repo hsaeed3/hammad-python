@@ -82,9 +82,7 @@ def test_convert_to_pydantic_field():
     assert field_def["value_1"][0] == int
 
     # Test with description and default
-    field_def = convert_to_pydantic_field(
-        bool, description="Test field", default=False
-    )
+    field_def = convert_to_pydantic_field(bool, description="Test field", default=False)
     assert field_def["value"][1].description == "Test field"
     assert field_def["value"][1].default is False
 
@@ -119,9 +117,7 @@ def test_create_confirmation_pydantic_model():
     assert instance.confirmed is True
 
     # Test custom field name
-    CustomConfirmModel = create_confirmation_pydantic_model(
-        field_name="accepted"
-    )
+    CustomConfirmModel = create_confirmation_pydantic_model(field_name="accepted")
 
     instance = CustomConfirmModel(accepted=False)
     assert instance.accepted is False
@@ -136,9 +132,7 @@ def test_convert_to_pydantic_model_with_types():
     assert instance.value == "test"
 
     # Test with custom field name
-    CustomModel = convert_to_pydantic_model(
-        int, field_name="number", default=42
-    )
+    CustomModel = convert_to_pydantic_model(int, field_name="number", default=42)
     instance = CustomModel(number=10)
     assert instance.number == 10
 
