@@ -47,9 +47,7 @@ from .types import (
 )
 
 
-__all__ = (
-    "CompletionsClient"
-)
+__all__ = "CompletionsClient"
 
 
 class CompletionsError(Exception):

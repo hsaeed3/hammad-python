@@ -96,5 +96,5 @@ class CompletionsModelSettings(TypedDict, total=False):
 class CompletionsSettings(CompletionsModelSettings, total=False):
     """Accepted settings for the `litellm` completion function."""
 
-    model : str
-    messages : List
+    model: str
+    messages: List

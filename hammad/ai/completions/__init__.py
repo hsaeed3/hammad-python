@@ -17,10 +17,7 @@ if TYPE_CHECKING:
         CompletionsModelName,
         CompletionsOutputType,
     )
-    from .settings import (
-        CompletionsSettings,
-        CompletionsModelSettings
-    )
+    from .settings import CompletionsSettings, CompletionsModelSettings
     from .create import create_completion, async_create_completion
 
 
