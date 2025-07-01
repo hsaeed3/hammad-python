@@ -340,7 +340,7 @@ def create_collection(
 
 def create_collection(
     type: Literal["searchable", "vector"],
-    name: str,
+    name: str = "default",
     vector_size: Optional[int] = None,
     *,
     schema: Optional[Any] = None,

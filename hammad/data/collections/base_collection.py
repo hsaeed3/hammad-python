@@ -51,7 +51,7 @@ class BaseCollection(ABC, Generic[Object]):
         self,
         *,
         filters: Optional[Filters] = None,
-        search: Optional[str] = None,
+        query: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> List[Any]:
         """Query items from the collection."""

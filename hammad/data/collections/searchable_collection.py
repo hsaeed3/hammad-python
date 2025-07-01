@@ -287,9 +287,9 @@ class SearchableCollection(BaseCollection, Generic[Object]):
 
     def query(
         self,
+        query: Optional[str] = None,
         *,
         filters: Optional[Filters] = None,
-        search: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         fields: Optional[List[str]] = None,
@@ -310,8 +310,8 @@ class SearchableCollection(BaseCollection, Generic[Object]):
         Query items from the collection using tantivy search.
 
         Args:
+            query: Search query string supporting boolean operators (AND, OR, NOT, +, -)
             filters: Dictionary of filters to apply to results
-            search: Search query string supporting boolean operators (AND, OR, NOT, +, -)
             limit: Maximum number of results to return
             offset: Number of results to skip (for pagination)
             fields: Specific fields to search in (defaults to content field)
@@ -336,7 +336,7 @@ class SearchableCollection(BaseCollection, Generic[Object]):
             return self._storage_backend.query(
                 collection=self.name,
                 filters=filters,
-                search=search,
+                search=query,
                 limit=limit,
                 offset=offset,
                 fields=fields,
@@ -378,16 +378,16 @@ class SearchableCollection(BaseCollection, Generic[Object]):
                 self._tantivy_schema, fields[0] if fields else "content", regex_search
             )
             query_parts.append((tantivy.Occur.Must, search_query))
-        elif search:
+        elif query:
             if phrase:
                 # Phrase query
-                words = search.split()
+                words = query.split()
                 search_query = tantivy.Query.phrase_query(
                     self._tantivy_schema, "content", words, slop=phrase_slop
                 )
             elif fuzzy:
                 # Fuzzy query for each term
-                terms = search.split()
+                terms = query.split()
                 fuzzy_queries = []
                 for term in terms:
                     fuzzy_q = tantivy.Query.fuzzy_term_query(
@@ -405,13 +405,13 @@ class SearchableCollection(BaseCollection, Generic[Object]):
                 # Handle None boost_fields
                 if boost_fields:
                     search_query = self._index.parse_query(
-                        search,
+                        query,
                         default_field_names=fields or ["content", "title"],
                         field_boosts=boost_fields,
                     )
                 else:
                     search_query = self._index.parse_query(
-                        search, default_field_names=fields or ["content", "title"]
+                        query, default_field_names=fields or ["content", "title"]
                     )
 
             query_parts.append((tantivy.Occur.Must, search_query))

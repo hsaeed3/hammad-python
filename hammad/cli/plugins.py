@@ -495,10 +495,6 @@ def _collect_fields_sequentially(schema: Any, console) -> Dict[str, Any]:
 
 
 @overload
-def input(prompt: str = "") -> str: ...
-
-
-@overload
 def input(
     prompt: str = "",
     schema: Any = None,

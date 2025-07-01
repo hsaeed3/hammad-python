@@ -32,7 +32,6 @@ __all__ = (
     "read_configuration_from_os_vars",
     "read_configuration_from_os_prefix",
     "read_configuration_from_dotenv",
-
     # hammad.data.collections
     "Collection",
     "BaseCollection",
@@ -41,7 +40,6 @@ __all__ = (
     "SearchableCollection",
     "SearchableCollectionSettings",
     "create_collection",
-    
     # hammad.data.databases
     "Database",
     "create_database",

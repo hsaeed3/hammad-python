@@ -38,9 +38,8 @@ except ImportError:
 from ..collections.base_collection import BaseCollection, Filters, Schema
 from ..collections.collection import create_collection
 
-if TYPE_CHECKING:
-    from ..collections.searchable_collection import SearchableCollection
-    from ..collections.vector_collection import VectorCollection
+from ..collections.searchable_collection import SearchableCollection
+from ..collections.vector_collection import VectorCollection
 
 __all__ = ("Database",)
 
@@ -636,14 +635,22 @@ class Database(Generic[DatabaseEntryType]):
 
     def query(
         self,
+        query: Optional[str] = None,
         *,
         collection: str = "default",
         filters: Optional[Filters] = None,
-        search: Optional[str] = None,
         limit: Optional[int] = None,
         **kwargs,
     ) -> List[DatabaseEntryType]:
-        """Query items from any collection."""
+        """Query items from any collection.
+
+        Args:
+            query: Search query string supporting boolean operators (AND, OR, NOT, +, -)
+            filters: Dictionary of filters to apply to results
+            limit: Maximum number of results to return
+            offset: Number of results to skip (for pagination)
+            fields: List of fields to return
+        """
         # Check modern collections first
         if collection in self._collections:
             coll = self._collections[collection]
@@ -651,13 +658,13 @@ class Database(Generic[DatabaseEntryType]):
             original_backend = coll._storage_backend
             coll._storage_backend = None
             try:
-                return coll.query(filters=filters, search=search, limit=limit, **kwargs)
+                return coll.query(filters=filters, query=query, limit=limit, **kwargs)
             finally:
                 coll._storage_backend = original_backend
 
         # File storage
         if self.location == "file":
-            return self._query_from_file(collection, filters, search, limit)
+            return self._query_from_file(collection, filters, query, limit)
 
         # Traditional in-memory collection logic
         if collection not in self._schemas:
@@ -676,9 +683,9 @@ class Database(Generic[DatabaseEntryType]):
                 continue
 
             # Basic search implementation
-            if search:
+            if query:
                 item_text = str(item["value"]).lower()
-                if search.lower() not in item_text:
+                if query.lower() not in item_text:
                     continue
 
             results.append(item["value"])
@@ -686,6 +693,13 @@ class Database(Generic[DatabaseEntryType]):
                 break
 
         return results
+
+    def add_collection(self, collection: BaseCollection) -> None:
+        """Add a collection to the database."""
+        self._collections[collection.name] = collection
+        self._schemas[collection.name] = collection.schema
+        self._collection_ttls[collection.name] = collection.default_ttl
+        self._storage[collection.name] = {}
 
     def __getitem__(self, collection_name: str) -> BaseCollection[DatabaseEntryType]:
         """Get a collection accessor with full IDE typing support."""
@@ -725,7 +739,7 @@ class Database(Generic[DatabaseEntryType]):
                 limit: Optional[int] = None,
             ) -> List[DatabaseEntryType]:
                 return self._database.query(
-                    collection=self.name, filters=filters, search=search, limit=limit
+                    collection=self.name, filters=filters, query=search, limit=limit
                 )
 
         return DatabaseCollectionAccessor(self, collection_name)
@@ -783,7 +797,7 @@ def create_database(
     schema_builder: Optional[Any] = None,
     writer_memory: Optional[int] = None,
     reload_policy: Optional[str] = None,
-) -> "Database[SearchableCollection]": ...
+) -> Database[SearchableCollection]: ...
 
 
 @overload
@@ -799,7 +813,7 @@ def create_database(
     prefer_grpc: Optional[bool] = None,
     api_key: Optional[str] = None,
     timeout: Optional[float] = None,
-) -> "Database[VectorCollection]": ...
+) -> Database[VectorCollection]: ...
 
 
 def create_database(
@@ -822,7 +836,7 @@ def create_database(
     prefer_grpc: Optional[bool] = None,
     api_key: Optional[str] = None,
     timeout: Optional[float] = None,
-) -> "Database":
+) -> Database:
     """
     Create a database instance optimized for specific collection types.
 

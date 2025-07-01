@@ -293,7 +293,7 @@ class Logger:
     def __init__(
         self,
         name: Optional[str] = None,
-        level: Optional[Union[str, int]] = None,
+        level: Optional[Union[LoggerLevelName, int]] = None,
         rich: bool = True,
         display_all: bool = False,
         level_styles: Optional[Dict[str, LoggerLevelSettings]] = None,
@@ -899,7 +899,7 @@ def create_logger_level(
 
 def create_logger(
     name: Optional[str] = None,
-    level: Optional[Union[str, int]] = None,
+    level: Optional[Union[LoggerLevelName, int]] = None,
     rich: bool = True,
     display_all: bool = False,
     levels: Optional[Dict[LoggerLevelName, LoggerLevelSettings]] = None,

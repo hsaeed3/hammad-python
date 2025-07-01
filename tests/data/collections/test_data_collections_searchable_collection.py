@@ -123,11 +123,11 @@ def test_collection_search_basic():
     )
 
     # Search for Python
-    results = collection.query(search="Python")
+    results = collection.query(query="Python")
     assert len(results) == 2
 
     # Search for Java
-    results = collection.query(search="Java")
+    results = collection.query(query="Java")
     assert len(results) == 1
 
 
@@ -140,7 +140,7 @@ def test_collection_search_phrase():
     collection.add({"content": "advanced machine learning"}, id="3")
 
     # Phrase search
-    results = collection.query(search="machine learning", phrase=True)
+    results = collection.query(query="machine learning", phrase=True)
     assert len(results) == 2  # Should match items 1 and 3
 
 
@@ -152,7 +152,7 @@ def test_collection_search_with_fields():
     collection.add({"title": "Java", "content": "Python programming"}, id="2")
 
     # Search only in title field
-    results = collection.query(search="Python", fields=["title"])
+    results = collection.query(query="Python", fields=["title"])
     assert len(results) == 1
 
 
@@ -165,11 +165,11 @@ def test_collection_search_boolean_operators():
     collection.add({"content": "Java machine learning"}, id="3")
 
     # AND operator
-    results = collection.query(search="Python AND machine")
+    results = collection.query(query="Python AND machine")
     assert len(results) == 1
 
     # OR operator
-    results = collection.query(search="Python OR Java")
+    results = collection.query(query="Python OR Java")
     assert len(results) == 3
 
 
@@ -181,7 +181,7 @@ def test_collection_search_fuzzy():
     collection.add({"content": "programing"}, id="2")  # typo
 
     # Fuzzy search should match both
-    results = collection.query(search="programming", fuzzy=True)
+    results = collection.query(query="programming", fuzzy=True)
     assert len(results) == 2
 
 
@@ -193,7 +193,7 @@ def test_collection_search_boost_fields():
     collection.add({"title": "Other title", "content": "Python programming"}, id="2")
 
     # Boost title field
-    results = collection.query(search="Python", boost_fields={"title": 2.0})
+    results = collection.query(query="Python", boost_fields={"title": 2.0})
 
     # Item with Python in title should score higher
     assert results[0]["title"] == "Python"
@@ -207,7 +207,7 @@ def test_collection_search_min_score():
     collection.add({"content": "Brief Python mention"}, id="2")
 
     # Set minimum score to filter low-relevance results
-    results = collection.query(search="Python programming", min_score=0.5)
+    results = collection.query(query="Python programming", min_score=0.5)
 
     # Should return only high-scoring results
     assert len(results) <= 2
@@ -300,7 +300,7 @@ def test_collection_complex_objects():
     assert "python" in result["metadata"]["tags"]
 
     # Test search in complex object
-    results = collection.query(search="Alice")
+    results = collection.query(query="Alice")
     assert len(results) == 1
 
 

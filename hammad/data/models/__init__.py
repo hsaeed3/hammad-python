@@ -8,18 +8,8 @@ from typing import TYPE_CHECKING
 from ...performance.imports import create_getattr_importer
 
 if TYPE_CHECKING:
-    from .base import (
-        Model,
-        field,
-        validator,
-        is_field,
-        is_model,
-        model_settings
-    )
-    from .pydantic import (
-        convert_to_pydantic_model,
-        convert_to_pydantic_field
-    )
+    from .base import Model, field, validator, is_field, is_model, model_settings
+    from .pydantic import convert_to_pydantic_model, convert_to_pydantic_field
 
 
 __all__ = (
@@ -30,7 +20,6 @@ __all__ = (
     "is_field",
     "is_model",
     "model_settings",
-
     # hammad.models.pydantic
     "convert_to_pydantic_model",
     "convert_to_pydantic_field",

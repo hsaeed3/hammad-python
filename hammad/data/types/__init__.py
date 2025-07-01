@@ -24,10 +24,8 @@ __all__ = (
     # hammad.data.types.text
     "BaseText",
     "Text",
-
     # hammad.data.types.file
     "File",
-
     # hammad.data.types.multimodal
     "Audio",
     "Image",
