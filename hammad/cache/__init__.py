@@ -1,48 +1,40 @@
-"""hammad.cache
-
-Contains helpful resources for creating simple cache systems, and
-decorators that implement "automatic" hashing & caching of function calls.
-"""
+"""hammad.cache"""
 
 from typing import TYPE_CHECKING
-from .._core._utils._import_utils import _auto_create_getattr_loader
+from ..performance.imports import create_getattr_importer
+
 
 if TYPE_CHECKING:
     from .base_cache import BaseCache, CacheParams, CacheReturn, CacheType
-    from .file_cache import FileCache
+    from .file_cache import FileCache, FileCacheLocation
     from .ttl_cache import TTLCache
     from .cache import Cache, create_cache
-    from .decorators import (
-        cached,
-        auto_cached,
-        get_decorator_cache,
-        clear_decorator_cache,
-    )
+    from .decorators import cached, auto_cached, clear_decorator_cache
 
 
 __all__ = (
-    # hammad.cache.base_cache
+    # hammad.performance.cache.base_cache
     "BaseCache",
     "CacheParams",
     "CacheReturn",
     "CacheType",
-    # hammad.cache.file_cache
+    # hammad.performance.cache.file_cache
     "FileCache",
-    # hammad.cache.ttl_cache
+    "FileCacheLocation",
+    # hammad.performance.cache.ttl_cache
     "TTLCache",
-    # hammad.cache.cache
+    # hammad.performance.cache.cache
     "Cache",
     "create_cache",
-    # hammad.cache.decorators
+    # hammad.performance.cache.decorators
     "cached",
     "auto_cached",
-    "get_decorator_cache",
     "clear_decorator_cache",
 )
 
 
-__getattr__ = _auto_create_getattr_loader(__all__)
+__getattr__ = create_getattr_importer(__all__)
 
 
 def __dir__() -> list[str]:
-    return list(__all__)
+    return sorted(__all__)

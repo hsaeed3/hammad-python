@@ -1,4 +1,4 @@
-"""Base HTTP toolkit implementation with clean type hints and semantic error handling."""
+"""hammad.web.http.client"""
 
 from __future__ import annotations
 

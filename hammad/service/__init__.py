@@ -21,17 +21,14 @@ resources within this submodule. This module contains function/decorators for:
 """
 
 from typing import TYPE_CHECKING
-from .._core._utils._import_utils import _auto_create_getattr_loader
+from ..performance.imports import create_getattr_importer
 
 if TYPE_CHECKING:
     from .create import (
         create_service,
         async_create_service,
     )
-    from .decorators import (
-        serve,
-        serve_mcp
-    )
+    from .decorators import serve, serve_mcp
 
 
 __all__ = (
@@ -44,7 +41,7 @@ __all__ = (
 )
 
 
-__getattr__ = _auto_create_getattr_loader(__all__)
+__getattr__ = create_getattr_importer(__all__)
 
 
 def __dir__() -> list[str]:

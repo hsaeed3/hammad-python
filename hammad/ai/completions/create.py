@@ -24,7 +24,7 @@ from .types import (
     CompletionStream,
 )
 from .client import (
-    InstructorModeParam,
+    CompletionsInstructorModeParam,
     AnthropicThinkingParam,
     OpenAIWebSearchOptions,
     CompletionsClient,
@@ -43,7 +43,7 @@ async def async_create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -95,7 +95,7 @@ async def async_create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -146,7 +146,7 @@ async def async_create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -216,7 +216,7 @@ async def async_create_completion(
             Defaults to "content".
         response_field_instruction (str, optional): The instruction for the response field.
             Defaults to "A response in the correct type as requested by the user, or relevant content."
-        instructor_mode (InstructorModeParam, optional): The instructor mode for
+        instructor_mode (CompletionsInstructorModeParam, optional): The instructor mode for
             structured outputs ("tool_call", "json", "json_schema", "markdown_json_schema",
             "function_call"). Defaults to "tool_call".
         max_retries (int, optional): Maximum number of retries for structured output
@@ -381,7 +381,7 @@ def create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -433,7 +433,7 @@ def create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -484,7 +484,7 @@ def create_completion(
     type: CompletionsOutputType = str,
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-    instructor_mode: InstructorModeParam = "tool_call",
+    instructor_mode: CompletionsInstructorModeParam = "tool_call",
     max_retries: int = 3,
     strict: bool = True,
     *,
@@ -554,7 +554,7 @@ def create_completion(
             Defaults to "content".
         response_field_instruction (str, optional): The instruction for the response field.
             Defaults to "A response in the correct type as requested by the user, or relevant content."
-        instructor_mode (InstructorModeParam, optional): The instructor mode for
+        instructor_mode (CompletionsInstructorModeParam, optional): The instructor mode for
             structured outputs ("tool_call", "json", "json_schema", "markdown_json_schema",
             "function_call"). Defaults to "tool_call".
         max_retries (int, optional): Maximum number of retries for structured output

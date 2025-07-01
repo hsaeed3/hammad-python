@@ -1,7 +1,7 @@
 """hammad.data.databases"""
 
 from typing import TYPE_CHECKING
-from ..._core._utils._import_utils import _auto_create_getattr_loader
+from ...performance.imports import create_getattr_importer
 
 if TYPE_CHECKING:
     from .database import Database, create_database
@@ -13,7 +13,7 @@ __all__ = (
 )
 
 
-__getattr__ = _auto_create_getattr_loader(__all__)
+__getattr__ = create_getattr_importer(__all__)
 
 
 def __dir__() -> list[str]:

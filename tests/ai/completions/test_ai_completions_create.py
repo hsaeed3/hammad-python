@@ -1,7 +1,10 @@
 import pytest
 import asyncio
 from pydantic import BaseModel
-from hammad.ai.completions.create import create_completion, create_async_completion
+from hammad.ai.completions.create import (
+    create_completion,
+    async_create_completion as create_async_completion,
+)
 from hammad.ai.completions.types import (
     Completion,
     CompletionStream,

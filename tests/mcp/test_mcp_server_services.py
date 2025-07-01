@@ -6,7 +6,7 @@ import pytest
 import subprocess
 from unittest.mock import Mock, patch
 
-from hammad.ai.mcp.servers.launcher import (
+from hammad.mcp.servers.launcher import (
     MCPServerService,
     launch_stdio_mcp_server,
     launch_sse_mcp_server,
@@ -394,7 +394,7 @@ class TestMCPServerService:
 class TestLaunchFunctions:
     """Test cases for launch convenience functions."""
 
-    @patch("hammad.ai.mcp.servers.launcher.get_server_service")
+    @patch("hammad.mcp.servers.launcher.get_server_service")
     def test_launch_stdio_mcp_server(self, mock_get_service):
         """Test launch_stdio_mcp_server function."""
         mock_service = Mock()
@@ -428,8 +428,8 @@ class TestLaunchFunctions:
             cwd="/tmp",
         )
 
-    @patch("hammad.ai.mcp.servers.launcher.get_server_service")
-    @patch("hammad.ai.mcp.servers.launcher.find_next_free_port")
+    @patch("hammad.mcp.servers.launcher.get_server_service")
+    @patch("hammad.mcp.servers.launcher.find_next_free_port")
     def test_launch_sse_mcp_server(self, mock_find_port, mock_get_service):
         """Test launch_sse_mcp_server function."""
         mock_service = Mock()
@@ -460,8 +460,8 @@ class TestLaunchFunctions:
         assert server_settings["port"] == 8080
         assert call_args[1]["transport"] == "sse"
 
-    @patch("hammad.ai.mcp.servers.launcher.get_server_service")
-    @patch("hammad.ai.mcp.servers.launcher.find_next_free_port")
+    @patch("hammad.mcp.servers.launcher.get_server_service")
+    @patch("hammad.mcp.servers.launcher.find_next_free_port")
     def test_launch_streamable_http_mcp_server(self, mock_find_port, mock_get_service):
         """Test launch_streamable_http_mcp_server function."""
         mock_service = Mock()
@@ -499,7 +499,7 @@ class TestSingletonService:
     def test_get_server_service_creates_singleton(self):
         """Test that get_server_service creates and returns singleton."""
         # Clear any existing singleton
-        import hammad.ai.mcp.servers.launcher as launcher_module
+        import hammad.mcp.servers.launcher as launcher_module
 
         launcher_module._singleton_service = None
 
@@ -511,7 +511,7 @@ class TestSingletonService:
 
     def test_shutdown_all_servers_with_singleton(self):
         """Test shutdown_all_servers function with singleton."""
-        import hammad.ai.mcp.servers.launcher as launcher_module
+        import hammad.mcp.servers.launcher as launcher_module
 
         mock_service = Mock()
         launcher_module._singleton_service = mock_service
@@ -522,7 +522,7 @@ class TestSingletonService:
 
     def test_shutdown_all_servers_no_singleton(self):
         """Test shutdown_all_servers function when no singleton exists."""
-        import hammad.ai.mcp.servers.launcher as launcher_module
+        import hammad.mcp.servers.launcher as launcher_module
 
         launcher_module._singleton_service = None
 
@@ -538,7 +538,7 @@ class TestSignalHandling:
     def test_signal_handlers_registration(self, mock_atexit, mock_signal):
         """Test that signal handlers are registered correctly."""
         # Import the module to trigger registration
-        import hammad.ai.mcp.servers.launcher as launcher_module
+        import hammad.mcp.servers.launcher as launcher_module
 
         # Reset the registration flag
         launcher_module._signal_handlers_registered = False

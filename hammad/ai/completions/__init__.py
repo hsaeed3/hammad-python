@@ -4,7 +4,7 @@ Contains types and model like objects for working with language model
 completions."""
 
 from typing import TYPE_CHECKING
-from ..._core._utils._import_utils import _auto_create_getattr_loader
+from ...performance.imports import create_getattr_importer
 
 if TYPE_CHECKING:
     from .client import CompletionsClient
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
         CompletionsModelName,
         CompletionsOutputType,
     )
+    from .settings import CompletionsSettings, CompletionsModelSettings
     from .create import create_completion, async_create_completion
 
 
@@ -37,7 +38,7 @@ __all__ = (
 )
 
 
-__getattr__ = _auto_create_getattr_loader(__all__)
+__getattr__ = create_getattr_importer(__all__)
 
 
 def __dir__() -> list[str]:

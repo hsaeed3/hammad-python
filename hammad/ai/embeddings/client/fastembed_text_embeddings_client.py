@@ -14,7 +14,7 @@ from ..types import (
     EmbeddingUsage,
     EmbeddingResponse,
 )
-from ....text.converters import convert_to_text
+from ....formatting.text.converters import convert_to_text
 from ..._utils import (
     get_fastembed_text_embedding_model,
 )

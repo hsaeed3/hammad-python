@@ -22,9 +22,8 @@ except ImportError:
         "`pip install 'hammad-python[ai]'"
     )
 
-from ...pydantic.converters import convert_to_pydantic_model
+from ...data.models.pydantic.converters import convert_to_pydantic_model
 from .._utils import get_litellm, get_instructor
-from ...base.model import Model
 from ...typing import is_pydantic_basemodel
 from .utils import (
     format_tool_calls,
@@ -35,113 +34,20 @@ from .utils import (
     InstructorStreamWrapper,
     AsyncInstructorStreamWrapper,
 )
+from .settings import (
+    CompletionsSettings,
+    OpenAIWebSearchOptions,
+    AnthropicThinkingParam,
+)
 from .types import (
+    CompletionsInstructorModeParam,
     CompletionsInputParam,
     CompletionsOutputType,
     Completion,
 )
 
 
-class OpenAIWebSearchUserLocationApproximate(TypedDict):
-    city: str
-    country: str
-    region: str
-    timezone: str
-
-
-class OpenAIWebSearchUserLocation(TypedDict):
-    approximate: OpenAIWebSearchUserLocationApproximate
-    type: Literal["approximate"]
-
-
-class OpenAIWebSearchOptions(TypedDict, total=False):
-    search_context_size: Optional[Literal["low", "medium", "high"]]
-    user_location: Optional[OpenAIWebSearchUserLocation]
-
-
-class AnthropicThinkingParam(TypedDict, total=False):
-    type: Literal["enabled"]
-    budget_tokens: int
-
-
-InstructorModeParam = Literal[
-    "function_call",
-    "parallel_tool_call",
-    "tool_call",
-    "tools_strict",
-    "json_mode",
-    "json_o1",
-    "markdown_json_mode",
-    "json_schema_mode",
-    "anthropic_tools",
-    "anthropic_reasoning_tools",
-    "anthropic_json",
-    "mistral_tools",
-    "mistral_structured_outputs",
-    "vertexai_tools",
-    "vertexai_json",
-    "vertexai_parallel_tools",
-    "gemini_json",
-    "gemini_tools",
-    "genai_tools",
-    "genai_structured_outputs",
-    "cohere_tools",
-    "cohere_json_object",
-    "cerebras_tools",
-    "cerebras_json",
-    "fireworks_tools",
-    "fireworks_json",
-    "writer_tools",
-    "bedrock_tools",
-    "bedrock_json",
-    "perplexity_json",
-    "openrouter_structured_outputs",
-]
-"""Instructor prompt/parsing mode for structured outputs."""
-
-
-class CompletionsSettings(TypedDict):
-    """Accepted settings for the `litellm` completion function."""
-
-    model: str
-    messages: List
-    timeout: Optional[Union[float, str, Timeout]]
-    temperature: Optional[float]
-    top_p: Optional[float]
-    n: Optional[int]
-    stream: Optional[bool]
-    stream_options: Optional[Dict[str, Any]]
-    stop: Optional[str]
-    max_completion_tokens: Optional[int]
-    max_tokens: Optional[int]
-    modalities: Optional[List[ChatCompletionModality]]
-    prediction: Optional[ChatCompletionPredictionContentParam]
-    audio: Optional[ChatCompletionAudioParam]
-    presence_penalty: Optional[float]
-    frequency_penalty: Optional[float]
-    logit_bias: Optional[Dict[str, float]]
-    user: Optional[str]
-    reasoning_effort: Optional[Literal["low", "medium", "high"]]
-    # NOTE: response_format is not used within the `completions` resource
-    # in place of `instructor` and the `type` parameter
-    seed: Optional[int]
-    tools: Optional[List]
-    tool_choice: Optional[Union[str, Dict[str, Any]]]
-    logprobs: Optional[bool]
-    top_logprobs: Optional[int]
-    parallel_tool_calls: Optional[bool]
-    web_search_options: Optional[OpenAIWebSearchOptions]
-    deployment_id: Optional[str]
-    extra_headers: Optional[Dict[str, str]]
-    base_url: Optional[str]
-    functions: Optional[List]
-    function_call: Optional[str]
-    # set api_base, api_version, api_key
-    api_version: Optional[str]
-    api_key: Optional[str]
-    model_list: Optional[list]
-    # Optional liteLLM function params
-    thinking: Optional[AnthropicThinkingParam]
+__all__ = "CompletionsClient"
 
 
 class CompletionsError(Exception):
@@ -373,7 +279,7 @@ class CompletionsClient(Generic[CompletionsOutputType]):
         type: CompletionsOutputType = str,
         response_field_name: str = "content",
         response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-        instructor_mode: InstructorModeParam = "tool_call",
+        instructor_mode: CompletionsInstructorModeParam = "tool_call",
         max_retries: int = 3,
         strict: bool = True,
         *,
@@ -580,7 +486,7 @@ class CompletionsClient(Generic[CompletionsOutputType]):
         type: CompletionsOutputType = str,
         response_field_name: str = "content",
         response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
-        instructor_mode: InstructorModeParam = "tool_call",
+        instructor_mode: CompletionsInstructorModeParam = "tool_call",
         max_retries: int = 3,
         strict: bool = True,
         *,

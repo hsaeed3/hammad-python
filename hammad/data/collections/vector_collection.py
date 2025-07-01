@@ -27,13 +27,6 @@ except ImportError as e:
 from .base_collection import BaseCollection, Object, Filters, Schema
 from ...ai.embeddings.create import (
     create_embeddings,
-    async_create_embeddings,
-)
-from ...ai.embeddings.client.fastembed_text_embeddings_client import (
-    FastEmbedTextEmbeddingModel,
-)
-from ...ai.embeddings.client.litellm_embeddings_client import (
-    LiteLlmEmbeddingModel,
 )
 
 __all__ = ("VectorCollection",)
