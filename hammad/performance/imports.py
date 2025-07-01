@@ -113,7 +113,9 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]
 
 
 def _create_getattr_importer_from_import_dict(
-    imports_dict: dict[str, tuple[str, str]], package: str
+    imports_dict: dict[str, tuple[str, str]],
+    package: str,
+    all_attrs: Union[Tuple[str, ...], List[str]],
 ) -> Callable[[str], Any]:
     """Creates a lazy loader function for the `__getattr__` method
     within `__init__.py` modules in Python packages.
@@ -121,6 +123,7 @@ def _create_getattr_importer_from_import_dict(
     Args:
         imports_dict : Dictionary mapping attribute names to (module_path, original_name) tuples
         package : The package name for import_module
+        all_attrs : List of all valid attributes for this module
 
     Returns:
         A __getattr__ function that lazily imports modules
@@ -139,17 +142,27 @@ def _create_getattr_importer_from_import_dict(
             result = getattr(module, original_name)
             cache[name] = result
             return result
+
+        # Try to import as a submodule
+        try:
+            module_path = f".{name}"
+            module = import_module(module_path, package)
+            cache[name] = module
+            return module
+        except ImportError:
+            pass
+
         raise GetAttrImporterError(f"module '{package}' has no attribute '{name}'")
 
     return __getattr__
 
 
 def create_getattr_importer(
-    __all__: Union[Tuple[str, ...], List[str]],
+    all: Union[Tuple[str, ...], List[str]],
 ) -> Callable[[str], Any]:
     """Loader used internally within the `hammad` package to create lazy
     loaders within `__init__.py` modules using the `TYPE_CHECKING` and
-    `__all__` source code within files.
+    `all` source code within files.
 
     This function is meant to be set as the `__getattr__` method / var
     within modules to allow for direct lazy loading of attributes.
@@ -164,23 +177,21 @@ def create_getattr_importer(
         if TYPE_CHECKING:
             from functools import wraps
 
-        __all__ = ("wraps")
+        all = ("wraps")
 
-        __getattr__ = create_getattr_importer(__all__)
+        __getattr__ = create_getattr_importer(all)
 
         # Now, when you import this module, the `wraps` attribute will be
         # lazily loaded when it is first accessed.
         ```
 
     Args:
-        all : The `__all__` tuple from the calling module
+        all : The `all` tuple from the calling module
 
     Returns:
         A __getattr__ function that lazily imports modules
     """
-    if isinstance(__all__, list):
-        __all__ = tuple(__all__)
-
+    # Get the calling module's frame
     frame = inspect.currentframe()
     if frame is None or frame.f_back is None:
         raise RuntimeError("Cannot determine calling module")
@@ -191,7 +202,7 @@ def create_getattr_importer(
     filename = calling_frame.f_globals.get("__file__", "")
 
     # Check cache first
-    cache_key = (filename, __all__)
+    cache_key = (filename, tuple(all))
     if cache_key in GETATTR_IMPORTER_TYPE_CHECKING_CACHE:
         return GETATTR_IMPORTER_TYPE_CHECKING_CACHE[cache_key]
 
@@ -213,8 +224,8 @@ def create_getattr_importer(
     imports_map = _parse_type_checking_imports(source_code)
 
     # Filter to only include exports that are in __all__
-    filtered_map = {name: path for name, path in imports_map.items() if name in __all__}
+    filtered_map = {name: path for name, path in imports_map.items() if name in all}
 
-    loader = _create_getattr_importer_from_import_dict(filtered_map, package)
+    loader = _create_getattr_importer_from_import_dict(filtered_map, package, all)
     GETATTR_IMPORTER_TYPE_CHECKING_CACHE[cache_key] = loader
     return loader
