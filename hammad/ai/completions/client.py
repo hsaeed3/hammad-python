@@ -22,7 +22,7 @@ except ImportError:
         "`pip install 'hammad-python[ai]'"
     )
 
-from ...models.pydantic.converters import convert_to_pydantic_model
+from ...data.models.pydantic.converters import convert_to_pydantic_model
 from .._utils import get_litellm, get_instructor
 from ...typing import is_pydantic_basemodel
 from .utils import (

@@ -9,7 +9,7 @@ class TestServeMCPDecorator:
     def setup_and_teardown(self):
         """Setup and teardown for each test."""
         # Import here to avoid side effects during import
-        from hammad.ai.mcp.servers.launcher import shutdown_all_servers
+        from hammad.mcp.servers.launcher import shutdown_all_servers
 
         yield
 

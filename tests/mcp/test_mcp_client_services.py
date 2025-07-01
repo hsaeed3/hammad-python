@@ -73,7 +73,7 @@ class TestMCPClientServiceStdio:
 
         assert service.name == "stdio: my_command"
 
-    @patch("hammad.ai.mcp.client.client_service.stdio_client")
+    @patch("hammad.mcp.client.client_service.stdio_client")
     def test_create_streams(self, mock_stdio_client):
         """Test create_streams method."""
         settings: MCPClientStdioSettings = {"command": "python"}
@@ -137,7 +137,7 @@ class TestMCPClientServiceSse:
 
         assert service.name == "sse: https://example.com/mcp"
 
-    @patch("hammad.ai.mcp.client.client_service.sse_client")
+    @patch("hammad.mcp.client.client_service.sse_client")
     def test_create_streams(self, mock_sse_client):
         """Test create_streams method."""
         settings: MCPClientSseSettings = {
@@ -213,7 +213,7 @@ class TestMCPClientServiceStreamableHttp:
 
         assert service.name == "streamable_http: https://example.com/mcp"
 
-    @patch("hammad.ai.mcp.client.client_service.streamablehttp_client")
+    @patch("hammad.mcp.client.client_service.streamablehttp_client")
     def test_create_streams(self, mock_streamable_client):
         """Test create_streams method."""
         settings: MCPClientStreamableHttpSettings = {
