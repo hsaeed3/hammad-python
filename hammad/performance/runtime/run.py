@@ -1,4 +1,4 @@
-"""hammad.performance.run"""
+"""hammad.performance.runtime.run"""
 
 import concurrent.futures
 import itertools
@@ -13,7 +13,6 @@ from typing import (
     Optional,
     Union,
     Type,
-    cast,
     overload,
 )
 
@@ -160,8 +159,8 @@ def run_with_retry(
     reraise: bool = True,
     before_retry: Optional[Callable[[Exception], None]] = None,
     hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
-) -> Callable[..., Return]:
-    ...
+) -> Callable[..., Return]: ...
+
 
 @overload
 def run_with_retry(
@@ -175,8 +174,8 @@ def run_with_retry(
     reraise: bool = True,
     before_retry: Optional[Callable[[Exception], None]] = None,
     hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
-) -> Callable[[Callable[..., Return]], Callable[..., Return]]:
-    ...
+) -> Callable[[Callable[..., Return]], Callable[..., Return]]: ...
+
 
 def run_with_retry(
     func: Optional[Callable[..., Return]] = None,
@@ -190,7 +189,9 @@ def run_with_retry(
     reraise: bool = True,
     before_retry: Optional[Callable[[Exception], None]] = None,
     hook: Optional[Callable[[Exception, dict, dict], Tuple[dict, dict]]] = None,
-) -> Union[Callable[..., Return], Callable[[Callable[..., Return]], Callable[..., Return]]]:
+) -> Union[
+    Callable[..., Return], Callable[[Callable[..., Return]], Callable[..., Return]]
+]:
     """
     Decorator that adds retry logic to functions using tenacity. Essential for robust parallel
     processing when dealing with network calls, database operations, or other
@@ -228,9 +229,10 @@ def run_with_retry(
         # As a function:
         def fetch_data(url: str, timeout: int = 30) -> dict:
             return requests.get(url, timeout=timeout).json()
-            
+
         fetch_with_retry = run_with_retry(fetch_data, max_attempts=3)
     """
+
     def decorator(f: Callable[..., Return]) -> Callable[..., Return]:
         # Create retry configuration
         wait_strategy = wait_exponential(
@@ -238,15 +240,17 @@ def run_with_retry(
             exp_base=backoff,
             max=max_delay,
         )
-        
+
         # Build retry arguments
         retry_args = {
-            'stop': stop_after_attempt(max_attempts),
-            'wait': wait_strategy,
-            'retry': retry_if_exception_type(exceptions) if exceptions else retry_if_exception(lambda e: True),
-            'reraise': reraise,
+            "stop": stop_after_attempt(max_attempts),
+            "wait": wait_strategy,
+            "retry": retry_if_exception_type(exceptions)
+            if exceptions
+            else retry_if_exception(lambda e: True),
+            "reraise": reraise,
         }
-        
+
         if before_retry or hook:
             # We need a stateful wrapper to handle callbacks with hooks
             @functools.wraps(f)
@@ -254,33 +258,37 @@ def run_with_retry(
                 # Store current args/kwargs that can be modified by hook
                 current_args = args
                 current_kwargs = kwargs
-                
+
                 def before_sleep_callback(retry_state):
                     nonlocal current_args, current_kwargs
-                    
+
                     # Only process if there was an exception
                     if retry_state.outcome and retry_state.outcome.failed:
                         exc = retry_state.outcome.exception()
-                        
+
                         if before_retry:
                             before_retry(exc)
-                        
+
                         if hook:
                             # Convert args to dict for hook
                             args_dict = dict(enumerate(current_args))
                             # Call hook to potentially modify arguments
-                            new_args_dict, new_kwargs = hook(exc, args_dict, current_kwargs)
+                            new_args_dict, new_kwargs = hook(
+                                exc, args_dict, current_kwargs
+                            )
                             # Convert back to args tuple
-                            current_args = tuple(new_args_dict[i] for i in range(len(new_args_dict)))
+                            current_args = tuple(
+                                new_args_dict[i] for i in range(len(new_args_dict))
+                            )
                             current_kwargs = new_kwargs
-                
+
                 # Create a wrapped function that uses the current args/kwargs
                 @retry(**retry_args, before_sleep=before_sleep_callback)
                 def retryable_func():
                     return f(*current_args, **current_kwargs)
-                
+
                 return retryable_func()
-            
+
             return wrapper
         else:
             # Simple case without callbacks - use tenacity's retry decorator directly

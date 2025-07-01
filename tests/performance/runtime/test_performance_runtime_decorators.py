@@ -1,14 +1,13 @@
 import pytest
 import concurrent.futures
-from hammad.performance.decorators import (
+from hammad.performance.runtime.decorators import (
     sequentialize_function,
     parallelize_function,
-    update_batch_type_hints
+    update_batch_type_hints,
 )
 
 
 class TestPerformanceDecoratorsSequentializeFunction:
-
     def test_sequentialize_function(self):
         @sequentialize_function()
         def multiply(x, y):
@@ -22,14 +21,13 @@ class TestPerformanceDecoratorsSequentializeFunction:
         @sequentialize_function()
         def add(a, b):
             return a + b
-            
+
         params = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         results = add(params)
         assert results == [3, 7]
 
 
 class TestPerformanceDecoratorsParallelizeFunction:
-
     def test_parallelize_function(self):
         @parallelize_function(max_workers=2)
         def multiply(x, y):
@@ -43,6 +41,7 @@ class TestPerformanceDecoratorsParallelizeFunction:
         @parallelize_function(timeout=0.05)
         def slow_function(x):
             import time
+
             time.sleep(0.2)
             return x * 2
 
@@ -53,15 +52,14 @@ class TestPerformanceDecoratorsParallelizeFunction:
 
 
 class TestPerformanceDecoratorsUpdateBatchTypeHints:
-
     def test_update_batch_type_hints(self):
         @update_batch_type_hints()
         def process_item(x: int) -> str:
             return str(x)
-            
+
         params = [(1,), (2,)]
         results = process_item(params)
-        assert results == ['1', '2']
+        assert results == ["1", "2"]
 
 
 if __name__ == "__main__":

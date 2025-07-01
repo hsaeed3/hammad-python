@@ -1,4 +1,4 @@
-"""hammad.performance.imports"""
+"""hammad.performance.runtime.imports"""
 
 from typing import Any, Callable, List, Tuple, Union
 import inspect
@@ -159,7 +159,7 @@ def create_getattr_importer(
         ```
         # Create a module that contains some imports and TYPE_CHECKING
         from typing import TYPE_CHECKING
-        from hammad.performance.import_utils import create_getattr_importer
+        from hammad.performance.imports import create_getattr_importer
 
         if TYPE_CHECKING:
             from functools import wraps
