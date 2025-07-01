@@ -8,15 +8,6 @@ from .imports import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from .cache import (
-        Cache,
-        FileCache,
-        TTLCache,
-        create_cache,
-        cached,
-        auto_cached,
-        clear_decorator_cache,
-    )
     from .runtime import (
         sequentialize_function,
         parallelize_function,
@@ -28,14 +19,6 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    # hammad.performance.cache
-    "Cache",
-    "FileCache",
-    "TTLCache",
-    "create_cache",
-    "cached",
-    "auto_cached",
-    "clear_decorator_cache",
     # hammad.performance.runtime
     "sequentialize_function",
     "parallelize_function",

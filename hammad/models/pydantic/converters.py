@@ -28,7 +28,7 @@ from typing import (
 )
 from pydantic import BaseModel, Field, create_model
 
-from ...performance.cache.decorators import cached
+from ...cache.decorators import cached
 
 from typing import get_origin, get_args
 from typing_inspect import is_generic_type

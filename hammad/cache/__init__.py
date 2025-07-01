@@ -1,7 +1,7 @@
-"""hammad.performance.cache"""
+"""hammad.cache"""
 
 from typing import TYPE_CHECKING
-from ..imports import create_getattr_importer
+from ..performance.imports import create_getattr_importer
 
 
 if TYPE_CHECKING:

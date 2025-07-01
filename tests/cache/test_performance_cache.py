@@ -1,9 +1,9 @@
 import pytest
 
-from hammad.performance.cache.cache import Cache, create_cache
-from hammad.performance.cache.decorators import cached, auto_cached
-from hammad.performance.cache.file_cache import FileCache
-from hammad.performance.cache.ttl_cache import TTLCache
+from hammad.cache.cache import Cache, create_cache
+from hammad.cache.decorators import cached, auto_cached
+from hammad.cache.file_cache import FileCache
+from hammad.cache.ttl_cache import TTLCache
 
 import tempfile
 import shutil
