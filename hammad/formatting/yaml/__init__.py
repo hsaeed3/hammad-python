@@ -3,7 +3,7 @@
 Simply extends the `msgspec.yaml` submodule."""
 
 from typing import TYPE_CHECKING
-from ...performance.imports import create_getattr_importer
+from ..._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .converters import (

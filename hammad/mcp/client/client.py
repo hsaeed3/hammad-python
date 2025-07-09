@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, overload
 import threading
 import concurrent.futures
 import inspect
@@ -20,9 +20,10 @@ try:
     )
     from openai.types.shared import FunctionDefinition as Function
 except ImportError:
-    raise ImportError(
-        "Using mcp requires the `openai` & `mcp` packages. Please install with: pip install 'hammad-python[ai]'"
-    )
+    CallToolResult = Any
+    MCPTool = Any
+    OpenAITool = Any
+    Function = Any
 
 from .client_service import (
     MCPClientService,
@@ -521,3 +522,103 @@ class MCPClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit."""
         await self.async_cleanup()
+
+
+# -----------------------------------------------------------------------------
+# Factory Function
+# -----------------------------------------------------------------------------
+
+
+@overload
+def create_mcp_client(
+    type: Literal["stdio"],
+    *,
+    command: str,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+    cwd: Path | str | None = None,
+    timeout: float = 30.0,
+) -> MCPClient:
+    """Create an MCP client with stdio transport."""
+    ...
+
+
+@overload
+def create_mcp_client(
+    type: Literal["sse"],
+    *,
+    url: str,
+    timeout: float = 30.0,
+) -> MCPClient:
+    """Create an MCP client with SSE transport."""
+    ...
+
+
+@overload
+def create_mcp_client(
+    type: Literal["http"],
+    *,
+    url: str,
+    timeout: float = 30.0,
+) -> MCPClient:
+    """Create an MCP client with HTTP transport."""
+    ...
+
+
+def create_mcp_client(
+    type: Literal["stdio", "sse", "http"],
+    *,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+    cwd: Path | str | None = None,
+    url: str | None = None,
+    timeout: float = 30.0,
+) -> MCPClient:
+    """Create an MCP client with the specified transport type.
+    
+    Args:
+        service_type: The type of transport to use ("stdio", "sse", or "http").
+        command: Command to run for stdio transport.
+        args: Arguments for the command (stdio only).
+        env: Environment variables for the command (stdio only).
+        cwd: Working directory for the command (stdio only).
+        url: URL for SSE or HTTP transport.
+        timeout: Connection timeout in seconds.
+        
+    Returns:
+        A configured MCPClient instance.
+        
+    Raises:
+        ValueError: If required parameters for the transport type are missing.
+    """
+    service_type = type
+
+    if service_type == "stdio":
+        if command is None:
+            raise ValueError("command is required for stdio transport")
+        
+        service = MCPClientServiceStdio(
+            command=command,
+            args=args or [],
+            env=env or {},
+            cwd=Path(cwd) if cwd else None,
+        )
+        
+    elif service_type == "sse":
+        if url is None:
+            raise ValueError("url is required for SSE transport")
+        
+        service = MCPClientServiceSse(url=url)
+        
+    elif service_type == "http":
+        if url is None:
+            raise ValueError("url is required for HTTP transport")
+        
+        service = MCPClientServiceStreamableHttp(url=url)
+        
+    else:
+        raise ValueError(f"Unsupported service_type: {service_type}")
+    
+    settings = MCPClientSettings(timeout=timeout)
+    return MCPClient(service=service, settings=settings)

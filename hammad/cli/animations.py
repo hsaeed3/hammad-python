@@ -1,4 +1,4 @@
-"""hammad.cli.styles.animations"""
+"""hammad.cli.animations"""
 
 import time
 import math

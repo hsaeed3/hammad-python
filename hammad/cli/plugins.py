@@ -26,7 +26,13 @@ from typing import (
 
 if TYPE_CHECKING:
     from rich import get_console
-    from rich.console import Console, RenderableType
+    from rich.console import (
+        JustifyMethod,
+        OverflowMethod,
+        Console,
+        RenderableType,
+    )
+    from rich.panel import PaddingDimensions
     from rich.prompt import Prompt, Confirm
     from prompt_toolkit import prompt as pt_prompt
     from prompt_toolkit.completion import WordCompleter
@@ -43,6 +49,7 @@ if TYPE_CHECKING:
         CLIStyleType,
         CLIStyleBackgroundType,
         CLIStyleColorName,
+        CLIStyleBoxName,
     )
     from .styles.settings import (
         CLIStyleRenderableSettings,
@@ -129,17 +136,6 @@ def _get_animation_classes():
     return _IMPORT_CACHE["animations"]
 
 
-@overload
-def print(
-    *values: object,
-    sep: str = " ",
-    end: str = "\n",
-    file: Optional[IO[str]] = None,
-    flush: bool = False,
-) -> None: ...
-
-
-@overload
 def print(
     *values: object,
     sep: str = " ",
@@ -150,21 +146,21 @@ def print(
     style_settings: "CLIStyleRenderableSettings | None" = None,
     bg: "CLIStyleBackgroundType | None" = None,
     bg_settings: "CLIStyleBackgroundSettings | None" = None,
+    justify: Optional["JustifyMethod"] = None,
+    overflow: Optional["OverflowMethod"] = None,
+    no_wrap: Optional[bool] = None,
+    emoji: Optional[bool] = None,
+    markup: Optional[bool] = None,
+    highlight: Optional[bool] = None,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    border: Optional["CLIStyleBoxName"] = None,
+    padding: Optional["PaddingDimensions"] = None,
+    title: Optional[str] = None,
+    expand: Optional[bool] = None,
     live: "CLIStyleLiveSettings | int | None" = None,
-) -> None: ...
-
-
-def print(
-    *values: object,
-    sep: str = " ",
-    end: str = "\n",
-    file: Optional[IO[str]] = None,
-    flush: bool = False,
-    style: "CLIStyleType | None" = None,
-    style_settings: "CLIStyleRenderableSettings | None" = None,
-    bg: "CLIStyleBackgroundType | None" = None,
-    bg_settings: "CLIStyleBackgroundSettings | None" = None,
-    live: "CLIStyleLiveSettings | int | None" = None,
+    transient: bool = False,
+    new_line_start: bool = False,
 ) -> None:
     """
     Stylized print function built with `rich`. This method maintains
@@ -181,7 +177,21 @@ def print(
         style_settings : A dictionary of style settings to apply to the content.
         bg : A color or box name to apply to the background.
         bg_settings : A dictionary of background settings to apply to the content.
+        justify : Text justification method ("left", "center", "right", "full").
+        overflow : Text overflow method ("fold", "crop", "ellipsis", "ignore").
+        no_wrap : Disable text wrapping.
+        emoji : Enable/disable emoji rendering.
+        markup : Enable/disable Rich markup rendering.
+        highlight : Enable/disable automatic highlighting.
+        width : Override the width of the output.
+        height : Override the height of the output.
+        border : Border style for panel rendering.
+        padding : Padding dimensions for panel rendering.
+        title : Title for panel rendering.
+        expand : Whether to expand panel to full width.
         live : A dictionary of live settings or an integer in seconds to run the print in a live renderable.
+        transient : Whether to clear the output after completion.
+        new_line_start : Start with a new line before printing.
 
         NOTE: If `live` is set as an integer, transient is True.
 
@@ -199,6 +209,18 @@ def print(
         and bg is None
         and bg_settings is None
         and live is None
+        and justify is None
+        and overflow is None
+        and no_wrap is None
+        and emoji is None
+        and markup is None
+        and highlight is None
+        and width is None
+        and height is None
+        and border is None
+        and padding is None
+        and title is None
+        and expand is None
     ):
         builtins.print(*values, sep=sep, end=end, file=file, flush=flush)
         return
@@ -214,6 +236,10 @@ def print(
         style_settings=style_settings,
         bg=bg,
         bg_settings=bg_settings,
+        border=border,
+        padding=padding,
+        title=title,
+        expand=expand,
     )
 
     # Handle live rendering
@@ -235,7 +261,19 @@ def print(
             get_console = _get_rich_console()
             Console, _ = _get_rich_console_classes()
             console = get_console() if file is None else Console(file=file)
-            console.print(styled_content, end=end)
+            console.print(
+                styled_content,
+                end=end,
+                justify=justify,
+                overflow=overflow,
+                no_wrap=no_wrap,
+                emoji=emoji,
+                markup=markup,
+                highlight=highlight,
+                width=width,
+                height=height,
+                new_line_start=new_line_start,
+            )
         else:
             live_render(styled_content, live_settings)
     else:
@@ -243,7 +281,19 @@ def print(
         get_console = _get_rich_console()
         Console, _ = _get_rich_console_classes()
         console = get_console() if file is None else Console(file=file)
-        console.print(styled_content, end=end)
+        console.print(
+            styled_content,
+            end=end,
+            justify=justify,
+            overflow=overflow,
+            no_wrap=no_wrap,
+            emoji=emoji,
+            markup=markup,
+            highlight=highlight,
+            width=width,
+            height=height,
+            new_line_start=new_line_start,
+        )
 
 
 class InputError(Exception):
@@ -661,24 +711,20 @@ def animate(
     renderable: "RenderableType | str",
     type: Literal["flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"],
     duration: Optional[float] = None,
-    # Flashing animation parameters
-    speed: float = 0.5,
+    # Animation parameters (defaults are handled by the specific animation classes)
+    speed: Optional[float] = None,
     colors: "Optional[List[CLIStyleColorName]]" = None,
-    on_color: "CLIStyleColorName" = "white",
-    off_color: "CLIStyleColorName" = "dim white",
-    # Pulsing animation parameters
-    min_opacity: float = 0.3,
-    max_opacity: float = 1.0,
-    color: "CLIStyleColorName" = "white",
-    # Shaking animation parameters
-    intensity: int = 1,
-    # Typing animation parameters
+    on_color: "Optional[CLIStyleColorName]" = None,
+    off_color: "Optional[CLIStyleColorName]" = None,
+    min_opacity: Optional[float] = None,
+    max_opacity: Optional[float] = None,
+    color: "Optional[CLIStyleColorName]" = None,
+    intensity: Optional[int] = None,
     typing_speed: Optional[float] = None,
-    cursor: str = "█",
-    show_cursor: bool = True,
-    # Spinning animation parameters
+    cursor: Optional[str] = None,
+    show_cursor: Optional[bool] = None,
     frames: Optional[List[str]] = None,
-    prefix: bool = True,
+    prefix: Optional[bool] = None,
     # Rich.Live parameters
     refresh_rate: int = 20,
     transient: bool = True,
@@ -693,19 +739,19 @@ def animate(
         renderable: The object to animate (text, panel, etc.)
         type: The type of animation to create
         duration: Duration of the animation in seconds (defaults to 2.0)
-        speed: Animation speed (used by flashing, pulsing, shaking, spinning, rainbow)
-        colors: Color list (used by flashing, rainbow)
-        on_color: Color when flashing "on" (used by flashing)
-        off_color: Color when flashing "off" (used by flashing)
-        min_opacity: Minimum opacity for pulsing animation
-        max_opacity: Maximum opacity for pulsing animation
-        color: Color for pulsing animation
-        intensity: Shaking intensity for shaking animation
-        typing_speed: Speed for typing animation (used by typing)
-        cursor: Cursor character for typing animation (used by typing)
-        show_cursor: Whether to show cursor for typing animation (used by typing)
-        frames: Custom frames for spinning animation
-        prefix: Whether to show spinner as prefix for spinning animation
+        speed: Animation speed (defaults to the specific animation class's default)
+        colors: Color list (used by flashing, rainbow) (defaults to the specific animation class's default)
+        on_color: Color when flashing "on" (used by flashing) (defaults to the specific animation class's default)
+        off_color: Color when flashing "off" (used by flashing) (defaults to the specific animation class's default)
+        min_opacity: Minimum opacity for pulsing animation (defaults to the specific animation class's default)
+        max_opacity: Maximum opacity for pulsing animation (defaults to the specific animation class's default)
+        color: Color for pulsing animation (defaults to the specific animation class's default)
+        intensity: Shaking intensity for shaking animation (defaults to the specific animation class's default)
+        typing_speed: Speed for typing animation (used by typing) (defaults to the specific animation class's default)
+        cursor: Cursor character for typing animation (used by typing) (defaults to the specific animation class's default)
+        show_cursor: Whether to show cursor for typing animation (used by typing) (defaults to the specific animation class's default)
+        frames: Custom frames for spinning animation (defaults to the specific animation class's default)
+        prefix: Whether to show spinner as prefix for spinning animation (defaults to the specific animation class's default)
         refresh_rate: Refresh rate per second for Live rendering
         transient: Whether to clear animation after completion
         auto_refresh: Whether to auto-refresh the display
@@ -724,45 +770,58 @@ def animate(
     if type == "flashing":
         animation = animations["CLIFlashingAnimation"](
             renderable,
-            speed=speed,
-            colors=colors,
-            on_color=on_color,
-            off_color=off_color,
-            duration=duration,
+            speed=speed if speed is not None else 0.5,
+            colors=colors, # Class handles default if None
+            on_color=on_color if on_color is not None else "white",
+            off_color=off_color if off_color is not None else "dim white",
+            duration=duration, # Base class handles default if None
         )
     elif type == "pulsing":
         animation = animations["CLIPulsingAnimation"](
             renderable,
-            speed=speed,
-            min_opacity=min_opacity,
-            max_opacity=max_opacity,
-            color=color,
-            duration=duration,
+            speed=speed if speed is not None else 2.0,
+            min_opacity=min_opacity if min_opacity is not None else 0.3,
+            max_opacity=max_opacity if max_opacity is not None else 1.0,
+            color=color if color is not None else "white",
+            duration=duration, # Base class handles default if None
         )
     elif type == "shaking":
         animation = animations["CLIShakingAnimation"](
-            renderable, intensity=intensity, speed=speed, duration=duration
+            renderable,
+            intensity=intensity if intensity is not None else 1,
+            speed=speed if speed is not None else 0.1,
+            duration=duration, # Base class handles default if None
         )
     elif type == "typing":
+        # Note: CLITypingAnimation expects 'text', assuming renderable is a string here.
         animation = animations["CLITypingAnimation"](
             renderable,
-            speed=speed,
-            typing_speed=typing_speed,
-            cursor=cursor,
-            show_cursor=show_cursor,
-            duration=duration,
+            speed=speed if speed is not None else 0.05, # Pass animate's speed, using CLITypingAnimation's speed default
+            typing_speed=typing_speed, # Pass animate's typing_speed, CLITypingAnimation handles its None default
+            cursor=cursor if cursor is not None else "█",
+            show_cursor=show_cursor if show_cursor is not None else True,
+            duration=duration, # Base class handles default if None
         )
     elif type == "spinning":
         animation = animations["CLISpinningAnimation"](
-            renderable, frames=frames, speed=speed, prefix=prefix, duration=duration
+            renderable,
+            frames=frames, # Class handles default if None
+            speed=speed if speed is not None else 0.1,
+            prefix=prefix if prefix is not None else True,
+            duration=duration, # Base class handles default if None
         )
     elif type == "rainbow":
         animation = animations["CLIRainbowAnimation"](
-            renderable, speed=speed, colors=colors, duration=duration
+            renderable,
+            speed=speed if speed is not None else 0.5,
+            colors=colors, # Class handles default if None
+            duration=duration, # Base class handles default if None
         )
     else:
         raise ValueError(f"Unknown animation type: {type}")
 
+    # The animation object's animate method handles its own duration default
+    # and the Live parameters are passed directly from the function args
     animation.animate(
         duration=duration,
         refresh_rate=refresh_rate,

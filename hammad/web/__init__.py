@@ -1,14 +1,14 @@
 """hammad.web"""
 
 from typing import TYPE_CHECKING
-from ..performance.imports import create_getattr_importer
+from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .utils import (
         run_web_request,
         read_web_page,
         read_web_pages,
-        search_web,
+        web_search,
         search_news,
         extract_page_links,
     )
@@ -20,7 +20,7 @@ __all__ = (
     "run_web_request",
     "read_web_page",
     "read_web_pages",
-    "search_web",
+    "web_search",
     "search_news",
     "extract_page_links",
     "AsyncHttpClient",

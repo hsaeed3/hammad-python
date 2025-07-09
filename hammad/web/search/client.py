@@ -17,12 +17,18 @@ from tenacity import (
 )
 
 from ..models import (
+    SearchResult,
+    NewsResult,
     SearchResults,
     NewsResults,
     WebPageResult,
     WebPageErrorResult,
     WebPageResults,
     ExtractedLinks,
+    ExtractedLink,
+    LinkInfo,
+    ImageInfo,
+    SelectedElement,
 )
 
 __all__ = ("AsyncSearchClient", "SearchClient", "create_search_client")
@@ -69,7 +75,7 @@ class AsyncSearchClient:
         """Get a DuckDuckGo search client using lazy import and singleton pattern."""
         if self._ddgs_client is None:
             try:
-                from duckduckgo_search import DDGS
+                from ddgs import DDGS
 
                 self._ddgs_client = DDGS
             except ImportError as e:
@@ -111,7 +117,7 @@ class AsyncSearchClient:
         max_retries: Optional[int] = None,
     ) -> SearchResults:
         """
-        (deprecated in favor of `search_web`)
+        (deprecated in favor of `web_search`)
 
         Args:
             query: Search query string
@@ -132,9 +138,9 @@ class AsyncSearchClient:
         from rich import print
 
         print(
-            "[bold yellow]WARNING: [/bold yellow] [yellow]Using `AsyncSearchClient.[bold light_salmon3]search[/bold light_salmon3]` is now deprecated in favor of `AsyncSearchClient.[bold light_salmon3]search_web[/bold light_salmon3]`[/yellow]"
+            "[bold yellow]WARNING: [/bold yellow] [yellow]Using `AsyncSearchClient.[bold light_salmon3]search[/bold light_salmon3]` is now deprecated in favor of `AsyncSearchClient.[bold light_salmon3]web_search[/bold light_salmon3]`[/yellow]"
         )
-        return await self.search_web(
+        return await self.web_search(
             query,
             max_results=max_results,
             region=region,
@@ -142,7 +148,7 @@ class AsyncSearchClient:
             timelimit=timelimit,
         )
 
-    async def search_web(
+    async def web_search(
         self,
         query: str,
         *,
@@ -180,7 +186,7 @@ class AsyncSearchClient:
         async def _do_search():
             DDGS = self._get_duckduckgo_client()
             with DDGS() as ddgs:
-                results = list(
+                raw_results = list(
                     ddgs.text(
                         keywords=query.strip(),
                         region=region,
@@ -190,7 +196,21 @@ class AsyncSearchClient:
                         max_results=max_results,
                     )
                 )
-                return results
+                
+                # Convert raw results to SearchResult models
+                search_results = [
+                    SearchResult(
+                        title=result.get("title", ""),
+                        href=result.get("href", ""),
+                        body=result.get("body", "")
+                    )
+                    for result in raw_results
+                ]
+                
+                return SearchResults(
+                    query=query.strip(),
+                    results=search_results
+                )
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -237,7 +257,7 @@ class AsyncSearchClient:
         async def _do_news_search():
             DDGS = self._get_duckduckgo_client()
             with DDGS() as ddgs:
-                results = list(
+                raw_results = list(
                     ddgs.news(
                         keywords=query.strip(),
                         region=region,
@@ -246,7 +266,24 @@ class AsyncSearchClient:
                         max_results=max_results,
                     )
                 )
-                return results
+                
+                # Convert raw results to NewsResult models
+                news_results = [
+                    NewsResult(
+                        date=result.get("date", ""),
+                        title=result.get("title", ""),
+                        body=result.get("body", ""),
+                        url=result.get("url", ""),
+                        image=result.get("image", ""),
+                        source=result.get("source", "")
+                    )
+                    for result in raw_results
+                ]
+                
+                return NewsResults(
+                    query=query.strip(),
+                    results=news_results
+                )
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -307,40 +344,35 @@ class AsyncSearchClient:
                 HTMLParser = self._get_selectolax_parser()
                 parser = HTMLParser(response.text)
 
-                result = {
-                    "url": url,
-                    "status_code": response.status_code,
-                    "content_type": response.headers.get("content-type", ""),
-                    "title": "",
-                    "text": "",
-                    "links": [],
-                    "images": [],
-                    "selected_elements": [],
-                }
+                title = ""
+                text = ""
+                links = []
+                images = []
+                selected_elements = []
 
                 # Extract title
                 title_node = parser.css_first("title")
                 if title_node:
-                    result["title"] = title_node.text(strip=True)
+                    title = title_node.text(strip=True)
 
                 # Extract text content
                 if extract_text:
                     if css_selector:
                         selected_nodes = parser.css(css_selector)
-                        result["text"] = " ".join(
+                        text = " ".join(
                             node.text(strip=True) for node in selected_nodes
                         )
                     else:
-                        result["text"] = parser.text(strip=True)
+                        text = parser.text(strip=True)
 
                 # Extract links
                 if extract_links:
                     link_nodes = parser.css("a[href]")
-                    result["links"] = [
-                        {
-                            "href": node.attrs.get("href", ""),
-                            "text": node.text(strip=True),
-                        }
+                    links = [
+                        LinkInfo(
+                            href=node.attrs.get("href", ""),
+                            text=node.text(strip=True),
+                        )
                         for node in link_nodes
                         if node.attrs.get("href")
                     ]
@@ -348,12 +380,12 @@ class AsyncSearchClient:
                 # Extract images
                 if extract_images:
                     img_nodes = parser.css("img[src]")
-                    result["images"] = [
-                        {
-                            "src": node.attrs.get("src", ""),
-                            "alt": node.attrs.get("alt", ""),
-                            "title": node.attrs.get("title", ""),
-                        }
+                    images = [
+                        ImageInfo(
+                            src=node.attrs.get("src", ""),
+                            alt=node.attrs.get("alt", ""),
+                            title=node.attrs.get("title", ""),
+                        )
                         for node in img_nodes
                         if node.attrs.get("src")
                     ]
@@ -361,17 +393,26 @@ class AsyncSearchClient:
                 # Extract selected elements
                 if css_selector:
                     selected_nodes = parser.css(css_selector)
-                    result["selected_elements"] = [
-                        {
-                            "tag": node.tag,
-                            "text": node.text(strip=True),
-                            "html": node.html,
-                            "attributes": dict(node.attributes),
-                        }
+                    selected_elements = [
+                        SelectedElement(
+                            tag=node.tag,
+                            text=node.text(strip=True),
+                            html=node.html,
+                            attributes=dict(node.attributes),
+                        )
                         for node in selected_nodes
                     ]
 
-                return result
+                return WebPageResult(
+                    url=url,
+                    status_code=response.status_code,
+                    content_type=response.headers.get("content-type", ""),
+                    title=title,
+                    text=text,
+                    links=links,
+                    images=images,
+                    selected_elements=selected_elements,
+                )
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -460,7 +501,10 @@ class AsyncSearchClient:
         tasks = [fetch_page(url) for url in unique_urls]
         results = await asyncio.gather(*tasks, return_exceptions=False)
 
-        return results
+        return WebPageResults(
+            urls=unique_urls,
+            results=results
+        )
 
     async def extract_page_links(
         self,
@@ -544,17 +588,20 @@ class AsyncSearchClient:
                     ):
                         continue
 
-                    link_info = {
-                        "href": absolute_href,
-                        "original_href": href,
-                        "text": node.text(strip=True),
-                        "title": node.attrs.get("title", ""),
-                        "type": link_type,
-                    }
+                    link_info = ExtractedLink(
+                        href=absolute_href,
+                        original_href=href,
+                        text=node.text(strip=True),
+                        title=node.attrs.get("title", ""),
+                        type=link_type,
+                    )
 
                     links.append(link_info)
 
-                return links
+                return ExtractedLinks(
+                    url=url,
+                    results=links
+                )
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -709,7 +756,7 @@ class SearchClient:
             )
         )
 
-    def search_web(
+    def web_search(
         self,
         query: str,
         *,
@@ -740,7 +787,7 @@ class SearchClient:
             Exception: If search fails after all retries
         """
         return self._run_async(
-            self._async_client.search_web(
+            self._async_client.web_search(
                 query=query,
                 max_results=max_results,
                 region=region,

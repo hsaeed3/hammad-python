@@ -24,7 +24,6 @@ try:
     from fastapi import FastAPI, HTTPException
     from pydantic import BaseModel, create_model
     from uvicorn import Config, Server
-    import uvloop
 except ImportError as e:
     raise ImportError(
         "Service dependencies not installed. Install with: pip install hammad-python[serve]"
@@ -58,7 +57,7 @@ class ServiceConfig:
     timeout_graceful_shutdown: int = 30
     access_log: bool = True
     use_colors: bool = True
-    loop: str = "uvloop"
+    loop: str = "asyncio"
 
 
 class ServiceManager:
@@ -409,10 +408,6 @@ def create_service(
     if not auto_start:
         return app
 
-    # Set up uvloop if available
-    if hasattr(uvloop, "install"):
-        uvloop.install()
-
     # Create and configure server
     config_obj = Config(
         app=app,
@@ -424,7 +419,7 @@ def create_service(
         timeout_keep_alive=timeout_keep_alive,
         access_log=access_log,
         use_colors=use_colors,
-        loop="uvloop" if hasattr(uvloop, "install") else "asyncio",
+        loop="asyncio",
     )
 
     server = Server(config_obj)
@@ -502,7 +497,7 @@ async def async_create_service(
         timeout_keep_alive=timeout_keep_alive,
         access_log=access_log,
         use_colors=use_colors,
-        loop="uvloop" if hasattr(uvloop, "install") else "asyncio",
+        loop="asyncio",
     )
 
     server = Server(config_obj)

@@ -21,7 +21,7 @@ resources within this submodule. This module contains function/decorators for:
 """
 
 from typing import TYPE_CHECKING
-from ..performance.imports import create_getattr_importer
+from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .create import (

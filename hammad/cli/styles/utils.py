@@ -119,6 +119,10 @@ def style_renderable(
     style_settings: CLIStyleRenderableSettings | None = None,
     bg: CLIStyleBackgroundType | None = None,
     bg_settings: CLIStyleBackgroundSettings | None = None,
+    border = None,
+    padding = None,
+    title: str | None = None,
+    expand: bool | None = None,
 ):
     """Styles a renderable with a rich string tag or settings.
 
@@ -128,6 +132,10 @@ def style_renderable(
         style_settings : The settings to apply to the renderable.
         bg : The rich string tag to apply to the background.
         bg_settings : The settings to apply to the background.
+        border : Border style for panel rendering.
+        padding : Padding dimensions for panel rendering.
+        title : Title for panel rendering.
+        expand : Whether to expand panel to full width.
     """
 
     try:
@@ -309,8 +317,8 @@ def style_renderable(
                 # Fallback to original renderable if dict processing fails
                 styled_renderable = r
 
-        # Handle background settings (from bg or bg_settings parameter)
-        if bg or bg_settings:
+        # Handle background settings (from bg or bg_settings parameter) or panel parameters
+        if bg or bg_settings or border or padding or title or expand:
             try:
                 if bg_settings:
                     # Full background configuration
@@ -375,6 +383,48 @@ def style_renderable(
                             except Exception:
                                 # Skip property if processing fails
                                 continue
+                    
+                    # Handle direct panel parameters
+                    if title is not None:
+                        panel_kwargs["title"] = title
+                    if padding is not None:
+                        panel_kwargs["padding"] = padding
+                    if expand is not None:
+                        panel_kwargs["expand"] = expand
+                    if border is not None:
+                        try:
+                            from rich import box as rich_box_module
+                            box_map = {
+                                "ascii": rich_box_module.ASCII,
+                                "ascii2": rich_box_module.ASCII2,
+                                "ascii_double_head": rich_box_module.ASCII_DOUBLE_HEAD,
+                                "square": rich_box_module.SQUARE,
+                                "square_double_head": rich_box_module.SQUARE_DOUBLE_HEAD,
+                                "minimal": rich_box_module.MINIMAL,
+                                "minimal_heavy_head": rich_box_module.MINIMAL_HEAVY_HEAD,
+                                "minimal_double_head": rich_box_module.MINIMAL_DOUBLE_HEAD,
+                                "simple": rich_box_module.SIMPLE,
+                                "simple_head": rich_box_module.SIMPLE_HEAD,
+                                "simple_heavy": rich_box_module.SIMPLE_HEAVY,
+                                "horizontals": rich_box_module.HORIZONTALS,
+                                "rounded": rich_box_module.ROUNDED,
+                                "heavy": rich_box_module.HEAVY,
+                                "heavy_edge": rich_box_module.HEAVY_EDGE,
+                                "heavy_head": rich_box_module.HEAVY_HEAD,
+                                "double": rich_box_module.DOUBLE,
+                                "double_edge": rich_box_module.DOUBLE_EDGE,
+                                "markdown": getattr(
+                                    rich_box_module,
+                                    "MARKDOWN",
+                                    rich_box_module.ROUNDED,
+                                ),
+                            }
+                            panel_kwargs["box"] = box_map.get(
+                                border, rich_box_module.ROUNDED
+                            )
+                        except Exception:
+                            # Use default box if box processing fails
+                            pass
 
                     # Handle background style
                     if "style" in bg_settings:
@@ -463,11 +513,107 @@ def style_renderable(
                 elif bg:
                     # Simple background color (string from bg parameter)
                     try:
+                        panel_kwargs = {}
                         bg_style = Style(bgcolor=bg)
-                        return Panel(styled_renderable, style=bg_style)
+                        panel_kwargs["style"] = bg_style
+                        
+                        # Handle direct panel parameters even with simple bg
+                        if title is not None:
+                            panel_kwargs["title"] = title
+                        if padding is not None:
+                            panel_kwargs["padding"] = padding
+                        if expand is not None:
+                            panel_kwargs["expand"] = expand
+                        if border is not None:
+                            try:
+                                from rich import box as rich_box_module
+                                box_map = {
+                                    "ascii": rich_box_module.ASCII,
+                                    "ascii2": rich_box_module.ASCII2,
+                                    "ascii_double_head": rich_box_module.ASCII_DOUBLE_HEAD,
+                                    "square": rich_box_module.SQUARE,
+                                    "square_double_head": rich_box_module.SQUARE_DOUBLE_HEAD,
+                                    "minimal": rich_box_module.MINIMAL,
+                                    "minimal_heavy_head": rich_box_module.MINIMAL_HEAVY_HEAD,
+                                    "minimal_double_head": rich_box_module.MINIMAL_DOUBLE_HEAD,
+                                    "simple": rich_box_module.SIMPLE,
+                                    "simple_head": rich_box_module.SIMPLE_HEAD,
+                                    "simple_heavy": rich_box_module.SIMPLE_HEAVY,
+                                    "horizontals": rich_box_module.HORIZONTALS,
+                                    "rounded": rich_box_module.ROUNDED,
+                                    "heavy": rich_box_module.HEAVY,
+                                    "heavy_edge": rich_box_module.HEAVY_EDGE,
+                                    "heavy_head": rich_box_module.HEAVY_HEAD,
+                                    "double": rich_box_module.DOUBLE,
+                                    "double_edge": rich_box_module.DOUBLE_EDGE,
+                                    "markdown": getattr(
+                                        rich_box_module,
+                                        "MARKDOWN",
+                                        rich_box_module.ROUNDED,
+                                    ),
+                                }
+                                panel_kwargs["box"] = box_map.get(
+                                    border, rich_box_module.ROUNDED
+                                )
+                            except Exception:
+                                # Use default box if box processing fails
+                                pass
+                        
+                        return Panel(styled_renderable, **panel_kwargs)
                     except Exception:
                         # Fallback to styled renderable if panel creation fails
                         return styled_renderable
+                else:
+                    # Handle panel parameters without background
+                    if title is not None or padding is not None or expand is not None or border is not None:
+                        try:
+                            panel_kwargs = {}
+                            
+                            if title is not None:
+                                panel_kwargs["title"] = title
+                            if padding is not None:
+                                panel_kwargs["padding"] = padding
+                            if expand is not None:
+                                panel_kwargs["expand"] = expand
+                            if border is not None:
+                                try:
+                                    from rich import box as rich_box_module
+                                    box_map = {
+                                        "ascii": rich_box_module.ASCII,
+                                        "ascii2": rich_box_module.ASCII2,
+                                        "ascii_double_head": rich_box_module.ASCII_DOUBLE_HEAD,
+                                        "square": rich_box_module.SQUARE,
+                                        "square_double_head": rich_box_module.SQUARE_DOUBLE_HEAD,
+                                        "minimal": rich_box_module.MINIMAL,
+                                        "minimal_heavy_head": rich_box_module.MINIMAL_HEAVY_HEAD,
+                                        "minimal_double_head": rich_box_module.MINIMAL_DOUBLE_HEAD,
+                                        "simple": rich_box_module.SIMPLE,
+                                        "simple_head": rich_box_module.SIMPLE_HEAD,
+                                        "simple_heavy": rich_box_module.SIMPLE_HEAVY,
+                                        "horizontals": rich_box_module.HORIZONTALS,
+                                        "rounded": rich_box_module.ROUNDED,
+                                        "heavy": rich_box_module.HEAVY,
+                                        "heavy_edge": rich_box_module.HEAVY_EDGE,
+                                        "heavy_head": rich_box_module.HEAVY_HEAD,
+                                        "double": rich_box_module.DOUBLE,
+                                        "double_edge": rich_box_module.DOUBLE_EDGE,
+                                        "markdown": getattr(
+                                            rich_box_module,
+                                            "MARKDOWN",
+                                            rich_box_module.ROUNDED,
+                                        ),
+                                    }
+                                    panel_kwargs["box"] = box_map.get(
+                                        border, rich_box_module.ROUNDED
+                                    )
+                                except Exception:
+                                    # Use default box if box processing fails
+                                    pass
+                            
+                            return Panel(styled_renderable, **panel_kwargs)
+                        except Exception:
+                            # Fallback to styled renderable if panel creation fails
+                            return styled_renderable
             except Exception:
                 # Skip background processing if it fails
                 pass

@@ -1,4 +1,4 @@
-"""hammad.formatting.json.utils
+"""hammad.formatting.json.converters
 
 Contains various utility functions used when working with JSON data."""
 
@@ -150,3 +150,9 @@ def convert_to_json_schema(t: Any) -> dict:
 
     # Default to string representation of type
     return {"type": get_type_description(t)}
+
+
+def convert_to_json(
+    target : Any,
+) -> str:
+    return encode_json(target).decode()

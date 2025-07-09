@@ -1,4 +1,4 @@
-"""hammad.web.http.client"""
+"""hammad.http.client"""
 
 from __future__ import annotations
 

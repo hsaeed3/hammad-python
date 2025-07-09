@@ -4,10 +4,11 @@ Contains resources for styling rendered CLI content as well
 as extensions / utilities for creating CLI interfaces."""
 
 from typing import TYPE_CHECKING
-from ..performance.imports import create_getattr_importer
+from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .plugins import print, input, animate
+    from ._runner import CLIRunner
     from .styles.settings import (
         CLIStyleRenderableSettings,
         CLIStyleBackgroundSettings,
@@ -19,6 +20,7 @@ __all__ = (
     "print",
     "input",
     "animate",
+    "CLIRunner",
     "CLIStyleRenderableSettings",
     "CLIStyleBackgroundSettings",
     "CLIStyleLiveSettings",

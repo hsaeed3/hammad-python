@@ -1,65 +1,39 @@
 [project]
 name = "hammad-python"
-version = "0.0.14"
-description = """hammad - *Nightly* hyper-fast opinionated resources and modules built for quick development."""
+version = "0.0.15"
+license = {file = "LICENSE"}
 readme = "README.md"
+authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
-authors = [
-    {name = "Hammad Saeed", email = "hammadaidev@gmail.com"},
-]
 dependencies = [
-    "msgspec>=0.19.0",
-    "pydantic>=2.11.5",
-    "rich>=13.9.4",
-    "typing-inspect>=0.9.0",
-    "prompt-toolkit>=3.0.51",
-    "tantivy>=0.24.0",
-    "selectolax>=0.3.30",
-    "duckduckgo-search>=8.0.4",
-    "uvloop>=0.21.0",
-    "tenacity>=9.0.0",
+    "ddgs>=9.0.0",
     "httpx>=0.28.1",
-    "docstring-parser>=0.16",
-    "pyyaml>=6.0.2",
-    "python-dotenv>=1.1.0",
+    "msgspec>=0.19.0",
+    "pydantic>=2.11.7",
+    "rich>=14.0.0",
+    "selectolax>=0.3.31",
     "sqlalchemy>=2.0.41",
+    "tantivy>=0.24.0",
+    "tenacity>=9.1.2",
+    "typing-inspect>=0.9.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.targets.wheel]
-packages = ["hammad"]
-
-[tool.hatch.build.targets.sdist]
-exclude = [
-    "/docs",
-    "/.venv",
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.pyd",
-    ".DS_Store",
-    "Thumbs.db",
-]
-
 [project.optional-dependencies]
 ai = [
+    "litellm>=1.73.6",
     "instructor>=1.9.0",
-    "litellm>=1.72.4",
-    "openai-agents>=0.0.19",
     "qdrant-client>=1.14.3",
 ]
-fastembed = [
-    "fastembed"
+mcp = [
+    "mcp>=1.10.1",
 ]
 serve = [
-    "fastapi>=0.115.8",
+    "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
-    "python-multipart>=0.0.19",
-    "sse-starlette>=1.1.0",
 ]
 
 [dependency-groups]
@@ -72,11 +46,42 @@ dev = [
 
     "ipython",
     "ipykernel",
-
+    "fastapi",
+    "uvicorn",
+]
+docs = [
     "mkdocs",
     "mkdocstrings[python]",
     "mkdocs-material",
     "mkdocs-material-extensions",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["hp"]
+exclude = [
+    "/docs",
+    "/.venv",
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+    "Thumbs.db",
+]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/docs",
+    "/.venv",
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

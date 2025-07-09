@@ -1,0 +1,122 @@
+"""hammad.genai.language_models.language_model_request"""
+
+from typing import (
+    Any,
+    Dict,
+    List,
+    Union,
+    Type,
+    TypeVar,
+    TYPE_CHECKING,
+    TypeAlias,
+)
+import sys
+
+if sys.version_info >= (3, 12):
+    from typing import TypedDict, Required, NotRequired
+else:
+    from typing_extensions import TypedDict, Required, NotRequired
+
+if TYPE_CHECKING:
+    from httpx import Timeout
+    try:
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionModality,
+            ChatCompletionPredictionContentParam,
+            ChatCompletionAudioParam,
+        )
+    except ImportError:
+        ChatCompletionMessageParam = Any
+        ChatCompletionModality = Any
+        ChatCompletionPredictionContentParam = Any
+        ChatCompletionAudioParam = Any
+        
+from ._types import LanguageModelName, LanguageModelInstructorMode
+
+__all__ = [
+    "LanguageModelMessagesParam",
+    "LanguageModelRequest",
+]
+
+T = TypeVar("T")
+
+LanguageModelMessagesParam : TypeAlias = Union[
+    str,
+    "ChatCompletionMessageParam",
+    "List[ChatCompletionMessageParam]",
+    Any,
+]
+"""Type alias for the input parameters of a language model request."""
+
+
+class LanguageModelRequestProviderSettings(TypedDict, total=False):
+    """Provider-specific settings for language model requests."""
+    model: Required[LanguageModelName]
+    base_url: NotRequired[str]
+    api_key: NotRequired[str]
+    api_version: NotRequired[str]
+    organization: NotRequired[str]
+    deployment_id: NotRequired[str]
+    model_list: NotRequired[List[Any]]
+    extra_headers: NotRequired[Dict[str, str]]
+
+
+class LanguageModelRequestStructuredOutputSettings(TypedDict, total=False):
+    """Settings for structured output generation."""
+    type: Required[Type[T]]
+    instructor_mode: NotRequired[LanguageModelInstructorMode]
+    response_field_name: NotRequired[str]
+    response_field_instruction: NotRequired[str]
+    max_retries: NotRequired[int]
+    strict: NotRequired[bool]
+
+
+class LanguageModelRequestToolsSettings(TypedDict, total=False):
+    """Settings for tool usage in language model requests."""
+    tools: NotRequired[List[Any]]
+    tool_choice: NotRequired[Union[str, Dict[str, Any]]]
+    parallel_tool_calls: NotRequired[bool]
+    functions: NotRequired[List[Any]]
+    function_call: NotRequired[str]
+
+
+class LanguageModelRequestStreamingSettings(TypedDict, total=False):
+    """Settings for streaming responses."""
+    stream: Required[bool]
+    stream_options: NotRequired[Dict[str, Any]]
+
+
+class LanguageModelRequestExtendedSettings(TypedDict, total=False):
+    """Extended settings for language model requests."""
+    timeout: NotRequired[Union[float, str, "Timeout"]]
+    temperature: NotRequired[float]
+    top_p: NotRequired[float]
+    n: NotRequired[int]
+    stop: NotRequired[str]
+    max_completion_tokens: NotRequired[int]
+    max_tokens: NotRequired[int]
+    modalities: NotRequired[List["ChatCompletionModality"]]
+    prediction: NotRequired["ChatCompletionPredictionContentParam"]
+    audio: NotRequired["ChatCompletionAudioParam"]
+    presence_penalty: NotRequired[float]
+    frequency_penalty: NotRequired[float]
+    logit_bias: NotRequired[Dict[str, float]]
+    user: NotRequired[str]
+    reasoning_effort: NotRequired[str]
+    seed: NotRequired[int]
+    logprobs: NotRequired[bool]
+    top_logprobs: NotRequired[int]
+    thinking: NotRequired[Dict[str, Any]]
+    web_search_options: NotRequired[Dict[str, Any]]
+
+
+class LanguageModelRequest(
+    LanguageModelRequestProviderSettings,
+    LanguageModelRequestStructuredOutputSettings,
+    LanguageModelRequestToolsSettings,
+    LanguageModelRequestStreamingSettings,
+    LanguageModelRequestExtendedSettings,
+):
+    """Complete settings for language model requests."""
+    pass

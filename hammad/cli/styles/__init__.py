@@ -5,7 +5,7 @@ styling rendered content in the CLI. Most resources within this
 submodule are not meant for direct use."""
 
 from typing import TYPE_CHECKING
-from ...performance.imports import create_getattr_importer
+from ..._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .settings import (

@@ -6,6 +6,7 @@ core `typing` module, `typing_extensions`, `typing_inspect` and other
 resources."""
 
 from typing import Any, TYPE_CHECKING
+import inspect
 import typing_inspect as inspection
 
 try:
@@ -190,6 +191,7 @@ __all__ = (
     "get_last_origin",
     "get_generic_bases",
     "get_typed_dict_keys",
+    "is_function",
 )
 
 
@@ -200,6 +202,32 @@ class TypingError(Exception):
 # ------------------------------------------------------------------------
 # Inspection Extensions
 # ------------------------------------------------------------------------
+
+
+def is_function(t: "Any") -> bool:
+    """Check if an object is a callable function.
+
+    This function identifies whether the given object is a callable function,
+    including regular functions, built-in functions, and methods, but excluding
+    classes and other callable objects that are not strictly functions.
+
+    Args:
+        t: The object to check. Can be a function, method, or any other type.
+
+    Returns:
+        True if the object is a function or method, False otherwise.
+
+    Example:
+        >>> def my_func():
+        ...     pass
+        >>> is_function(my_func)
+        True
+        >>> is_function(lambda x: x)
+        True
+        >>> is_function(str)
+        False
+    """
+    return inspect.isfunction(t) or inspect.ismethod(t)
 
 
 def is_pydantic_basemodel(t: "Any") -> bool:

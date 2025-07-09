@@ -1,4 +1,4 @@
-"""hammad.data.types.files.configuration"""
+"""hammad.data.configurations.configuration"""
 
 import os
 import configparser
@@ -10,7 +10,7 @@ import msgspec
 import yaml
 
 from ..types.file import File, FileSource
-from ..models.base.fields import field
+from ..models.fields import field
 
 __all__ = (
     "Configuration",

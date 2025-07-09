@@ -124,7 +124,7 @@ def serve(
 
 
 def serve_mcp(
-    func_or_funcs: Optional[Union[Callable, List[Callable]]] = None,
+    fn: Optional[Union[Callable, List[Callable]]] = None,
     *,
     # MCP Server configuration
     name: Optional[str] = None,
@@ -162,7 +162,7 @@ def serve_mcp(
     4. As a function with multiple functions: serve_mcp([func1, func2])
 
     Args:
-        func_or_funcs: Function or list of functions to serve
+        fn: Function or list of functions to serve
         name: MCP server name
         instructions: Server instructions
         transport: Transport type (stdio, sse, streamable-http)
@@ -270,16 +270,16 @@ def serve_mcp(
         return funcs
 
     # Handle different call patterns
-    if func_or_funcs is None:
+    if fn is None:
         # Called as @serve_mcp(...) - return decorator
         return decorator
-    elif callable(func_or_funcs):
+    elif callable(fn):
         # Called as @serve_mcp (no parentheses) or serve_mcp(single_func)
-        return decorator(func_or_funcs)
-    elif isinstance(func_or_funcs, list):
+        return decorator(fn)
+    elif isinstance(fn, list):
         # Called as serve_mcp([func1, func2, ...])
-        return handle_multiple_functions(func_or_funcs)
+        return handle_multiple_functions(fn)
     else:
         raise TypeError(
-            f"Expected callable or list of callables, got {type(func_or_funcs)}"
+            f"Expected callable or list of callables, got {type(fn)}"
         )

@@ -1,7 +1,7 @@
 """hammad.logging"""
 
 from typing import TYPE_CHECKING
-from ..performance.imports import create_getattr_importer
+from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .logger import Logger, create_logger, create_logger_level, LoggerLevelName

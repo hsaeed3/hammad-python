@@ -1,10 +1,10 @@
-"""hammad.data.types.files.audio"""
+"""hammad.data.types.multimodal.audio"""
 
 import httpx
 from typing import Self
 
 from ...types.file import File, FileSource
-from ...models.base.fields import field
+from ...models.fields import field
 
 __all__ = ("Audio",)
 
