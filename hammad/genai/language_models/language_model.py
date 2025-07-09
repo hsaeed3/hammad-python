@@ -1,6 +1,18 @@
 """hammad.genai.language_models.language_model"""
 
-from typing import Any, List, TypeVar, Generic, Union, Optional, Type, overload, Dict, TYPE_CHECKING
+from typing import (
+    Any, 
+    Callable,
+    List, 
+    TypeVar, 
+    Generic, 
+    Union, 
+    Optional, 
+    Type, 
+    overload, 
+    Dict, 
+    TYPE_CHECKING,
+)
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -216,6 +228,13 @@ class LanguageModel(Generic[T]):
         response_field_instruction: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
+        validation_context: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+        parse_error_hooks: Optional[List[Callable[..., None]]] = None,
         timeout: Optional[Union[float, str, "Timeout"]] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
@@ -251,6 +270,13 @@ class LanguageModel(Generic[T]):
         response_field_instruction: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
+        validation_context: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+        parse_error_hooks: Optional[List[Callable[..., None]]] = None,
         timeout: Optional[Union[float, str, "Timeout"]] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
@@ -386,6 +412,13 @@ class LanguageModel(Generic[T]):
         response_field_instruction: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
+        validation_context: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+        parse_error_hooks: Optional[List[Callable[..., None]]] = None,
         timeout: Optional[Union[float, str, "Timeout"]] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
@@ -421,6 +454,13 @@ class LanguageModel(Generic[T]):
         response_field_instruction: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
+        validation_context: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+        completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+        parse_error_hooks: Optional[List[Callable[..., None]]] = None,
         timeout: Optional[Union[float, str, "Timeout"]] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
@@ -534,14 +574,23 @@ class LanguageModel(Generic[T]):
         client = self._get_instructor_client(request.get_instructor_mode())
         
         if request.is_streaming():
-            # Handle streaming - stream parameter is already in params
-            stream = client.chat.completions.create_partial(
-                response_model=response_model,
-                max_retries=request.get_max_retries(),
-                strict=request.get_strict_mode(),
-                **params,
-            )
-            return Stream(stream, output_type=request.get_output_type(), model=request.model)
+            if isinstance(request.get_output_type(), list):
+                # Handle streaming - stream parameter is already in params
+                stream = client.chat.completions.create_iterable(
+                    response_model=response_model,
+                    max_retries=request.get_max_retries(),
+                    strict=request.get_strict_mode(),
+                    **params,
+                )
+            else:
+                # Handle streaming - stream parameter is already in params
+                stream = client.chat.completions.create_partial(
+                    response_model=response_model,
+                    max_retries=request.get_max_retries(),
+                    strict=request.get_strict_mode(),
+                    **params,
+                )
+            return Stream(stream, output_type=request.get_output_type(), model=request.model, response_field_name=request.get_response_field_name())
         else:
             # Handle non-streaming
             response, completion = client.chat.completions.create_with_completion(
@@ -575,14 +624,23 @@ class LanguageModel(Generic[T]):
         client = self._get_async_instructor_client(request.get_instructor_mode())
         
         if request.is_streaming():
-            # Handle streaming - stream parameter is already in params
-            stream = await client.chat.completions.create(
-                response_model=response_model,
-                max_retries=request.get_max_retries(),
-                strict=request.get_strict_mode(),
-                **params,
-            )
-            return AsyncStream(stream, output_type=request.get_output_type(), model=request.model)
+            if isinstance(request.get_output_type(), list):
+                # Handle streaming - stream parameter is already in params
+                stream = client.chat.completions.create_iterable(
+                    response_model=response_model,
+                    max_retries=request.get_max_retries(),
+                    strict=request.get_strict_mode(),
+                    **params,
+                )
+            else:
+                # Handle streaming - stream parameter is already in params
+                stream = client.chat.completions.create_partial(
+                    response_model=response_model,
+                    max_retries=request.get_max_retries(),
+                    strict=request.get_strict_mode(),
+                    **params,
+                )
+            return AsyncStream(stream, output_type=request.get_output_type(), model=request.model, response_field_name=request.get_response_field_name())
         else:
             # Handle non-streaming
             response, completion = await client.chat.completions.create_with_completion(

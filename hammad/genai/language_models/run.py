@@ -3,7 +3,7 @@
 Standalone functions for running language models with full parameter typing.
 """
 
-from typing import Any, List, TypeVar, Union, Optional, Type, overload, Dict, TYPE_CHECKING
+from typing import Any, List, TypeVar, Union, Optional, Type, overload, Dict, TYPE_CHECKING, Callable
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -154,6 +154,13 @@ def run_language_model(
     response_field_instruction: Optional[str] = None,
     max_retries: Optional[int] = None,
     strict: Optional[bool] = None,
+    validation_context: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+    parse_error_hooks: Optional[List[Callable[..., None]]] = None,
     # Streaming settings
     stream: Literal[False] = False,
     stream_options: Optional[Dict[str, Any]] = None,
@@ -209,6 +216,13 @@ def run_language_model(
     response_field_instruction: Optional[str] = None,
     max_retries: Optional[int] = None,
     strict: Optional[bool] = None,
+    validation_context: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+    parse_error_hooks: Optional[List[Callable[..., None]]] = None,
     # Streaming settings
     stream: Literal[True],
     stream_options: Optional[Dict[str, Any]] = None,
@@ -385,6 +399,13 @@ async def async_run_language_model(
     response_field_instruction: Optional[str] = None,
     max_retries: Optional[int] = None,
     strict: Optional[bool] = None,
+    validation_context: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+    parse_error_hooks: Optional[List[Callable[..., None]]] = None,
     # Streaming settings
     stream: Literal[False] = False,
     stream_options: Optional[Dict[str, Any]] = None,
@@ -440,6 +461,13 @@ async def async_run_language_model(
     response_field_instruction: Optional[str] = None,
     max_retries: Optional[int] = None,
     strict: Optional[bool] = None,
+    validation_context: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_response_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_error_hooks: Optional[List[Callable[..., None]]] = None,
+    completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None,
+    parse_error_hooks: Optional[List[Callable[..., None]]] = None,
     # Streaming settings
     stream: Literal[True],
     stream_options: Optional[Dict[str, Any]] = None,

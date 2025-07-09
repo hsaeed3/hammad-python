@@ -103,7 +103,11 @@ class LanguageModelRequestBuilder(Generic[T]):
         """Get settings filtered for standard completion requests."""
         excluded_keys = {
             "type", "instructor_mode", "response_field_name", 
-            "response_field_instruction", "max_retries", "strict"
+            "response_field_instruction", "max_retries", "strict",
+            "validation_context", "context",
+            "completion_kwargs_hooks", "completion_response_hooks", 
+            "completion_error_hooks", "completion_last_attempt_hooks", 
+            "parse_error_hooks"
         }
         
         return {
@@ -115,7 +119,13 @@ class LanguageModelRequestBuilder(Generic[T]):
         """Get settings filtered for structured output requests."""
         excluded_keys = {
             "tools", "tool_choice", "parallel_tool_calls", 
-            "functions", "function_call"
+            "functions", "function_call",
+            "type", "instructor_mode", "response_field_name", 
+            "response_field_instruction", "max_retries", "strict",
+            "validation_context", "context",
+            "completion_kwargs_hooks", "completion_response_hooks", 
+            "completion_error_hooks", "completion_last_attempt_hooks", 
+            "parse_error_hooks"
         }
         
         return {
@@ -149,6 +159,14 @@ class LanguageModelRequestBuilder(Generic[T]):
     def get_strict_mode(self) -> bool:
         """Get the strict mode for structured outputs."""
         return self.settings.get("strict", True)
+    
+    def get_validation_context(self) -> Optional[Dict[str, Any]]:
+        """Get the validation context for structured outputs."""
+        return self.settings.get("validation_context")
+    
+    def get_context(self) -> Optional[Dict[str, Any]]:
+        """Get the context for structured outputs."""
+        return self.settings.get("context")
     
     def prepare_pydantic_model(self) -> Optional[Type[Any]]:
         """Prepare a Pydantic model for structured outputs if needed."""

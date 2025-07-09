@@ -9,6 +9,7 @@ from typing import (
     TypeVar,
     TYPE_CHECKING,
     TypeAlias,
+    Callable,
 )
 import sys
 
@@ -70,6 +71,8 @@ class LanguageModelRequestStructuredOutputSettings(TypedDict, total=False):
     response_field_instruction: NotRequired[str]
     max_retries: NotRequired[int]
     strict: NotRequired[bool]
+    validation_context: NotRequired[Dict[str, Any]]
+    context: NotRequired[Dict[str, Any]]
 
 
 class LanguageModelRequestToolsSettings(TypedDict, total=False):
@@ -85,6 +88,15 @@ class LanguageModelRequestStreamingSettings(TypedDict, total=False):
     """Settings for streaming responses."""
     stream: Required[bool]
     stream_options: NotRequired[Dict[str, Any]]
+
+
+class LanguageModelRequestHooksSettings(TypedDict, total=False):
+    """Settings for instructor hooks."""
+    completion_kwargs_hooks: NotRequired[List[Callable[..., None]]]
+    completion_response_hooks: NotRequired[List[Callable[..., None]]]
+    completion_error_hooks: NotRequired[List[Callable[..., None]]]
+    completion_last_attempt_hooks: NotRequired[List[Callable[..., None]]]
+    parse_error_hooks: NotRequired[List[Callable[..., None]]]
 
 
 class LanguageModelRequestExtendedSettings(TypedDict, total=False):
@@ -116,6 +128,7 @@ class LanguageModelRequest(
     LanguageModelRequestStructuredOutputSettings,
     LanguageModelRequestToolsSettings,
     LanguageModelRequestStreamingSettings,
+    LanguageModelRequestHooksSettings,
     LanguageModelRequestExtendedSettings,
 ):
     """Complete settings for language model requests."""
