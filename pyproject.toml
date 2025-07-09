@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
 dependencies = [
-    "duckduckgo-search>=8.0.5",
+    "ddgs>=9.0.0",
     "instructor>=1.9.0",
     "litellm>=1.73.6",
     "mcp>=1.10.1",
