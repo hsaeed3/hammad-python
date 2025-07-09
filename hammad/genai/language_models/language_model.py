@@ -100,6 +100,8 @@ class LanguageModel(Generic[T]):
     def __init__(
         self,
         model: LanguageModelName = "openai/gpt-4o-mini",
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         instructor_mode: LanguageModelInstructorMode = "tool_call",
     ):
         """Initialize the language model.
@@ -109,6 +111,8 @@ class LanguageModel(Generic[T]):
             instructor_mode: Default instructor mode for structured outputs
         """
         self.model = model
+        self.base_url = base_url
+        self.api_key = api_key
         self.instructor_mode = instructor_mode
         self._instructor_client = None
     
@@ -148,6 +152,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> LanguageModelResponse[str]: ...
     
@@ -158,6 +165,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -178,6 +188,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> Stream[str]: ...
     
@@ -188,6 +201,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -209,6 +225,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> LanguageModelResponse[T]: ...
     
@@ -220,6 +239,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -251,6 +273,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> Stream[T]: ...
     
@@ -262,6 +287,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -302,11 +330,22 @@ class LanguageModel(Generic[T]):
             LanguageModelResponse or LanguageModelStream depending on parameters
         """
         try:
+            # Extract model, base_url, and api_key from kwargs, using instance defaults
+            model = kwargs.pop("model", None) or self.model
+            base_url = kwargs.pop("base_url", None) or self.base_url
+            api_key = kwargs.pop("api_key", None) or self.api_key
+            
+            # Add base_url and api_key to kwargs if they are set
+            if base_url is not None:
+                kwargs["base_url"] = base_url
+            if api_key is not None:
+                kwargs["api_key"] = api_key
+            
             # Create the request
             request = LanguageModelRequestBuilder(
                 messages=messages,
                 instructions=instructions,
-                model=self.model,
+                model=model,
                 **kwargs
             )
             
@@ -332,6 +371,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> LanguageModelResponse[str]: ...
     
@@ -342,6 +384,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -362,6 +407,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> AsyncStream[str]: ...
     
@@ -372,6 +420,9 @@ class LanguageModel(Generic[T]):
         instructions: Optional[str] = None,
         *,
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -393,6 +444,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> LanguageModelResponse[T]: ...
     
@@ -404,6 +458,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[False] = False,
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -435,6 +492,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs: Any,
     ) -> AsyncStream[T]: ...
     
@@ -446,6 +506,9 @@ class LanguageModel(Generic[T]):
         *,
         type: Type[T],
         stream: Literal[True],
+        model: Optional[LanguageModelName | str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
@@ -486,11 +549,22 @@ class LanguageModel(Generic[T]):
             LanguageModelResponse or LanguageModelAsyncStream depending on parameters
         """
         try:
+            # Extract model, base_url, and api_key from kwargs, using instance defaults
+            model = kwargs.pop("model", None) or self.model
+            base_url = kwargs.pop("base_url", None) or self.base_url
+            api_key = kwargs.pop("api_key", None) or self.api_key
+            
+            # Add base_url and api_key to kwargs if they are set
+            if base_url is not None:
+                kwargs["base_url"] = base_url
+            if api_key is not None:
+                kwargs["api_key"] = api_key
+            
             # Create the request
             request = LanguageModelRequestBuilder(
                 messages=messages,
                 instructions=instructions,
-                model=self.model,
+                model=model,
                 **kwargs
             )
             

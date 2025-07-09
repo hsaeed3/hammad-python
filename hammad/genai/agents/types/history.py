@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     except ImportError:
         ChatCompletionMessageParam = Any
 
-from ..language_models import LanguageModelResponse
-from ..language_models._streaming import Stream, AsyncStream
+from ...language_models import LanguageModelResponse
+from ...language_models._streaming import Stream, AsyncStream
 
 __all__ = ["History"]
 

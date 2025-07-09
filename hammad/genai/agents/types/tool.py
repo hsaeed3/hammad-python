@@ -7,33 +7,36 @@ import asyncio
 import concurrent.futures
 import inspect
 import json
-from typing import Any, Callable, Dict, List, Optional, Union, get_type_hints, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Union, get_type_hints, TYPE_CHECKING, Generic, TypeVar, ParamSpec, overload
 from dataclasses import dataclass
 from pydantic import BaseModel, Field, ValidationError
 
-from ...formatting.json.converters import convert_to_json_schema
-from ...data.models.extensions.pydantic.converters import (
+from ....formatting.json.converters import convert_to_json_schema
+from ....data.models.extensions.pydantic.converters import (
     get_pydantic_fields_from_function,
     convert_to_pydantic_model
 )
 
 if TYPE_CHECKING:
-    from ..language_models.language_model_response import LanguageModelResponse
-    from ..language_models._streaming import Stream, AsyncStream
+    from ...language_models.language_model_response import LanguageModelResponse
+    from ...language_models._streaming import Stream, AsyncStream
+
+# Type variables for generic tool typing
+P = ParamSpec("P")
+R = TypeVar("R")
 
 __all__ = (
     "Tool",
     "function_tool",
     "ToolResponseMessage",
+    "execute_tool_calls_parallel",
+    "execute_tools_from_response",
 )
 
 
 @dataclass
 class ToolResponseMessage:
     """Represents a tool response message for chat completion."""
-    
-    role: str = "tool"
-    """Message role, always 'tool'."""
     
     tool_call_id: str
     """ID of the tool call this response corresponds to."""
@@ -43,6 +46,9 @@ class ToolResponseMessage:
     
     content: str
     """The result/output of the tool execution."""
+
+    role: str = "tool"
+    """Message role, always 'tool'."""
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for API calls."""
@@ -54,8 +60,72 @@ class ToolResponseMessage:
         }
 
 
+def extract_tool_calls_from_response(
+    response: Union["LanguageModelResponse", "Stream", "AsyncStream"]
+) -> List[Any]:
+    """Extract tool calls from various response types."""
+    # Handle LanguageModelResponse
+    if hasattr(response, "get_tool_calls"):
+        tool_calls = response.get_tool_calls()
+        return tool_calls or []
+    
+    # Handle Stream/AsyncStream - need to collect first
+    if hasattr(response, "collect"):
+        try:
+            if hasattr(response, "_is_consumed") and not response._is_consumed:
+                # For streams, we need to consume them first
+                if asyncio.iscoroutine(response.collect()):
+                    # Async stream
+                    loop = asyncio.get_event_loop()
+                    collected_response = loop.run_until_complete(response.collect())
+                else:
+                    # Sync stream
+                    collected_response = response.collect()
+                
+                if hasattr(collected_response, "get_tool_calls"):
+                    return collected_response.get_tool_calls() or []
+            else:
+                # Already consumed, try to get tool calls directly
+                if hasattr(response, "get_tool_calls"):
+                    return response.get_tool_calls() or []
+        except Exception:
+            pass
+    
+    # Check if response has tool_calls attribute directly
+    if hasattr(response, "tool_calls"):
+        return response.tool_calls or []
+    
+    return []
+
+def execute_tool_calls_parallel(
+    tool: "Tool[P, R]",
+    tool_calls: List[Any], 
+    context: Any = None
+) -> List[ToolResponseMessage]:
+    """Execute multiple tool calls in parallel using ThreadPoolExecutor."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(tool_calls), 4)) as executor:
+        futures = [
+            executor.submit(tool.call_from_tool_call, call, context)
+            for call in tool_calls
+        ]
+        
+        results = []
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                # Create error response
+                results.append(ToolResponseMessage(
+                    tool_call_id="unknown",
+                    name=tool.name,
+                    content=f"Tool execution failed: {str(e)}"
+                ))
+        
+        return results
+
+
 @dataclass
-class Tool:
+class Tool(Generic[P, R]):
     """A tool that wraps a function for agent execution.
     
     Combines concepts from both PydanticAI and OpenAI tool specifications
@@ -68,7 +138,7 @@ class Tool:
     description: str
     """Description of what the tool does."""
     
-    function: Callable[..., Any]
+    function: Callable[P, R]
     """The Python function to execute."""
     
     parameters_json_schema: Dict[str, Any]
@@ -88,13 +158,32 @@ class Tool:
             raise ValueError("Tool name cannot be empty")
         if not self.parameters_json_schema:
             raise ValueError("Tool must have parameters JSON schema")
+        
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """Call the tool's function directly with the given arguments.
+        
+        This allows using the tool as if it were the original function.
+        
+        Args:
+            *args: Positional arguments to pass to the function
+            **kwargs: Keyword arguments to pass to the function
+            
+        Returns:
+            The result of the function call
+        """
+        return self.function(*args, **kwargs)
     
-    def call(self, arguments: Union[str, Dict[str, Any]], context: Any = None) -> Any:
+    def call(
+        self, 
+        arguments: Union[str, Dict[str, Any]], 
+        context: Any = None,
+    ) -> Any:
         """Execute the tool with given arguments.
         
         Args:
             arguments: Tool arguments as JSON string or dict
             context: Optional context to pass as first argument if takes_context=True
+            as_message: Whether to return the result as a ToolResponseMessage
             
         Returns:
             The result of the function call
@@ -196,7 +285,7 @@ class Tool:
         Returns:
             List of ToolResponseMessage objects
         """
-        tool_calls = self._extract_tool_calls_from_response(response)
+        tool_calls = extract_tool_calls_from_response(response)
         
         if not tool_calls:
             return []
@@ -216,73 +305,9 @@ class Tool:
             return []
         
         if parallel and len(matching_calls) > 1:
-            return self._execute_tool_calls_parallel(matching_calls, context)
+            return execute_tool_calls_parallel(self, matching_calls, context)
         else:
             return [self.call_from_tool_call(call, context) for call in matching_calls]
-    
-    def _extract_tool_calls_from_response(
-        self, 
-        response: Union["LanguageModelResponse", "Stream", "AsyncStream"]
-    ) -> List[Any]:
-        """Extract tool calls from various response types."""
-        # Handle LanguageModelResponse
-        if hasattr(response, "get_tool_calls"):
-            tool_calls = response.get_tool_calls()
-            return tool_calls or []
-        
-        # Handle Stream/AsyncStream - need to collect first
-        if hasattr(response, "collect"):
-            try:
-                if hasattr(response, "_is_consumed") and not response._is_consumed:
-                    # For streams, we need to consume them first
-                    if asyncio.iscoroutine(response.collect()):
-                        # Async stream
-                        loop = asyncio.get_event_loop()
-                        collected_response = loop.run_until_complete(response.collect())
-                    else:
-                        # Sync stream
-                        collected_response = response.collect()
-                    
-                    if hasattr(collected_response, "get_tool_calls"):
-                        return collected_response.get_tool_calls() or []
-                else:
-                    # Already consumed, try to get tool calls directly
-                    if hasattr(response, "get_tool_calls"):
-                        return response.get_tool_calls() or []
-            except Exception:
-                pass
-        
-        # Check if response has tool_calls attribute directly
-        if hasattr(response, "tool_calls"):
-            return response.tool_calls or []
-        
-        return []
-    
-    def _execute_tool_calls_parallel(
-        self, 
-        tool_calls: List[Any], 
-        context: Any = None
-    ) -> List[ToolResponseMessage]:
-        """Execute multiple tool calls in parallel using ThreadPoolExecutor."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(tool_calls), 4)) as executor:
-            futures = [
-                executor.submit(self.call_from_tool_call, call, context)
-                for call in tool_calls
-            ]
-            
-            results = []
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    results.append(future.result())
-                except Exception as e:
-                    # Create error response
-                    results.append(ToolResponseMessage(
-                        tool_call_id="unknown",
-                        name=self.name,
-                        content=f"Tool execution failed: {str(e)}"
-                    ))
-            
-            return results
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert tool to dictionary format suitable for API calls."""
@@ -297,14 +322,34 @@ class Tool:
         }
 
 
+@overload
 def function_tool(
-    func: Optional[Callable] = None,
+    function: Callable[P, R],
+) -> Tool[P, R]:
+    """Overload for direct decorator usage: @function_tool"""
+    ...
+
+
+@overload
+def function_tool(
     *,
     name: Optional[str] = None,
     description: Optional[str] = None,
     takes_context: bool = False,
     strict: bool = True,
-) -> Union[Tool, Callable[[Callable], Tool]]:
+) -> Callable[[Callable[P, R]], Tool[P, R]]:
+    """Overload for decorator with parameters: @function_tool(...)"""
+    ...
+
+
+def function_tool(
+    function: Optional[Callable[P, R]] = None,
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    takes_context: bool = False,
+    strict: bool = True,
+) -> Union[Tool[P, R], Callable[[Callable[P, R]], Tool[P, R]]]:
     """Decorator to create a Tool from a function.
     
     Args:
@@ -329,7 +374,7 @@ def function_tool(
             return value * 2
     """
     
-    def _create_tool(target_func: Callable) -> Tool:
+    def _create_tool(target_func: Callable[P, R]) -> Tool[P, R]:
         # Extract function metadata
         func_name = name or target_func.__name__
         func_description = description or (target_func.__doc__ or "").strip()
@@ -361,7 +406,7 @@ def function_tool(
             # Ultimate fallback
             parameters_schema = _generate_schema_from_signature(target_func, strict)
         
-        return Tool(
+        return Tool[P, R](
             name=func_name,
             description=func_description,
             function=target_func,
@@ -371,12 +416,12 @@ def function_tool(
         )
     
     # Handle decorator usage patterns
-    if func is None:
+    if function is None:
         # Used as @function_tool(...)
         return _create_tool
     else:
         # Used as @function_tool
-        return _create_tool(func)
+        return _create_tool(function)
 
 
 def _generate_schema_from_signature(func: Callable, strict: bool = True) -> Dict[str, Any]:
