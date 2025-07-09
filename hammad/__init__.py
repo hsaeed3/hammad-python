@@ -98,9 +98,9 @@ if TYPE_CHECKING:
         run_web_request,
         read_web_page,
         read_web_pages,
-        web_search,
-        search_news as web_search_news,
-        extract_page_links as web_extract_page_links,
+        run_news_search,
+        run_web_search,
+        extract_web_page_links,
     )
 
 
@@ -165,9 +165,9 @@ __all__ = (
     "run_web_request",
     "read_web_page",
     "read_web_pages",
-    "web_search",
-    "web_search_news",
-    "web_extract_page_links",
+    "run_web_search",
+    "run_news_search",
+    "extract_web_page_links",
 )
 
 

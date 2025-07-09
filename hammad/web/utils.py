@@ -17,11 +17,11 @@ from .models import (
 
 __all__ = (
     "run_web_request",
-    "web_search",
+    "run_web_search",
     "read_web_page",
     "read_web_pages",
-    "search_news",
-    "extract_page_links",
+    "run_news_search",
+    "extract_web_page_links",
 )
 
 
@@ -250,7 +250,7 @@ def run_web_request(
     return asyncio.run(_run_web_request_async())
 
 
-def web_search(
+def run_web_search(
     query: str,
     *,
     max_results: int = 10,
@@ -282,7 +282,7 @@ def web_search(
         Exception: If search fails after all retries
     """
 
-    async def _web_search_async():
+    async def _run_web_search_async():
         client = _get_search_client()
         return await client.web_search(
             query=query,
@@ -293,7 +293,7 @@ def web_search(
             backend=backend,
         )
 
-    return asyncio.run(_web_search_async())
+    return asyncio.run(_run_web_search_async())
 
 
 def read_web_page(
@@ -388,7 +388,7 @@ def read_web_pages(
     return asyncio.run(_read_web_pages_async())
 
 
-def search_news(
+def run_news_search(
     query: str,
     *,
     max_results: int = 10,
@@ -414,7 +414,7 @@ def search_news(
         Exception: If search fails
     """
 
-    async def _search_news_async():
+    async def _run_news_search_async():
         client = _get_search_client()
         return await client.search_news(
             query=query,
@@ -424,10 +424,10 @@ def search_news(
             timelimit=timelimit,
         )
 
-    return asyncio.run(_search_news_async())
+    return asyncio.run(_run_news_search_async())
 
 
-def extract_page_links(
+def extract_web_page_links(
     url: str,
     *,
     timeout: float = 30.0,
@@ -457,7 +457,7 @@ def extract_page_links(
         Exception: If parsing fails
     """
 
-    async def _extract_page_links_async():
+    async def _extract_web_page_links_async():
         client = _get_search_client()
         return await client.extract_page_links(
             url=url,
@@ -469,4 +469,4 @@ def extract_page_links(
             base_url=base_url,
         )
 
-    return asyncio.run(_extract_page_links_async())
+    return asyncio.run(_extract_web_page_links_async())
