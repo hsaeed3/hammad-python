@@ -6,7 +6,8 @@ Output models for web search and parsing functionality.
 from __future__ import annotations
 
 from typing import List, Dict, Any, Optional, Union
-from typing_extensions import TypedDict, NotRequired
+
+from pydantic import BaseModel, Field
 
 
 # -----------------------------------------------------------------------------
@@ -14,7 +15,7 @@ from typing_extensions import TypedDict, NotRequired
 # -----------------------------------------------------------------------------
 
 
-class SearchResult(TypedDict):
+class SearchResult(BaseModel):
     """DuckDuckGo web search result."""
 
     title: str
@@ -27,7 +28,7 @@ class SearchResult(TypedDict):
     """Description/snippet of the search result."""
 
 
-class NewsResult(TypedDict):
+class NewsResult(BaseModel):
     """DuckDuckGo news search result."""
 
     date: str
@@ -54,7 +55,7 @@ class NewsResult(TypedDict):
 # -----------------------------------------------------------------------------
 
 
-class LinkInfo(TypedDict):
+class LinkInfo(BaseModel):
     """Information about a link extracted from a web page."""
 
     href: str
@@ -64,7 +65,7 @@ class LinkInfo(TypedDict):
     """Text content of the link."""
 
 
-class ImageInfo(TypedDict):
+class ImageInfo(BaseModel):
     """Information about an image extracted from a web page."""
 
     src: str
@@ -77,7 +78,7 @@ class ImageInfo(TypedDict):
     """Title attribute of the image."""
 
 
-class SelectedElement(TypedDict):
+class SelectedElement(BaseModel):
     """Information about a selected element from CSS selector."""
 
     tag: str
@@ -93,7 +94,7 @@ class SelectedElement(TypedDict):
     """Attributes of the element."""
 
 
-class WebPageResult(TypedDict):
+class WebPageResult(BaseModel):
     """Result from parsing a single web page."""
 
     url: str
@@ -121,7 +122,7 @@ class WebPageResult(TypedDict):
     """List of elements matching the CSS selector."""
 
 
-class WebPageErrorResult(TypedDict):
+class WebPageErrorResult(BaseModel):
     """Result from a failed web page parsing attempt."""
 
     url: str
@@ -130,7 +131,7 @@ class WebPageErrorResult(TypedDict):
     error: str
     """Error message describing what went wrong."""
 
-    status_code: None
+    status_code: Optional[int]
     """Always None for error results."""
 
     content_type: str
@@ -157,7 +158,7 @@ class WebPageErrorResult(TypedDict):
 # -----------------------------------------------------------------------------
 
 
-class ExtractedLink(TypedDict):
+class ExtractedLink(BaseModel):
     """Information about a link extracted with classification."""
 
     href: str
@@ -181,7 +182,7 @@ class ExtractedLink(TypedDict):
 # -----------------------------------------------------------------------------
 
 
-class HttpResponse(TypedDict):
+class HttpResponse(BaseModel):
     """HTTP response from web requests."""
 
     status_code: int
@@ -199,10 +200,14 @@ class HttpResponse(TypedDict):
     elapsed: float
     """Time elapsed for the request in seconds."""
 
-    json: NotRequired[Optional[Dict[str, Any]]]
+    # NOTE: This is a workaround to avoid the issue with the `json` field
+    # might consider moving to dataclasses
+    json_data: Optional[Dict[str, Any]] = Field(
+        alias="json"
+    )
     """Parsed JSON content if Content-Type is JSON."""
 
-    text: NotRequired[str]
+    text: str
     """Text content if response is text-based."""
 
 
@@ -211,17 +216,44 @@ class HttpResponse(TypedDict):
 # -----------------------------------------------------------------------------
 
 
-WebPageResults = List[Union[WebPageResult, WebPageErrorResult]]
-"""Results from batch web page parsing operations."""
+class WebPageResults(BaseModel):
+    """Results from batch web page parsing operations."""
 
-SearchResults = List[SearchResult]
-"""Results from web search operations."""
+    urls: List[str]
+    """URLs used for the web page parsing operations."""
 
-NewsResults = List[NewsResult]
-"""Results from news search operations."""
+    results: List[Union[WebPageResult, WebPageErrorResult]]
+    """List of results from batch web page parsing operations."""
 
-ExtractedLinks = List[ExtractedLink]
-"""Results from link extraction operations."""
+
+class SearchResults(BaseModel):
+    """Results from web search operations."""
+
+    query: str
+    """Query used for the web search operations."""
+
+    results: List[SearchResult]
+    """List of results from web search operations."""
+
+
+class NewsResults(BaseModel):
+    """Results from news search operations."""
+
+    query: str
+    """Query used for the news search operations."""
+
+    results: List[NewsResult]
+    """List of results from news search operations."""
+
+
+class ExtractedLinks(BaseModel):
+    """Results from link extraction operations."""
+
+    url: str
+    """URL used for the link extraction operations."""
+
+    results: List[ExtractedLink]
+    """List of results from link extraction operations."""
 
 
 __all__ = (

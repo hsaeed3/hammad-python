@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         run_web_request,
         read_web_page,
         read_web_pages,
-        search_web,
+        web_search,
         search_news,
         extract_page_links,
     )
@@ -20,7 +20,7 @@ __all__ = (
     "run_web_request",
     "read_web_page",
     "read_web_pages",
-    "search_web",
+    "web_search",
     "search_news",
     "extract_page_links",
     "AsyncHttpClient",
