@@ -207,7 +207,12 @@ class QdrantCollectionIndex:
             return
             
         try:
-            from qdrant_client.models import PointStruct
+            try:
+                from qdrant_client.models import PointStruct
+            except ImportError:
+                raise ImportError(
+                    "Using Qdrant requires the `qdrant-client` package. Please install with: pip install 'hammad-python[ai]'"
+                )
             
             # Prepare payload with metadata
             payload = {

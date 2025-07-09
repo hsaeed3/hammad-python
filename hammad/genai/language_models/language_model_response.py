@@ -4,11 +4,16 @@ from typing import List, TypeVar, Generic, TYPE_CHECKING, Optional, Any, Dict, U
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
-    import litellm
-    from openai.types.chat import (
-        ChatCompletionContentPartParam,
-        ChatCompletionMessageParam,
-    )
+    try:
+        import litellm
+        from openai.types.chat import (
+            ChatCompletionContentPartParam,
+            ChatCompletionMessageParam,
+        )
+    except ImportError:
+        litellm = Any
+        ChatCompletionContentPartParam = Any
+        ChatCompletionMessageParam = Any
 
 
 __all__ = [

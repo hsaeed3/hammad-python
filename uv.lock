@@ -691,20 +691,26 @@ version = "0.0.14"
 source = { editable = "." }
 dependencies = [
     { name = "ddgs" },
-    { name = "instructor" },
-    { name = "litellm" },
-    { name = "mcp" },
+    { name = "httpx" },
     { name = "msgspec" },
     { name = "pydantic" },
-    { name = "qdrant-client" },
     { name = "rich" },
     { name = "selectolax" },
     { name = "sqlalchemy" },
     { name = "tantivy" },
+    { name = "tenacity" },
     { name = "typing-inspect" },
 ]
 
 [package.optional-dependencies]
+ai = [
+    { name = "instructor" },
+    { name = "litellm" },
+    { name = "qdrant-client" },
+]
+mcp = [
+    { name = "mcp" },
+]
 serve = [
     { name = "fastapi" },
     { name = "uvicorn" },
@@ -712,6 +718,7 @@ serve = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "ipykernel" },
     { name = "ipython" },
     { name = "pytest" },
@@ -719,6 +726,7 @@ dev = [
     { name = "ruff" },
     { name = "twine" },
     { name = "uv" },
+    { name = "uvicorn" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -731,23 +739,26 @@ docs = [
 requires-dist = [
     { name = "ddgs", specifier = ">=9.0.0" },
     { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.115.6" },
-    { name = "instructor", specifier = ">=1.9.0" },
-    { name = "litellm", specifier = ">=1.73.6" },
-    { name = "mcp", specifier = ">=1.10.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "instructor", marker = "extra == 'ai'", specifier = ">=1.9.0" },
+    { name = "litellm", marker = "extra == 'ai'", specifier = ">=1.73.6" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.10.1" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "qdrant-client", specifier = ">=1.14.3" },
+    { name = "qdrant-client", marker = "extra == 'ai'", specifier = ">=1.14.3" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "selectolax", specifier = ">=0.3.31" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "tantivy", specifier = ">=0.24.0" },
+    { name = "tenacity", specifier = ">=9.1.2" },
     { name = "typing-inspect", specifier = ">=0.9.0" },
     { name = "uvicorn", marker = "extra == 'serve'", specifier = ">=0.34.0" },
 ]
-provides-extras = ["serve"]
+provides-extras = ["ai", "mcp", "serve"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi" },
     { name = "ipykernel" },
     { name = "ipython" },
     { name = "pytest" },
@@ -755,6 +766,7 @@ dev = [
     { name = "ruff" },
     { name = "twine", specifier = ">=6.1.0" },
     { name = "uv" },
+    { name = "uvicorn" },
 ]
 docs = [
     { name = "mkdocs" },

@@ -7,11 +7,7 @@ from ....cache import cached
 try:
     from openai.types.chat import ChatCompletionMessageParam
 except ImportError:
-    raise ImportError(
-        "Using the `hammad.ai.llms` extension requires the `openai` package to be installed.\n"
-        "Please either install the `openai` package, or install the `hammad.ai` extension with:\n"
-        "`pip install 'hammad-python[ai]'`"
-    )
+    ChatCompletionMessageParam = Any
 
 __all__ = [
     "format_tool_calls",
@@ -20,7 +16,7 @@ __all__ = [
 
 
 @cached
-def format_tool_calls(messages: List[ChatCompletionMessageParam]) -> List[ChatCompletionMessageParam]:
+def format_tool_calls(messages: List["ChatCompletionMessageParam"]) -> List["ChatCompletionMessageParam"]:
     """Format tool calls in messages for better conversation context.
     
     Args:
@@ -60,7 +56,7 @@ def format_tool_calls(messages: List[ChatCompletionMessageParam]) -> List[ChatCo
 
 
 @cached
-def consolidate_system_messages(messages: List[ChatCompletionMessageParam]) -> List[ChatCompletionMessageParam]:
+def consolidate_system_messages(messages: List["ChatCompletionMessageParam"]) -> List["ChatCompletionMessageParam"]:
     """Consolidate multiple system messages into a single system message.
     
     Args:

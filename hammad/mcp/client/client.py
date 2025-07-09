@@ -20,9 +20,10 @@ try:
     )
     from openai.types.shared import FunctionDefinition as Function
 except ImportError:
-    raise ImportError(
-        "Using mcp requires the `openai` & `mcp` packages. Please install with: pip install 'hammad-python[ai]'"
-    )
+    CallToolResult = Any
+    MCPTool = Any
+    OpenAITool = Any
+    Function = Any
 
 from .client_service import (
     MCPClientService,

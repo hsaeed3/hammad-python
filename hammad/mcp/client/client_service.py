@@ -22,9 +22,16 @@ try:
     from mcp.shared.message import SessionMessage
     from mcp.types import CallToolResult, InitializeResult
 except ImportError:
-    raise ImportError(
-        "Using mcp requires the `openai` & `mcp` packages. Please install with: pip install 'hammad-python[ai]'"
-    )
+    MCPTool = Any
+    ClientSession = Any
+    StdioServerParameters = Any
+    stdio_client = Any
+    sse_client = Any
+    GetSessionIdCallback = Any
+    streamablehttp_client = Any
+    SessionMessage = Any
+    CallToolResult = Any
+    InitializeResult = Any
 
 import logging
 

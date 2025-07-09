@@ -11,7 +11,10 @@ else:
     from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
-    from litellm import EmbeddingResponse as _LitellmEmbeddingResponse
+    try:
+        from litellm import EmbeddingResponse as _LitellmEmbeddingResponse
+    except ImportError:
+        _LitellmEmbeddingResponse = Any
 
 from ..language_models.language_model import _AIProvider
 from .embedding_model_request import EmbeddingModelRequest

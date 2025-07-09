@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     )
     from ..sql.types import DatabaseItemType
     from ...genai.embedding_models.embedding_model_name import EmbeddingModelName
+else:
+    from .indexes.tantivy.index import TantivyCollectionIndex
+    from .indexes.qdrant.index import QdrantCollectionIndex
 
 
 __all__ = (
@@ -53,8 +56,8 @@ class Collection:
     @overload
     def __new__(
         cls,
-        *,
         name: str = "default",
+        *,
         schema: Optional[Type["DatabaseItemType"]] = None,
         ttl: Optional[int] = None,
         path: Optional[Union[Path, str]] = None,
@@ -68,8 +71,8 @@ class Collection:
     @overload
     def __new__(
         cls,
-        *,
         name: str = "default",
+        *,
         schema: Optional[Type["DatabaseItemType"]] = None,
         ttl: Optional[int] = None,
         path: Optional[Union[Path, str]] = None,
@@ -87,8 +90,8 @@ class Collection:
 
     def __new__(
         cls,
-        *,
         name: str = "default",
+        *,
         schema: Optional[Type["DatabaseItemType"]] = None,
         ttl: Optional[int] = None,
         path: Optional[Union[Path, str]] = None,
@@ -139,8 +142,6 @@ class Collection:
             if vector_size is None:
                 raise ValueError("vector_size is required for vector collections")
                 
-            from .indexes.qdrant.index import QdrantCollectionIndex
-            
             return QdrantCollectionIndex(
                 name=name,
                 vector_size=vector_size,
@@ -157,8 +158,6 @@ class Collection:
             )
         else:
             # Text search collection using Tantivy
-            from .indexes.tantivy.index import TantivyCollectionIndex
-            
             return TantivyCollectionIndex(
                 name=name,
                 schema=schema,
@@ -172,8 +171,8 @@ class Collection:
 
 @overload
 def create_collection(
-    *,
     name: str = "default",
+    *,
     schema: Optional[Type["DatabaseItemType"]] = None,
     ttl: Optional[int] = None,
     path: Optional[Union[Path, str]] = None,
@@ -186,8 +185,8 @@ def create_collection(
 
 @overload
 def create_collection(
-    *,
     name: str = "default",
+    *,
     schema: Optional[Type["DatabaseItemType"]] = None,
     ttl: Optional[int] = None,
     path: Optional[Union[Path, str]] = None,
@@ -201,8 +200,8 @@ def create_collection(
 ) -> "QdrantCollectionIndex": ...
 
 def create_collection(
-    *,
     name: str = "default",
+    *,
     schema: Optional[Type["DatabaseItemType"]] = None,
     ttl: Optional[int] = None,
     path: Optional[Union[Path, str]] = None,

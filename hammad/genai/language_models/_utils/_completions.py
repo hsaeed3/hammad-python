@@ -1,5 +1,7 @@
 """hammad.ai.llms.utils._completions"""
 
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional
 
 from ....cache import cached
@@ -7,11 +9,7 @@ from ....cache import cached
 try:
     from openai.types.chat import ChatCompletionMessageParam
 except ImportError:
-    raise ImportError(
-        "Using the `hammad.ai.llms` extension requires the `openai` package to be installed.\n"
-        "Please either install the `openai` package, or install the `hammad.ai` extension with:\n"
-        "`pip install 'hammad-python[ai]'`"
-    )
+    ChatCompletionMessageParam = Any
 
 from ..language_model_request import LanguageModelMessagesParam
 from ..language_model_response import LanguageModelResponse
@@ -27,7 +25,7 @@ __all__ = [
 def parse_messages_input(
     messages: LanguageModelMessagesParam,
     instructions: Optional[str] = None,
-) -> List[ChatCompletionMessageParam]:
+) -> List["ChatCompletionMessageParam"]:
     """Parse various message input formats into standardized ChatCompletionMessageParam format.
     
     Args:
@@ -37,7 +35,7 @@ def parse_messages_input(
     Returns:
         List of ChatCompletionMessageParam objects
     """
-    parsed_messages: List[ChatCompletionMessageParam] = []
+    parsed_messages: List["ChatCompletionMessageParam"] = []
     
     # Add system instructions if provided
     if instructions:

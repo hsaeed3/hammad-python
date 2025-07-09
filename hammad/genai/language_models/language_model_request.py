@@ -19,12 +19,18 @@ else:
 
 if TYPE_CHECKING:
     from httpx import Timeout
-    from openai.types.chat import (
-        ChatCompletionMessageParam,
-        ChatCompletionModality,
-        ChatCompletionPredictionContentParam,
-        ChatCompletionAudioParam,
-    )
+    try:
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionModality,
+            ChatCompletionPredictionContentParam,
+            ChatCompletionAudioParam,
+        )
+    except ImportError:
+        ChatCompletionMessageParam = Any
+        ChatCompletionModality = Any
+        ChatCompletionPredictionContentParam = Any
+        ChatCompletionAudioParam = Any
         
 from ._types import LanguageModelName, LanguageModelInstructorMode
 
