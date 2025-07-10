@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.18"
+version = "0.0.19"
 license = {file = "LICENSE"}
 readme = "README.md"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
