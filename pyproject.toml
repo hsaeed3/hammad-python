@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.15"
+version = "0.0.16"
 license = {file = "LICENSE"}
 readme = "README.md"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
@@ -35,6 +35,14 @@ serve = [
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
 ]
+all = [
+    "litellm>=1.73.6",
+    "instructor>=1.9.0",
+    "qdrant-client>=1.14.3",
+    "mcp>=1.10.1",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+]
 
 [dependency-groups]
 dev = [
@@ -57,7 +65,7 @@ docs = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["hp"]
+packages = ["hammad"]
 exclude = [
     "/docs",
     "/.venv",
