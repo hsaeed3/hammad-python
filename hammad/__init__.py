@@ -1,5 +1,7 @@
 """hammad-python"""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 from ._internal import create_getattr_importer as __hammad_importer__
 
@@ -104,7 +106,7 @@ if TYPE_CHECKING:
     )
 
 
-__all__ = (
+__all__ = [
     # hammad.cache
     "cached",
     "Cache",
@@ -168,11 +170,11 @@ __all__ = (
     "run_web_search",
     "run_news_search",
     "extract_web_page_links",
-)
+]
 
 
 __getattr__ = __hammad_importer__(__all__)
 
 
 def __dir__() -> list[str]:
-    return list(__all__)
+    return __all__
