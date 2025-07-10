@@ -11,7 +11,6 @@ if TYPE_CHECKING:
             ChatCompletionMessageParam,
         )
     except ImportError:
-        litellm = Any
         ChatCompletionContentPartParam = Any
         ChatCompletionMessageParam = Any
 

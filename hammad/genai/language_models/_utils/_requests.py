@@ -103,7 +103,7 @@ class LanguageModelRequestBuilder(Generic[T]):
         """Get settings filtered for standard completion requests."""
         excluded_keys = {
             "type", "instructor_mode", "response_field_name", 
-            "response_field_instruction", "max_retries", "strict",
+            "response_field_instruction", "response_model_name", "max_retries", "strict",
             "validation_context", "context",
             "completion_kwargs_hooks", "completion_response_hooks", 
             "completion_error_hooks", "completion_last_attempt_hooks", 
@@ -121,7 +121,7 @@ class LanguageModelRequestBuilder(Generic[T]):
             "tools", "tool_choice", "parallel_tool_calls", 
             "functions", "function_call",
             "type", "instructor_mode", "response_field_name", 
-            "response_field_instruction", "max_retries", "strict",
+            "response_field_instruction", "response_model_name", "max_retries", "strict",
             "validation_context", "context",
             "completion_kwargs_hooks", "completion_response_hooks", 
             "completion_error_hooks", "completion_last_attempt_hooks", 
@@ -151,6 +151,10 @@ class LanguageModelRequestBuilder(Generic[T]):
             "response_field_instruction",
             "A response in the correct type as requested by the user, or relevant content."
         )
+    
+    def get_response_model_name(self) -> str:
+        """Get the response model name for structured outputs."""
+        return self.settings.get("response_model_name", "Response")
     
     def get_max_retries(self) -> int:
         """Get the maximum retries for structured outputs."""

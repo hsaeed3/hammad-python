@@ -248,6 +248,7 @@ class LanguageModel(Generic[T]):
         instructor_mode: Optional[LanguageModelInstructorMode] = None,
         response_field_name: Optional[str] = None,
         response_field_instruction: Optional[str] = None,
+        response_model_name: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
         validation_context: Optional[Dict[str, Any]] = None,
@@ -296,6 +297,7 @@ class LanguageModel(Generic[T]):
         instructor_mode: Optional[LanguageModelInstructorMode] = None,
         response_field_name: Optional[str] = None,
         response_field_instruction: Optional[str] = None,
+        response_model_name: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
         validation_context: Optional[Dict[str, Any]] = None,
@@ -467,6 +469,7 @@ class LanguageModel(Generic[T]):
         instructor_mode: Optional[LanguageModelInstructorMode] = None,
         response_field_name: Optional[str] = None,
         response_field_instruction: Optional[str] = None,
+        response_model_name: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
         validation_context: Optional[Dict[str, Any]] = None,
@@ -515,6 +518,7 @@ class LanguageModel(Generic[T]):
         instructor_mode: Optional[LanguageModelInstructorMode] = None,
         response_field_name: Optional[str] = None,
         response_field_instruction: Optional[str] = None,
+        response_model_name: Optional[str] = None,
         max_retries: Optional[int] = None,
         strict: Optional[bool] = None,
         validation_context: Optional[Dict[str, Any]] = None,
@@ -642,6 +646,7 @@ class LanguageModel(Generic[T]):
             request.get_output_type(),
             request.get_response_field_name(),
             request.get_response_field_instruction(),
+            request.get_response_model_name(),
         )
         
         # Get instructor client
@@ -692,6 +697,7 @@ class LanguageModel(Generic[T]):
             request.get_output_type(),
             request.get_response_field_name(),
             request.get_response_field_instruction(),
+            request.get_response_model_name(),
         )
         
         # Get async instructor client

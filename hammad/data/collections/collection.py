@@ -17,7 +17,7 @@ from pathlib import Path
 
 if TYPE_CHECKING:
     from .indexes.tantivy.index import TantivyCollectionIndex
-    from .indexes.qdrant.index import QdrantCollectionIndex
+    from .indexes.qdrant.index import QdrantCollectionIndex, VectorSearchResult
     from .indexes.tantivy.settings import (
         TantivyCollectionIndexSettings,
         TantivyCollectionIndexQuerySettings,
@@ -31,11 +31,12 @@ if TYPE_CHECKING:
     from ...genai.embedding_models.embedding_model_name import EmbeddingModelName
 else:
     from .indexes.tantivy.index import TantivyCollectionIndex
-    from .indexes.qdrant.index import QdrantCollectionIndex
+    from .indexes.qdrant.index import QdrantCollectionIndex, VectorSearchResult
 
 
 __all__ = (
     "Collection",
+    "VectorSearchResult",
 )
 
 
@@ -76,16 +77,20 @@ class Collection:
         schema: Optional[Type["DatabaseItemType"]] = None,
         ttl: Optional[int] = None,
         path: Optional[Union[Path, str]] = None,
-        vector: Literal[True],
-        vector_size: int,
+        vector: Literal[True] = True,
+        vector_size: Optional[int] = None,
         # Vector/Qdrant-specific parameters
         distance_metric: "DistanceMetric" = "dot",
         settings: Optional["QdrantCollectionIndexSettings"] = None,
         query_settings: Optional["QdrantCollectionIndexQuerySettings"] = None,
-        embedding_model: Optional["EmbeddingModelName"] = None,
+        embedding_model: Optional["EmbeddingModelName"] = "openai/text-embedding-3-small",
         embedding_dimensions: Optional[int] = None,
         embedding_api_key: Optional[str] = None,
         embedding_base_url: Optional[str] = None,
+        # Rerank-specific parameters
+        rerank_model: Optional[str] = None,
+        rerank_api_key: Optional[str] = None,
+        rerank_base_url: Optional[str] = None,
     ) -> "QdrantCollectionIndex": ...
 
     def __new__(
@@ -104,10 +109,14 @@ class Collection:
         query_settings: Optional[Union["TantivyCollectionIndexQuerySettings", "QdrantCollectionIndexQuerySettings"]] = None,
         # Vector/Qdrant-specific parameters
         distance_metric: "DistanceMetric" = "dot",
-        embedding_model: Optional["EmbeddingModelName"] = None,
+        embedding_model: Optional["EmbeddingModelName"] = "openai/text-embedding-3-small",
         embedding_dimensions: Optional[int] = None,
         embedding_api_key: Optional[str] = None,
         embedding_base_url: Optional[str] = None,
+        # Rerank-specific parameters
+        rerank_model: Optional[str] = None,
+        rerank_api_key: Optional[str] = None,
+        rerank_base_url: Optional[str] = None,
     ) -> Union["TantivyCollectionIndex", "QdrantCollectionIndex"]:
         """
         Create a collection of the specified type.
@@ -134,14 +143,16 @@ class Collection:
             embedding_api_key: API key for the embedding service
             embedding_base_url: Base URL for the embedding service
             
+            # Rerank parameters (for vector collections):
+            rerank_model: The rerank model to use (e.g., 'cohere/rerank-english-v3.0')
+            rerank_api_key: API key for the rerank service
+            rerank_base_url: Base URL for the rerank service
+            
         Returns:
             A TantivyCollectionIndex or QdrantCollectionIndex instance
         """
         if vector:
             # Vector collection using Qdrant
-            if vector_size is None:
-                raise ValueError("vector_size is required for vector collections")
-                
             return QdrantCollectionIndex(
                 name=name,
                 vector_size=vector_size,
@@ -155,6 +166,9 @@ class Collection:
                 embedding_dimensions=embedding_dimensions,
                 embedding_api_key=embedding_api_key,
                 embedding_base_url=embedding_base_url,
+                rerank_model=rerank_model,
+                rerank_api_key=rerank_api_key,
+                rerank_base_url=rerank_base_url,
             )
         else:
             # Text search collection using Tantivy
@@ -191,7 +205,7 @@ def create_collection(
     ttl: Optional[int] = None,
     path: Optional[Union[Path, str]] = None,
     vector: Literal[True],
-    vector_size: int,
+    vector_size: Optional[int] = None,
     # Vector/Qdrant-specific parameters
     distance_metric: "DistanceMetric" = "dot",
     settings: Optional["QdrantCollectionIndexSettings"] = None,

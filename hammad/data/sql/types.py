@@ -117,6 +117,11 @@ class DatabaseItem(Generic[DatabaseItemType]):
         default="default"
     )
     """The table/collection name where this item is stored."""
+    
+    score: Optional[float] = field(
+        default=None
+    )
+    """The similarity score for this item (used in vector search results)."""
 
     def is_expired(self) -> bool:
         """Check if this item has expired based on its TTL."""

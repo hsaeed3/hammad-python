@@ -10,12 +10,14 @@ from typing import (
     Type,
     Union,
     final,
-    TYPE_CHECKING
+    TYPE_CHECKING,
+    Tuple,
+    NamedTuple
 )
 
 if TYPE_CHECKING:
     from .....genai.embedding_models.embedding_model_name import EmbeddingModelName
-import uuid
+# import uuid  # Unused import
 from pathlib import Path
 import json
 
@@ -32,8 +34,15 @@ from .settings import (
     DistanceMetric,
 )
 
+class VectorSearchResult(NamedTuple):
+    """Result from vector search containing item and similarity score."""
+    item: 'DatabaseItem[DatabaseItemType]'
+    score: float
+
+
 __all__ = (
     "QdrantCollectionIndex",
+    "VectorSearchResult",
 )
 
 
@@ -51,7 +60,7 @@ class QdrantCollectionIndex:
         self,
         *,
         name: str = "default",
-        vector_size: int = 768,
+        vector_size: Optional[int] = None,
         schema: Optional[Type[DatabaseItemType]] = None,
         ttl: Optional[int] = None,
         path: Optional[Path | str] = None,
@@ -62,6 +71,9 @@ class QdrantCollectionIndex:
         embedding_dimensions: Optional[int] = None,
         embedding_api_key: Optional[str] = None,
         embedding_base_url: Optional[str] = None,
+        rerank_model: Optional[str] = None,
+        rerank_api_key: Optional[str] = None,
+        rerank_base_url: Optional[str] = None,
     ) -> None:
         """
         Initialize a new QdrantCollectionIndex.
@@ -79,9 +91,13 @@ class QdrantCollectionIndex:
             embedding_dimensions: Number of dimensions for embeddings.
             embedding_api_key: API key for the embedding service.
             embedding_base_url: Base URL for the embedding service.
+            rerank_model: The rerank model to use (e.g., 'cohere/rerank-english-v3.0').
+            rerank_api_key: API key for the rerank service.
+            rerank_base_url: Base URL for the rerank service.
         """
         self.name = name
         self.vector_size = vector_size
+        self._vector_size_determined = vector_size is not None
         self.schema = schema
         self.ttl = ttl
         self.embedding_model = embedding_model
@@ -89,6 +105,11 @@ class QdrantCollectionIndex:
         self.embedding_api_key = embedding_api_key
         self.embedding_base_url = embedding_base_url
         self._embedding_function = None
+        
+        # Rerank model configuration
+        self.rerank_model = rerank_model
+        self.rerank_api_key = rerank_api_key
+        self.rerank_base_url = rerank_base_url
 
         if path is not None and not isinstance(path, Path):
             path = Path(path)
@@ -102,7 +123,7 @@ class QdrantCollectionIndex:
                 qdrant_path = str(self.path / f"{name}_qdrant")
                 
             settings = QdrantCollectionIndexSettings(
-                vector_size=vector_size,
+                vector_size=vector_size or 768,  # Default fallback
                 distance_metric=distance_metric,
                 path=qdrant_path,
             )
@@ -129,7 +150,9 @@ class QdrantCollectionIndex:
         # Initialize Qdrant client (lazily to handle import errors gracefully)
         self._client = None
         self._client_wrapper = None
-        self._init_qdrant_client()
+        # Only initialize if vector_size is determined
+        if self._vector_size_determined:
+            self._init_qdrant_client()
 
     def _init_qdrant_client(self) -> None:
         """Initialize Qdrant client and collection."""
@@ -178,21 +201,103 @@ class QdrantCollectionIndex:
         
         return self._embedding_function
     
+    def _rerank_results(
+        self, 
+        query: str, 
+        results: List[Tuple[DatabaseItem[DatabaseItemType], float]],
+        top_n: Optional[int] = None
+    ) -> List[Tuple[DatabaseItem[DatabaseItemType], float]]:
+        """
+        Rerank search results using the configured rerank model.
+        
+        Args:
+            query: The original search query
+            results: List of (DatabaseItem, similarity_score) tuples
+            top_n: Number of top results to return after reranking
+            
+        Returns:
+            Reranked list of (DatabaseItem, rerank_score) tuples
+        """
+        if not self.rerank_model or not results:
+            return results
+        
+        try:
+            from .....genai.rerank_models import run_rerank_model
+            
+            # Extract documents for reranking
+            documents = []
+            for db_item, _ in results:
+                # Convert item to string for reranking
+                if isinstance(db_item.item, dict):
+                    doc_text = json.dumps(db_item.item)
+                else:
+                    doc_text = str(db_item.item)
+                documents.append(doc_text)
+            
+            # Perform reranking
+            rerank_response = run_rerank_model(
+                model=self.rerank_model,
+                query=query,
+                documents=documents,
+                top_n=top_n or len(results),
+                api_key=self.rerank_api_key,
+                api_base=self.rerank_base_url
+            )
+            
+            # Reorder results based on rerank scores
+            reranked_results = []
+            for rerank_result in rerank_response.results:
+                original_index = rerank_result.index
+                rerank_score = rerank_result.relevance_score
+                db_item = results[original_index][0]
+                # Update the score on the DatabaseItem itself
+                db_item.score = rerank_score
+                reranked_results.append((db_item, rerank_score))
+                
+            return reranked_results
+            
+        except Exception:
+            # If reranking fails, return original results
+            return results
+    
     def _prepare_vector(self, item: Any) -> List[float]:
         """Prepare vector from item using embedding function or direct vector."""
         embedding_function = self._get_embedding_function()
         if embedding_function:
-            return embedding_function(item)
+            vector = embedding_function(item)
+            # Determine vector size from first embedding if not set
+            if not self._vector_size_determined:
+                self._determine_vector_size(len(vector))
+            return vector
         elif isinstance(item, dict) and "vector" in item:
             vector = item["vector"]
+            # Determine vector size from first vector if not set
+            if not self._vector_size_determined:
+                self._determine_vector_size(len(vector))
             return utils.prepare_vector(vector, self.vector_size)
         elif isinstance(item, (list, tuple)):
+            # Determine vector size from first vector if not set
+            if not self._vector_size_determined:
+                self._determine_vector_size(len(item))
             return utils.prepare_vector(item, self.vector_size)
         else:
             raise utils.QdrantCollectionIndexError(
                 "Item must contain 'vector' key, be a vector itself, "
                 "or embedding_model must be provided"
             )
+
+    def _determine_vector_size(self, size: int) -> None:
+        """Determine and set vector size based on first embedding/vector."""
+        if not self._vector_size_determined:
+            self.vector_size = size
+            self._vector_size_determined = True
+            
+            # Update settings with determined vector size
+            if self.settings:
+                self.settings.vector_size = size
+            
+            # Initialize Qdrant client now that we have vector size
+            self._init_qdrant_client()
 
     def _add_to_qdrant(
         self,
@@ -304,25 +409,32 @@ class QdrantCollectionIndex:
         """
         return self._database.get(id, filters=filters)
 
-    def vector_search(
+    def _vector_search(
         self,
         query_vector: Union[List[float], Any],
         *,
         filters: Optional[DatabaseItemFilters] = None,
         limit: int = 10,
         score_threshold: Optional[float] = None,
-    ) -> List[DatabaseItem[DatabaseItemType]]:
+        query_text: Optional[str] = None,
+        enable_rerank: bool = True,
+        return_scores: bool = False,
+    ) -> Union[List[DatabaseItem[DatabaseItemType]], List[VectorSearchResult]]:
         """
-        Perform vector similarity search.
+        Internal method to perform vector similarity search.
         
         Args:
             query_vector: Query vector for similarity search.
             filters: Optional filters to apply.
             limit: Maximum number of results.
             score_threshold: Minimum similarity score threshold.
+            query_text: Optional original query text for reranking.
+            enable_rerank: Whether to enable reranking if rerank model is configured.
+            return_scores: Whether to return scores with results.
             
         Returns:
-            List of matching database items sorted by similarity score.
+            List of matching database items sorted by similarity score (and reranked if enabled),
+            or list of VectorSearchResult objects if return_scores is True.
         """
         if not self._client:
             # Qdrant not available, return empty results
@@ -346,15 +458,31 @@ class QdrantCollectionIndex:
                 with_vectors=False,
             )
             
-            # Get item IDs from results and fetch from database
-            db_items = []
+            # Get item IDs from results and fetch from database with scores
+            db_items_with_scores = []
             for result in results.points:
                 item_id = str(result.id)
                 db_item = self._database.get(item_id, filters=filters)
                 if db_item:
-                    db_items.append(db_item)
-                    
-            return db_items
+                    # Set the score on the DatabaseItem itself
+                    db_item.score = result.score
+                    db_items_with_scores.append((db_item, result.score))
+            
+            # Apply reranking if enabled and configured
+            if enable_rerank and self.rerank_model and query_text:
+                db_items_with_scores = self._rerank_results(
+                    query=query_text,
+                    results=db_items_with_scores,
+                    top_n=limit
+                )
+            
+            # Return results with or without scores based on return_scores parameter
+            if return_scores:
+                return [VectorSearchResult(item=item, score=score) for item, score in db_items_with_scores]
+            else:
+                # Extract just the database items (without scores) for backward compatibility
+                db_items = [item for item, score in db_items_with_scores]
+                return db_items
             
         except Exception:
             # Vector search failed, return empty results
@@ -366,48 +494,116 @@ class QdrantCollectionIndex:
         *,
         filters: Optional[DatabaseItemFilters] = None,
         limit: Optional[int] = None,
-        vector: Optional[List[float]] = None,
-    ) -> List[DatabaseItem[DatabaseItemType]]:
+        vector: bool = False,
+        rerank: bool = False,
+        query_vector: Optional[List[float]] = None,
+        return_scores: bool = False,
+    ) -> Union[List[DatabaseItem[DatabaseItemType]], List[VectorSearchResult]]:
         """
         Query items from the collection.
         
         Args:
-            query: Search query string (will be converted to vector if embedding_function provided).
+            query: Search query string.
             filters: Optional filters to apply.
             limit: Maximum number of results.
-            vector: Optional query vector for similarity search.
+            vector: Whether to use vector search (requires embedding_model to be configured).
+            rerank: Whether to use reranking (requires rerank_model to be configured).
+            query_vector: Optional pre-computed query vector for similarity search.
+            return_scores: Whether to return similarity scores with results (only applies to vector search).
             
         Returns:
-            List of matching database items.
+            List of matching database items, or list of VectorSearchResult objects if return_scores is True.
         """
-        # If vector is provided, use vector search
-        if vector is not None:
-            return self.vector_search(
-                query_vector=vector,
+        effective_limit = limit or self.query_settings.limit
+        
+        # If explicit vector is provided, use it directly
+        if query_vector is not None:
+            return self._vector_search(
+                query_vector=query_vector,
                 filters=filters,
-                limit=limit or self.query_settings.limit,
+                limit=effective_limit,
                 score_threshold=self.query_settings.score_threshold,
+                query_text=query,
+                enable_rerank=rerank,
+                return_scores=return_scores,
             )
         
-        # If query string is provided and we have embedding function, convert to vector
-        if query:
+        # If vector=True, use vector search with embedding model
+        if vector:
+            if not query:
+                raise ValueError("Query string is required when vector=True")
+            
+            embedding_function = self._get_embedding_function()
+            if not embedding_function:
+                raise ValueError("Embedding model not configured for vector search")
+            
+            try:
+                query_vector = embedding_function(query)
+                return self._vector_search(
+                    query_vector=query_vector,
+                    filters=filters,
+                    limit=effective_limit,
+                    score_threshold=self.query_settings.score_threshold,
+                    query_text=query,
+                    enable_rerank=rerank,
+                    return_scores=return_scores,
+                )
+            except Exception as e:
+                raise ValueError(f"Failed to generate embedding for query: {e}")
+        
+        # If rerank=True but vector=False, perform both standard and vector search, then rerank
+        if rerank and query:
+            if not self.rerank_model:
+                raise ValueError("Rerank model not configured")
+            
+            # Get results from both database and vector search (if possible)
+            db_results = self._database.query(
+                limit=effective_limit,
+                order_by="created_at",
+                ascending=False,
+            )
+            
+            vector_results = []
             embedding_function = self._get_embedding_function()
             if embedding_function:
                 try:
                     query_vector = embedding_function(query)
-                    return self.vector_search(
+                    vector_results = self._vector_search(
                         query_vector=query_vector,
                         filters=filters,
-                        limit=limit or self.query_settings.limit,
+                        limit=effective_limit,
                         score_threshold=self.query_settings.score_threshold,
+                        query_text=query,
+                        enable_rerank=False,  # We'll rerank combined results
+                        return_scores=False,  # We handle scores separately in rerank mode
                     )
                 except Exception:
-                    # Embedding failed, fall back to database query
                     pass
+            
+            # Combine and deduplicate results
+            combined_results = []
+            seen_ids = set()
+            
+            for result in db_results + vector_results:
+                if result.id not in seen_ids:
+                    combined_results.append((result, 0.0))  # Score placeholder
+                    seen_ids.add(result.id)
+            
+            # Apply reranking to combined results
+            if combined_results:
+                reranked_results = self._rerank_results(
+                    query=query,
+                    results=combined_results,
+                    top_n=effective_limit
+                )
+                # Scores are already set on the DatabaseItem objects by _rerank_results
+                return [item for item, _ in reranked_results]
+            
+            return [item for item, _ in combined_results]
         
-        # Fall back to database query
+        # Default: fall back to database query
         return self._database.query(
-            limit=limit,
+            limit=effective_limit,
             order_by="created_at",
             ascending=False,
         )

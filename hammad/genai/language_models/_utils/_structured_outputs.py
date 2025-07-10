@@ -34,7 +34,7 @@ def handle_structured_output_request_params(params: Dict[str, Any]) -> Dict[str,
         "tools", "tool_choice", "parallel_tool_calls", 
         "functions", "function_call",
         "type", "instructor_mode", "response_field_name", "response_field_instruction",
-        "max_retries", "strict"
+        "response_model_name", "max_retries", "strict"
     }
     
     filtered_params = {
@@ -50,6 +50,7 @@ def prepare_response_model(
     output_type: Type[T],
     response_field_name: str = "content",
     response_field_instruction: str = "A response in the correct type as requested by the user, or relevant content.",
+    response_model_name: str = "Response",
 ) -> Type[Any]:
     """Prepare a Pydantic model for structured outputs.
     
@@ -57,6 +58,7 @@ def prepare_response_model(
         output_type: The desired output type
         response_field_name: Name of the response field
         response_field_instruction: Description of the response field
+        response_model_name: Name of the response model
         
     Returns:
         Pydantic model class suitable for Instructor
@@ -68,7 +70,7 @@ def prepare_response_model(
     # Convert to Pydantic model
     return convert_to_pydantic_model(
         target=output_type,
-        name="Response",
+        name=response_model_name,
         field_name=response_field_name,
         description=response_field_instruction,
     )
