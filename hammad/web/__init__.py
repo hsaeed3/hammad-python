@@ -8,9 +8,9 @@ if TYPE_CHECKING:
         run_web_request,
         read_web_page,
         read_web_pages,
-        web_search,
-        search_news,
-        extract_page_links,
+        run_web_search,
+        run_news_search,
+        extract_web_page_links,
     )
     from .http.client import AsyncHttpClient, HttpClient, create_http_client
     from .openapi.client import AsyncOpenAPIClient, OpenAPIClient, create_openapi_client
@@ -20,9 +20,9 @@ __all__ = (
     "run_web_request",
     "read_web_page",
     "read_web_pages",
-    "web_search",
-    "search_news",
-    "extract_page_links",
+    "run_web_search",
+    "run_news_search",
+    "extract_web_page_links",
     "AsyncHttpClient",
     "HttpClient",
     "create_http_client",
