@@ -30,7 +30,7 @@ __all__ = (
     "function_tool",
     "ToolResponseMessage",
     "execute_tool_calls_parallel",
-    "execute_tools_from_response",
+    "execute_tools_from_language_model_response",
 )
 
 
@@ -55,7 +55,6 @@ class ToolResponseMessage:
         return {
             "role": self.role,
             "tool_call_id": self.tool_call_id,
-            "name": self.name,
             "content": self.content
         }
 
@@ -466,7 +465,7 @@ def _generate_schema_from_signature(func: Callable, strict: bool = True) -> Dict
 
 
 # Utility functions for batch tool execution
-def execute_tools_from_response(
+def execute_tools_from_language_model_response(
     tools: List[Tool],
     response: Union["LanguageModelResponse", "Stream", "AsyncStream"],
     context: Any = None,
