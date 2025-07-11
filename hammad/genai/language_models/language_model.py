@@ -353,7 +353,8 @@ class LanguageModel(Generic[T]):
             
             # Parse messages
             parsed_messages = parse_messages_input(request.messages, request.instructions)
-            parsed_messages = format_tool_calls(parsed_messages)
+            if request.is_structured_output():
+                parsed_messages = format_tool_calls(parsed_messages)
             
             # Handle different request types
             if request.is_structured_output():
@@ -574,7 +575,8 @@ class LanguageModel(Generic[T]):
             
             # Parse messages
             parsed_messages = parse_messages_input(request.messages, request.instructions)
-            parsed_messages = format_tool_calls(parsed_messages)
+            if request.is_structured_output():
+                parsed_messages = format_tool_calls(parsed_messages)
             
             # Handle different request types
             if request.is_structured_output():
