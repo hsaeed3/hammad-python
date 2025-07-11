@@ -21,7 +21,6 @@ from typing import (
     ParamSpec,
     overload,
 )
-from dataclasses import dataclass
 from pydantic import BaseModel, Field, ValidationError
 
 from ...formatting.json.converters import convert_to_json_schema
@@ -29,9 +28,8 @@ from ...data.models.extensions.pydantic.converters import (
     get_pydantic_fields_from_function,
     convert_to_pydantic_model,
 )
+from .base import BaseGenAIModelStream, BaseGenAIModelResponse, BaseTool
 
-if TYPE_CHECKING:
-    from .base import BaseGenAIModelStream, BaseGenAIModelResponse, BaseTool
 
 # Type variables for generic tool typing
 P = ParamSpec("P")
@@ -46,7 +44,6 @@ __all__ = (
 )
 
 
-@dataclass
 class ToolResponseMessage:
     """Represents a tool response message for chat completion."""
 
@@ -114,7 +111,7 @@ def extract_tool_calls_from_response(
 
 
 def execute_tool_calls_parallel(
-    tool: "Tool[P, R]", tool_calls: List[Any], context: Any = None
+    tool: "Tool", tool_calls: List[Any], context: Any = None
 ) -> List[ToolResponseMessage]:
     """Execute multiple tool calls in parallel using ThreadPoolExecutor."""
     with concurrent.futures.ThreadPoolExecutor(
@@ -142,7 +139,6 @@ def execute_tool_calls_parallel(
         return results
 
 
-@dataclass
 class Tool(BaseTool[P, R]):
     """A tool that wraps a function for agent execution.
 
@@ -150,25 +146,18 @@ class Tool(BaseTool[P, R]):
     to provide a simple, internalized tool system.
     """
 
-    name: str
-    """The name of the tool."""
-
-    description: str
-    """Description of what the tool does."""
-
-    function: Callable[P, R]
-    """The Python function to execute."""
-
-    parameters_json_schema: Dict[str, Any]
-    """JSON schema for the tool's parameters."""
-
-    takes_context: bool = False
+    takes_context: bool = Field(
+        default=False,
+        description="Whether the function expects a context as first parameter.",
+    )
     """Whether the function expects a context as first parameter."""
 
-    strict: bool = True
+    strict: bool = Field(
+        default=True, description="Whether to enforce strict JSON schema validation."
+    )
     """Whether to enforce strict JSON schema validation."""
 
-    def __post_init__(self):
+    def model_post_init(self, __context: Any) -> None:
         """Validate the tool after initialization."""
         if not callable(self.function):
             raise ValueError("Tool function must be callable")
@@ -350,7 +339,7 @@ class Tool(BaseTool[P, R]):
 @overload
 def define_tool(
     function: Callable[P, R],
-) -> Tool[P, R]:
+) -> Tool:
     """Overload for direct decorator usage: @define_tool"""
     ...
 
@@ -362,7 +351,7 @@ def define_tool(
     description: Optional[str] = None,
     takes_context: bool = False,
     strict: bool = True,
-) -> Callable[[Callable[P, R]], Tool[P, R]]:
+) -> Callable[[Callable[P, R]], Tool]:
     """Overload for decorator with parameters: @define_tool(...)"""
     ...
 
@@ -374,7 +363,7 @@ def define_tool(
     description: Optional[str] = None,
     takes_context: bool = False,
     strict: bool = True,
-) -> Union[Tool[P, R], Callable[[Callable[P, R]], Tool[P, R]]]:
+) -> Union[Tool, Callable[[Callable[P, R]], Tool]]:
     """Decorator to create a Tool from a function.
 
     Args:
@@ -399,7 +388,7 @@ def define_tool(
             return value * 2
     """
 
-    def _create_tool(target_func: Callable[P, R]) -> Tool[P, R]:
+    def _create_tool(target_func: Callable[P, R]) -> Tool:
         # Extract function metadata
         func_name = name or target_func.__name__
         func_description = description or (target_func.__doc__ or "").strip()
@@ -430,7 +419,7 @@ def define_tool(
             # Ultimate fallback
             parameters_schema = _generate_schema_from_signature(target_func, strict)
 
-        return Tool[P, R](
+        return Tool(
             name=func_name,
             description=func_description,
             function=target_func,

@@ -168,9 +168,7 @@ class BaseGenAIModel(BaseModel, ABC):
     `litellm` directly.
     """
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-    )
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     model: str | None = None
     """The model to use. This is always in the `litellm` format:
@@ -207,9 +205,11 @@ class BaseGenAIModel(BaseModel, ABC):
         **kwargs,
     ) -> Any: ...
 
-    @abstractmethod
     def as_tool(
         self,
         *args,
         **kwargs,
-    ) -> BaseTool[P, R]: ...
+    ) -> BaseTool[P, R]:
+        raise NotImplementedError(
+            f"as_tool() is not implemented for {self.__class__.__name__}"
+        )
