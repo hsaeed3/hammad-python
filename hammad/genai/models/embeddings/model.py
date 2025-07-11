@@ -1,7 +1,7 @@
 """hammad.genai.embedding_models.embedding_model"""
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Optional
 import sys
 
@@ -26,6 +26,7 @@ from ....formatting.text import convert_to_text
 __all__ = (
     "EmbeddingModel",
     "EmbeddingModelError",
+    "create_embedding_model",
 )
 
 
@@ -87,7 +88,7 @@ class EmbeddingModel:
     api_version: Optional[str] = None
     """Optional API version for a custom embedding provider."""
 
-    settings: EmbeddingModelSettings = EmbeddingModelSettings()
+    settings: EmbeddingModelSettings = field(default_factory=EmbeddingModelSettings)
     """Optional settings for the embedding model."""
 
     async def async_run(
@@ -195,3 +196,31 @@ class EmbeddingModel:
                 format=format,
             )
         )
+
+
+def create_embedding_model(
+    model: str | EmbeddingModelName = "openai/text-embedding-3-small",
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    api_version: Optional[str] = None,
+    api_type: Optional[str] = None,
+    settings: Optional[EmbeddingModelSettings] = None,
+) -> EmbeddingModel:
+    """Create an embedding model instance.
+
+    Args:
+        model (str | EmbeddingModelName) : The model to use for the embedding.
+        base_url (Optional[str]) : The base URL for the API.
+        api_key (Optional[str]) : The API key to use for the request.
+        api_version (Optional[str]) : The version of the API.
+        api_type (Optional[str]) : The API type to use for the request.
+        settings (Optional[EmbeddingModelSettings]) : The settings for the embedding model.
+    """
+    return EmbeddingModel(
+        model=model,
+        base_url=base_url,
+        api_key=api_key,
+        api_version=api_version,
+        api_type=api_type,
+        settings=settings or EmbeddingModelSettings(),
+    )

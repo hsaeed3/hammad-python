@@ -46,6 +46,7 @@ from .utils import (
 __all__ = [
     "LanguageModel",
     "LanguageModelError",
+    "create_language_model",
 ]
 
 T = TypeVar("T")
@@ -1026,3 +1027,26 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             )
 
         return response.output
+
+
+def create_language_model(
+    model: str | LanguageModelName = "openai/gpt-4o-mini",
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    api_version: Optional[str] = None,
+    organization: Optional[str] = None,
+    deployment_id: Optional[str] = None,
+    model_list: Optional[List[Any]] = None,
+    extra_headers: Optional[Dict[str, str]] = None,
+) -> LanguageModel:
+    """Create a language model instance."""
+    return LanguageModel(
+        model=model,
+        base_url=base_url,
+        api_key=api_key,
+        api_version=api_version,
+        organization=organization,
+        deployment_id=deployment_id,
+        model_list=model_list,
+        extra_headers=extra_headers,
+    )

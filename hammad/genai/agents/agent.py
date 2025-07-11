@@ -1351,6 +1351,84 @@ Please update the appropriate fields based on the conversation. Only update fiel
         )
 
 
+def create_agent(
+    name: str = "agent",
+    instructions: Optional[str] = None,
+    model: Union[LanguageModel, LanguageModelName] = "openai/gpt-4o-mini",
+    description: Optional[str] = None,
+    tools: Union[List[Tool], Callable, None] = None,
+    settings: Optional[AgentSettings] = None,
+    instructor_mode: Optional[LanguageModelInstructorMode] = None,
+    # Context management parameters
+    context_updates: Optional[
+        Union[List[Literal["before", "after"]], Literal["before", "after"]]
+    ] = None,
+    context_confirm: bool = False,
+    context_strategy: Literal["selective", "all"] = "all",
+    context_max_retries: int = 3,
+    context_confirm_instructions: Optional[str] = None,
+    context_selection_instructions: Optional[str] = None,
+    context_update_instructions: Optional[str] = None,
+    context_format: Literal["json", "python", "markdown"] = "json",
+    **kwargs: Any,
+) -> Agent[T]:
+    """Create a new AI agent with specified capabilities and behavior.
+
+    An agent is an intelligent assistant that can use tools, follow instructions,
+    and maintain context across conversations. It combines a language model with
+    additional capabilities like tool execution and structured output generation.
+
+    Args:
+        name: A human-readable name for the agent (default: "agent")
+        instructions: System instructions that define the agent's behavior and personality
+        model: The language model to use - either a LanguageModel instance or model name string
+        description: Optional description of what the agent does
+        tools: List of tools/functions the agent can call, or a single callable
+        settings: AgentSettings object to customize default behavior
+        instructor_mode: Mode for structured output generation
+        context_updates: When to update context - "before", "after", or both
+        context_confirm: Whether to confirm context updates with the user
+        context_strategy: How to select context updates - "selective" or "all"
+        context_max_retries: Maximum attempts for context update operations
+        context_confirm_instructions: Custom instructions for context confirmation
+        context_selection_instructions: Custom instructions for context selection
+        context_update_instructions: Custom instructions for context updates
+        context_format: Format for context display - "json", "python", or "markdown"
+        **kwargs: Additional parameters passed to the underlying language model
+
+    Example:
+        Basic agent:
+        >>> agent = create_agent(name="assistant", instructions="You are helpful")
+
+        Agent with tools:
+        >>> def calculator(x: int, y: int) -> int:
+        ...     return x + y
+        >>> agent = create_agent(tools=[calculator])
+
+        Agent with custom settings:
+        >>> settings = AgentSettings(max_steps=5)
+        >>> agent = create_agent(settings=settings, model="gpt-4")
+    """
+    return Agent(
+        name=name,
+        instructions=instructions,
+        model=model,
+        description=description,
+        tools=tools,
+        settings=settings,
+        instructor_mode=instructor_mode,
+        context_updates=context_updates,
+        context_confirm=context_confirm,
+        context_strategy=context_strategy,
+        context_max_retries=context_max_retries,
+        context_confirm_instructions=context_confirm_instructions,
+        context_selection_instructions=context_selection_instructions,
+        context_update_instructions=context_update_instructions,
+        context_format=context_format,
+        **kwargs,
+    )
+
+
 __all__ = [
     "Agent",
     "AgentSettings",
@@ -1358,4 +1436,5 @@ __all__ = [
     "AgentEvent",
     "HookManager",
     "HookDecorator",
+    "create_agent",
 ]

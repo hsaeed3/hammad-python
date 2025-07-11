@@ -5,13 +5,14 @@ from ..._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .types import DatabaseItemType, DatabaseItem
-    from .database import Database
+    from .database import Database, create_database
 
 
 __all__ = (
     "DatabaseItemType",
     "DatabaseItem",
     "Database",
+    "create_database",
 )
 
 

@@ -6,45 +6,29 @@ from typing import TYPE_CHECKING
 from ._internal import create_getattr_importer as __hammad_importer__
 
 if TYPE_CHECKING:
-    # hammad.cache
-    from .cache import cached, Cache
-
-    # hammad.cli
-    from .cli import print, animate, input
-
-    # hammad.formatting
-    from .formatting.json import convert_to_json_schema
-    from .formatting.text import convert_to_text, convert_type_to_text
-
-    # hammad.logging
-    from .logging.logger import Logger, create_logger
-    from .logging.decorators import trace, trace_cls, trace_function, trace_http
+    from ._main._fn import fn
+    from ._main._new import new
+    from ._main._run import run
+    from ._main._to import to
+    from .cli import print, input, animate
 
 
-__all__ = [
-    # hammad.cache
-    "cached",
-    "Cache",
-    # hammad.cli
+__all__ = (
+    # top level namespace modules for
+    # super duper fast access to things and stuff
+    "run",
+    "new",
+    "to",
+    "fn",
+    # cli
     "print",
-    "animate",
     "input",
-    # hammad.formatting
-    "convert_to_json_schema",
-    "convert_to_text",
-    "convert_type_to_text",
-    # hammad.logging
-    "Logger",
-    "create_logger",
-    "trace",
-    "trace_cls",
-    "trace_function",
-    "trace_http",
-]
+    "animate",
+)
 
 
 __getattr__ = __hammad_importer__(__all__)
 
 
 def __dir__() -> list[str]:
-    return __all__
+    return list(__all__)

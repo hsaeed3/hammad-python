@@ -5,7 +5,10 @@ from ...._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from .model import EmbeddingModel
+    from .model import (
+        EmbeddingModel,
+        create_embedding_model,
+    )
     from .run import (
         run_embedding_model,
         async_run_embedding_model,
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "EmbeddingModel",
+    "create_embedding_model",
     # hammad.genai.models.embeddings.run
     "run_embedding_model",
     "async_run_embedding_model",

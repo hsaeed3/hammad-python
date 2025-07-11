@@ -5,7 +5,10 @@ from ...._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from .model import LanguageModel
+    from .model import (
+        LanguageModel,
+        create_language_model,
+    )
     from .run import run_language_model, async_run_language_model
     from .types.language_model_instructor_mode import LanguageModelInstructorMode
     from .types.language_model_messages import LanguageModelMessages
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
 __all__ = [
     # hammad.genai.models.language.model
     "LanguageModel",
+    "create_language_model",
     # hammad.genai.models.language.run
     "run_language_model",
     "async_run_language_model",

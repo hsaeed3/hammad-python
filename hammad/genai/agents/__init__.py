@@ -5,7 +5,10 @@ from ..._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from .agent import Agent
+    from .agent import (
+        Agent,
+        create_agent,
+    )
 
     # Types
     from .types.agent_context import AgentContext
@@ -22,6 +25,7 @@ if TYPE_CHECKING:
 __all__ = [
     # hammad.genai.agents.agent
     "Agent",
+    "create_agent",
     # hammad.genai.agents.types.agent_context
     "AgentContext",
     # hammad.genai.agents.types.agent_event

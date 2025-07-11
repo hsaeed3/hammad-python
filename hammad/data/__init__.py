@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     )
     from .collections import (
         Collection,
+        create_collection,
         TantivyCollectionIndex,
         QdrantCollectionIndex,
         TantivyCollectionIndexSettings,
@@ -54,8 +55,12 @@ __all__ = (
     "validator",
     "is_field",
     "is_model",
+    "convert_to_pydantic_model",
+    "convert_to_pydantic_field",
+    "is_pydantic_model_class",
     # hammad.data.collections
     "Collection",
+    "create_collection",
     "TantivyCollectionIndex",
     "QdrantCollectionIndex",
     "TantivyCollectionIndexSettings",
@@ -68,6 +73,11 @@ __all__ = (
     "Database",
     # hammad.data.configurations
     "Configuration",
+    "read_configuration_from_file",
+    "read_configuration_from_url",
+    "read_configuration_from_os_vars",
+    "read_configuration_from_os_prefix",
+    "read_configuration_from_dotenv",
 )
 
 

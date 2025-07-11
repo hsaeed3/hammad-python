@@ -26,14 +26,13 @@ if TYPE_CHECKING:
         ChatCompletionAudioParam,
     )
 
-    from .types import (
-        LanguageModelMessages,
-        LanguageModelInstructorMode,
-        LanguageModelName,
-        LanguageModelResponse,
-        LanguageModelStream,
-    )
-
+from .types import (
+    LanguageModelMessages,
+    LanguageModelInstructorMode,
+    LanguageModelName,
+    LanguageModelResponse,
+    LanguageModelStream,
+)
 from .model import LanguageModel
 
 

@@ -108,7 +108,25 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]
                     # Process imports in this block
                     for stmt in node.body:
                         if isinstance(stmt, ast.ImportFrom) and stmt.module:
-                            module_path = f".{stmt.module}"
+                            # Only add '.' prefix for relative imports
+                            # If stmt.level > 0, it's already a relative import
+                            # If stmt.level == 0 and module doesn't start with '.', it's absolute
+                            if stmt.level > 0:
+                                # Already relative import
+                                module_path = "." * stmt.level + (stmt.module or "")
+                            elif stmt.module.startswith("."):
+                                # Explicit relative import
+                                module_path = stmt.module
+                            elif any(
+                                stmt.module.startswith(name)
+                                for name in ["litellm", "openai", "instructor", "httpx"]
+                            ):
+                                # Known absolute third-party imports
+                                module_path = stmt.module
+                            else:
+                                # Default to relative import for internal modules
+                                module_path = f".{stmt.module}"
+
                             for alias in stmt.names:
                                 original_name = alias.name
                                 local_name = alias.asname or original_name

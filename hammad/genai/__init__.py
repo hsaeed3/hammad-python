@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         AgentContext,
         AgentMessages,
         AgentResponseChunk,
+        create_agent,
     )
     from .agents.run import (
         run_agent,
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
         EmbeddingModelSettings,
         run_embedding_model,
         async_run_embedding_model,
+        create_embedding_model,
     )
     from .models.language import (
         LanguageModel,
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
         LanguageModelStream,
         run_language_model,
         async_run_language_model,
+        create_language_model,
     )
     from .models.reranking import run_reranking_model, async_run_reranking_model
     from .models.multimodal import (
@@ -78,6 +81,7 @@ __all__ = [
     "AgentContext",
     "AgentMessages",
     "AgentResponseChunk",
+    "create_agent",
     # hammad.genai.agents.run
     "run_agent",
     "run_agent_iter",
@@ -90,6 +94,7 @@ __all__ = [
     "EmbeddingModelSettings",
     "run_embedding_model",
     "async_run_embedding_model",
+    "create_embedding_model",
     # hammad.genai.models.language
     "LanguageModel",
     "LanguageModelInstructorMode",
@@ -102,6 +107,7 @@ __all__ = [
     "LanguageModelStream",
     "run_language_model",
     "async_run_language_model",
+    "create_language_model",
     # hammad.genai.models.reranking
     "run_reranking_model",
     "async_run_reranking_model",
