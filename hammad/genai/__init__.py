@@ -14,6 +14,12 @@ if TYPE_CHECKING:
         AgentMessages,
         AgentResponseChunk,
     )
+    from .agents.run import (
+        run_agent,
+        run_agent_iter,
+        async_run_agent,
+        async_run_agent_iter,
+    )
     from .models.embeddings import (
         Embedding,
         EmbeddingModel,
@@ -72,6 +78,11 @@ __all__ = [
     "AgentContext",
     "AgentMessages",
     "AgentResponseChunk",
+    # hammad.genai.agents.run
+    "run_agent",
+    "run_agent_iter",
+    "async_run_agent",
+    "async_run_agent_iter",
     # hammad.genai.models.embeddings
     "Embedding",
     "EmbeddingModel",
