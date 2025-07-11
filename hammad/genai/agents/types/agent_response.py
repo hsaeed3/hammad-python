@@ -23,11 +23,14 @@ def _create_agent_response_from_language_model_response(
     context: Any = None,
 ) -> "AgentResponse[T]":
     """Create a AgentResponse from a LanguageModelResponse."""
-    response_dict = response.model_dump()
-
     try:
         return AgentResponse(
-            **response_dict,
+            type="agent",
+            model=response.model,
+            output=response.output,
+            content=response.content,
+            completion=response.completion,
+            refusal=response.refusal,
             steps=steps or [],
             context=context,
         )
