@@ -21,6 +21,7 @@ from typing_extensions import Literal
 if TYPE_CHECKING:
     from httpx import Timeout
 
+from ....logging.logger import _get_internal_logger
 from ..model_provider import litellm, instructor
 
 from ...types.base import BaseGenAIModel
@@ -48,6 +49,9 @@ __all__ = [
 ]
 
 T = TypeVar("T")
+
+
+logger = _get_internal_logger(__name__)
 
 
 class LanguageModelError(Exception):
@@ -112,6 +116,9 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         # Initialize LanguageModel-specific attributes
         self._instructor_client = None
 
+        logger.info(f"Initialized LanguageModel w/ model: {self.model}")
+        logger.debug(f"LanguageModel settings: {self.settings}")
+
     def _get_instructor_client(
         self, mode: Optional[LanguageModelInstructorMode] = None
     ):
@@ -123,6 +130,8 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             self._instructor_client is None
             or getattr(self._instructor_client, "_mode", None) != effective_mode
         ):
+            logger.debug(f"Creating new instructor client for mode: {effective_mode} from old mode: {getattr(self._instructor_client, '_mode', None)}")
+
             self._instructor_client = instructor.from_litellm(
                 completion=litellm.completion, mode=instructor.Mode(effective_mode)
             )
@@ -338,6 +347,9 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         Returns:
             LanguageModelResponse or LanguageModelStream depending on parameters
         """
+        logger.info(f"Running LanguageModel request with model: {self.model}")
+        logger.debug(f"LanguageModel request kwargs: {kwargs}")
+
         try:
             # Extract model, base_url, api_key, and mock_response from kwargs, using instance defaults
             model = kwargs.pop("model", None) or self.model
@@ -572,6 +584,9 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         Returns:
             LanguageModelResponse or LanguageModelAsyncStream depending on parameters
         """
+        logger.info(f"Running async LanguageModel request with model: {self.model}")
+        logger.debug(f"LanguageModel request kwargs: {kwargs}")
+
         try:
             # Extract model, base_url, api_key, and mock_response from kwargs, using instance defaults
             model = kwargs.pop("model", None) or self.model

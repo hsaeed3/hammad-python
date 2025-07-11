@@ -5,6 +5,7 @@ Tool system for agent function calling with JSON schema generation.
 
 import asyncio
 import concurrent.futures
+from dataclasses import dataclass
 import inspect
 import json
 from typing import (
@@ -44,6 +45,7 @@ __all__ = (
 )
 
 
+@dataclass
 class ToolResponseMessage:
     """Represents a tool response message for chat completion."""
 
