@@ -533,6 +533,16 @@ class Logger:
                 return json.dumps(log_entry)
 
         return JSONFormatter()
+    
+    def setLevel(
+        self,
+        level: Union[LoggerLevelName, int],
+    ) -> None:
+        """Set the logging level."""
+        self._user_level = level
+        self._logger.setLevel(level)
+        for handler in self._logger.handlers:
+            handler.setLevel(level)
 
     def add_level(
         self, name: str, value: int, style: Optional[LoggerLevelSettings] = None
