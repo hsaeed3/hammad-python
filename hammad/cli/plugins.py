@@ -159,6 +159,7 @@ def print(
     title: Optional[str] = None,
     expand: Optional[bool] = None,
     live: "CLIStyleLiveSettings | int | None" = None,
+    duration: Optional[float] = None,
     transient: bool = False,
     new_line_start: bool = False,
 ) -> None:
@@ -190,6 +191,7 @@ def print(
         title : Title for panel rendering.
         expand : Whether to expand panel to full width.
         live : A dictionary of live settings or an integer in seconds to run the print in a live renderable.
+        duration : The duration of the live renderable.
         transient : Whether to clear the output after completion.
         new_line_start : Start with a new line before printing.
 
@@ -221,6 +223,7 @@ def print(
         and padding is None
         and title is None
         and expand is None
+        and not transient
     ):
         builtins.print(*values, sep=sep, end=end, file=file, flush=flush)
         return
@@ -250,7 +253,7 @@ def print(
 
             live_settings: CLIStyleLiveSettings = {
                 "duration": float(live),
-                "transient": False,  # Changed to False for testing
+                "transient": transient,  # Use the transient parameter
             }
         else:
             live_settings = live
@@ -281,19 +284,39 @@ def print(
         get_console = _get_rich_console()
         Console, _ = _get_rich_console_classes()
         console = get_console() if file is None else Console(file=file)
-        console.print(
-            styled_content,
-            end=end,
-            justify=justify,
-            overflow=overflow,
-            no_wrap=no_wrap,
-            emoji=emoji,
-            markup=markup,
-            highlight=highlight,
-            width=width,
-            height=height,
-            new_line_start=new_line_start,
-        )
+        
+        if transient:
+            # Use Rich's Live with transient for temporary output
+            import time
+            from rich.live import Live
+            
+            # Auto-set duration to 2.5 when transient=True and duration is None
+            display_duration = duration if duration is not None else 2.5
+            
+            with Live(
+                styled_content,
+                console=console,
+                refresh_per_second=1,
+                transient=True,
+                auto_refresh=False,
+            ) as live:
+                live.update(styled_content)
+                live.refresh()
+                time.sleep(display_duration)  # Use duration parameter for transient content
+        else:
+            console.print(
+                styled_content,
+                end=end,
+                justify=justify,
+                overflow=overflow,
+                no_wrap=no_wrap,
+                emoji=emoji,
+                markup=markup,
+                highlight=highlight,
+                width=width,
+                height=height,
+                new_line_start=new_line_start,
+            )
 
 
 class InputError(Exception):
