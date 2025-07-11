@@ -520,17 +520,74 @@ class Agent(BaseGenAIModel, Generic[T]):
     ) -> Union[AgentResponse[T], AgentStream[T]]:
         """Runs this agent and returns a final agent response or stream.
 
+        You can override defaults assigned to this agent from this function directly.
+
         Args:
-            messages: The input messages to process
-            model: Language model to use (overrides agent's default)
-            max_steps: Maximum number of steps to take
-            context: Context object to maintain state
-            output_type: Type for structured output
-            stream: Whether to return a stream
-            **kwargs: Additional parameters for the language model
+            messages: The messages to process. Can be:
+                - A single string: "What's the weather like?"
+                - A list of message dicts: [{"role": "user", "content": "Hello"}]
+                - A list of strings: ["Hello", "How are you?"]
+            model: The model to use for this run (overrides default).
+                - Can be a LanguageModel instance or model name string like "gpt-4"
+            max_steps: Maximum number of steps to execute (overrides default).
+                - Useful for limiting tool usage or preventing infinite loops
+            context: Context object for the agent (overrides default).
+                - Any object that provides additional context for the conversation
+            output_type: The expected output type (overrides default).
+                - Use for structured outputs: output_type=MyPydanticModel
+                - Defaults to str for unstructured text responses
+            stream: Whether to return a stream instead of a final response.
+                - If True, returns AgentStream for real-time processing
+                - If False, returns complete AgentResponse
+            **kwargs: Additional keyword arguments passed to the language model.
+                - Examples: temperature=0.7, top_p=0.9, presence_penalty=0.1
 
         Returns:
-            Either an AgentResponse (if stream=False) or AgentStream (if stream=True)
+            AgentResponse or AgentStream depending on stream parameter.
+            - AgentResponse: Contains final output, steps taken, and metadata
+            - AgentStream: Iterator yielding intermediate steps and final result
+
+        Examples:
+            Basic text conversation:
+            >>> agent = Agent()
+            >>> response = agent.run("Hello, how are you?")
+            >>> print(response.output)
+            "Hello! I'm doing well, thank you for asking."
+
+            With custom model and parameters:
+            >>> response = agent.run(
+            ...     messages="Explain quantum computing",
+            ...     model="gpt-4",
+            ...     max_steps=5,
+            ...     temperature=0.3
+            ... )
+
+            Structured output with Pydantic model:
+            >>> from pydantic import BaseModel
+            >>> class Summary(BaseModel):
+            ...     title: str
+            ...     key_points: List[str]
+            >>> response = agent.run(
+            ...     "Summarize the benefits of renewable energy",
+            ...     output_type=Summary
+            ... )
+            >>> print(response.output.title)
+            >>> print(response.output.key_points)
+
+            Streaming for real-time results:
+            >>> stream = agent.run(
+            ...     "Write a long story about space exploration",
+            ...     stream=True
+            ... )
+            >>> for chunk in stream:
+            ...     print(chunk.output, end="", flush=True)
+
+            With context for additional information:
+            >>> context = {"user_preferences": "technical explanations"}
+            >>> response = agent.run(
+            ...     "How does machine learning work?",
+            ...     context=context
+            ... )
         """
         # Handle streaming
         if stream:
@@ -590,7 +647,7 @@ class Agent(BaseGenAIModel, Generic[T]):
             )
 
             # Check if response has tool calls
-            if response.has_tool_calls:
+            if response.has_tool_calls():
                 # Add response to message history (with tool calls)
                 current_messages.append(response.to_message())
 
@@ -638,16 +695,70 @@ class Agent(BaseGenAIModel, Generic[T]):
     ) -> AgentResponse[T]:
         """Runs this agent asynchronously and returns a final agent response.
 
+        You can override defaults assigned to this agent from this function directly.
+        This is the async version of run() for non-blocking execution.
+
         Args:
-            messages: The input messages to process
-            model: Language model to use (overrides agent's default)
-            max_steps: Maximum number of steps to take
-            context: Context object to maintain state
-            output_type: Type for structured output
-            **kwargs: Additional parameters for the language model
+            messages: The messages to process. Can be:
+                - A single string: "What's the weather like?"
+                - A list of message dicts: [{"role": "user", "content": "Hello"}]
+                - A list of strings: ["Hello", "How are you?"]
+            model: The model to use for this run (overrides default).
+                - Can be a LanguageModel instance or model name string like "gpt-4"
+            max_steps: Maximum number of steps to execute (overrides default).
+                - Useful for limiting tool usage or preventing infinite loops
+            context: Context object for the agent (overrides default).
+                - Any object that provides additional context for the conversation
+            output_type: The expected output type (overrides default).
+                - Use for structured outputs: output_type=MyPydanticModel
+                - Defaults to str for unstructured text responses
+            **kwargs: Additional keyword arguments passed to the language model.
+                - Examples: temperature=0.7, top_p=0.9, presence_penalty=0.1
 
         Returns:
-            An AgentResponse containing the final result
+            AgentResponse containing the final output, steps taken, and metadata.
+
+        Examples:
+            Basic async usage:
+            >>> import asyncio
+            >>> agent = Agent()
+            >>> async def main():
+            ...     response = await agent.async_run("Hello, how are you?")
+            ...     print(response.output)
+            >>> asyncio.run(main())
+
+            Multiple concurrent requests:
+            >>> async def process_multiple():
+            ...     tasks = [
+            ...         agent.async_run("What's 2+2?"),
+            ...         agent.async_run("What's the capital of France?"),
+            ...         agent.async_run("Explain photosynthesis")
+            ...     ]
+            ...     responses = await asyncio.gather(*tasks)
+            ...     return responses
+
+            With structured output:
+            >>> from pydantic import BaseModel
+            >>> class Analysis(BaseModel):
+            ...     sentiment: str
+            ...     confidence: float
+            >>> async def analyze_text():
+            ...     response = await agent.async_run(
+            ...         "Analyze the sentiment of: 'I love this product!'",
+            ...         output_type=Analysis
+            ...     )
+            ...     return response.output
+
+            With custom model and context:
+            >>> async def custom_run():
+            ...     context = {"domain": "medical", "expertise_level": "expert"}
+            ...     response = await agent.async_run(
+            ...         "Explain diabetes",
+            ...         model="gpt-4",
+            ...         context=context,
+            ...         temperature=0.2
+            ...     )
+            ...     return response.output
         """
         # Use provided model or default
         if model is None:
@@ -694,7 +805,7 @@ class Agent(BaseGenAIModel, Generic[T]):
             )
 
             # Check if response has tool calls
-            if response.has_tool_calls:
+            if response.has_tool_calls():
                 # Add response to message history (with tool calls)
                 current_messages.append(response.to_message())
 
@@ -775,16 +886,86 @@ class Agent(BaseGenAIModel, Generic[T]):
     ) -> AgentStream[T]:
         """Iterate over agent steps, yielding each step response.
 
+        You can override defaults assigned to this agent from this function directly.
+        Returns an AgentStream that yields intermediate steps and the final result.
+
         Args:
-            messages: The input messages to process
-            model: Language model to use (overrides agent's default)
-            max_steps: Maximum number of steps to take
-            context: Context object to maintain state
-            output_type: Type for structured output
-            **kwargs: Additional parameters for the language model
+            messages: The messages to process. Can be:
+                - A single string: "What's the weather like?"
+                - A list of message dicts: [{"role": "user", "content": "Hello"}]
+                - A list of strings: ["Hello", "How are you?"]
+            model: The model to use for this run (overrides default).
+                - Can be a LanguageModel instance or model name string like "gpt-4"
+            max_steps: Maximum number of steps to execute (overrides default).
+                - Useful for limiting tool usage or preventing infinite loops
+            context: Context object for the agent (overrides default).
+                - Any object that provides additional context for the conversation
+            output_type: The expected output type (overrides default).
+                - Use for structured outputs: output_type=MyPydanticModel
+                - Defaults to str for unstructured text responses
+            **kwargs: Additional keyword arguments passed to the language model.
+                - Examples: temperature=0.7, top_p=0.9, presence_penalty=0.1
 
         Returns:
-            An AgentStream that can be iterated over
+            AgentStream that can be iterated over to get each step response,
+            including tool calls and intermediate reasoning steps.
+
+        Examples:
+            Basic iteration over steps:
+            >>> agent = Agent(tools=[calculator_tool])
+            >>> stream = agent.iter("What's 25 * 47?")
+            >>> for step in stream:
+            ...     print(f"Step {step.step_number}: {step.output}")
+            ...     if step.tool_calls:
+            ...         print(f"Tool calls: {len(step.tool_calls)}")
+
+            Real-time processing with streaming:
+            >>> stream = agent.iter("Write a poem about nature")
+            >>> for chunk in stream:
+            ...     if chunk.output:
+            ...         print(chunk.output, end="", flush=True)
+            ...     if chunk.is_final:
+            ...         print("\n--- Final response ---")
+
+            With structured output iteration:
+            >>> from pydantic import BaseModel
+            >>> class StepAnalysis(BaseModel):
+            ...     reasoning: str
+            ...     confidence: float
+            >>> stream = agent.iter(
+            ...     "Analyze this step by step: Why is the sky blue?",
+            ...     output_type=StepAnalysis
+            ... )
+            >>> for step in stream:
+            ...     if step.output:
+            ...         print(f"Reasoning: {step.output.reasoning}")
+            ...         print(f"Confidence: {step.output.confidence}")
+
+            Processing with custom model and context:
+            >>> context = {"domain": "science", "depth": "detailed"}
+            >>> stream = agent.iter(
+            ...     "Explain quantum entanglement",
+            ...     model="gpt-4",
+            ...     context=context,
+            ...     max_steps=3,
+            ...     temperature=0.1
+            ... )
+            >>> results = []
+            >>> for step in stream:
+            ...     results.append(step.output)
+            ...     if step.is_final:
+            ...         break
+
+            Error handling during iteration:
+            >>> try:
+            ...     stream = agent.iter("Complex calculation task")
+            ...     for step in stream:
+            ...         if step.error:
+            ...             print(f"Error in step: {step.error}")
+            ...         else:
+            ...             print(f"Step result: {step.output}")
+            ... except Exception as e:
+            ...     print(f"Stream error: {e}")
         """
         return AgentStream(
             agent=self,
