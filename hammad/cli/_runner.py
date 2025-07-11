@@ -35,10 +35,7 @@ if TYPE_CHECKING:
     )
 
 
-__all__ = (
-    "CLIRunner",
-)
-
+__all__ = ("CLIRunner",)
 
 
 class CLIRunner:
@@ -54,7 +51,6 @@ class CLIRunner:
         flush: bool = False,
     ) -> None: ...
 
-
     @overload
     @staticmethod
     def print(
@@ -69,7 +65,6 @@ class CLIRunner:
         bg_settings: "CLIStyleBackgroundSettings | None" = None,
         live: "CLIStyleLiveSettings | int | None" = None,
     ) -> None: ...
-
 
     @staticmethod
     def print(
@@ -109,6 +104,7 @@ class CLIRunner:
             Live settings object if live=True, otherwise None
         """
         from ..cli import print as _run_cli_print_fn
+
         return _run_cli_print_fn(
             *values,
             sep=sep,
@@ -171,6 +167,7 @@ class CLIRunner:
             The user's input, potentially validated and converted according to the schema.
         """
         from ..cli import input as _run_cli_input_fn
+
         return _run_cli_input_fn(
             prompt=prompt,
             schema=schema,
@@ -188,7 +185,9 @@ class CLIRunner:
     @staticmethod
     def animate(
         renderable: "RenderableType | str",
-        type: Literal["flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"],
+        type: Literal[
+            "flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"
+        ],
         duration: Optional[float] = None,
         # Animation parameters (defaults are handled by the specific animation classes)
         speed: Optional[float] = None,
@@ -239,6 +238,7 @@ class CLIRunner:
             vertical_overflow: How to handle vertical overflow
         """
         from ..cli import animate as _run_cli_animate_fn
+
         _run_cli_animate_fn(
             renderable=renderable,
             type=type,

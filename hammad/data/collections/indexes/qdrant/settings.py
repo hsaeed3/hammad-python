@@ -18,7 +18,7 @@ __all__ = (
 DistanceMetric = Literal[
     "cosine",
     "dot",
-    "euclidean", 
+    "euclidean",
     "manhattan",
 ]
 
@@ -30,28 +30,28 @@ class QdrantCollectionIndexSettings:
 
     vector_size: int = 768
     """The size/dimension of the vectors to store."""
-    
+
     distance_metric: DistanceMetric = "dot"
     """Distance metric for similarity search."""
-    
+
     path: Optional[str] = None
     """Path for local Qdrant storage (None = in-memory)."""
-    
+
     host: Optional[str] = None
     """Qdrant server host (if using remote server)."""
-    
+
     port: int = 6333
     """Qdrant server port."""
-    
+
     grpc_port: int = 6334
     """Qdrant gRPC port."""
-    
+
     prefer_grpc: bool = False
     """Whether to prefer gRPC over HTTP."""
-    
+
     api_key: Optional[str] = None
     """API key for Qdrant authentication."""
-    
+
     timeout: Optional[float] = None
     """Request timeout for Qdrant operations."""
 
@@ -59,7 +59,7 @@ class QdrantCollectionIndexSettings:
         """Returns a configuration dictionary used
         to configure the qdrant client internally."""
         config = {}
-        
+
         if self.path is not None:
             config["path"] = self.path
         elif self.host is not None:
@@ -74,7 +74,7 @@ class QdrantCollectionIndexSettings:
         else:
             # In-memory database
             config["location"] = ":memory:"
-            
+
         return config
 
 
@@ -86,9 +86,9 @@ class QdrantCollectionIndexQuerySettings:
 
     limit: int = 10
     """The maximum number of results to return."""
-    
+
     score_threshold: Optional[float] = None
     """Minimum similarity score threshold for results."""
-    
+
     exact: bool = False
     """Whether to use exact search (slower but more accurate)."""

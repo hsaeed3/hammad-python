@@ -12,16 +12,14 @@ if TYPE_CHECKING:
         MCPClientSettings,
         MCPClientSseSettings,
         MCPClientStreamableHttpSettings,
-        MCPClientStdioSettings
+        MCPClientStdioSettings,
     )
 
 __all__ = (
     # hammad.mcp.client
     "MCPClient",
-
     # hammad.mcp.client.client_service
     "MCPClientService",
-
     # hammad.mcp.client.settings
     "MCPClientSettings",
     "MCPClientSseSettings",
@@ -30,6 +28,7 @@ __all__ = (
 )
 
 __getattr__ = create_getattr_importer(__all__)
+
 
 def __dir__() -> list[str]:
     """Get the attributes of the client module."""

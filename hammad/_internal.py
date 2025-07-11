@@ -9,6 +9,7 @@ import hashlib
 
 # pretty
 from rich.traceback import install
+
 install()
 
 __all__ = ("create_getattr_importer",)

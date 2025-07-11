@@ -196,21 +196,18 @@ class AsyncSearchClient:
                         max_results=max_results,
                     )
                 )
-                
+
                 # Convert raw results to SearchResult models
                 search_results = [
                     SearchResult(
                         title=result.get("title", ""),
                         href=result.get("href", ""),
-                        body=result.get("body", "")
+                        body=result.get("body", ""),
                     )
                     for result in raw_results
                 ]
-                
-                return SearchResults(
-                    query=query.strip(),
-                    results=search_results
-                )
+
+                return SearchResults(query=query.strip(), results=search_results)
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -266,7 +263,7 @@ class AsyncSearchClient:
                         max_results=max_results,
                     )
                 )
-                
+
                 # Convert raw results to NewsResult models
                 news_results = [
                     NewsResult(
@@ -275,15 +272,12 @@ class AsyncSearchClient:
                         body=result.get("body", ""),
                         url=result.get("url", ""),
                         image=result.get("image", ""),
-                        source=result.get("source", "")
+                        source=result.get("source", ""),
                     )
                     for result in raw_results
                 ]
-                
-                return NewsResults(
-                    query=query.strip(),
-                    results=news_results
-                )
+
+                return NewsResults(query=query.strip(), results=news_results)
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),
@@ -501,10 +495,7 @@ class AsyncSearchClient:
         tasks = [fetch_page(url) for url in unique_urls]
         results = await asyncio.gather(*tasks, return_exceptions=False)
 
-        return WebPageResults(
-            urls=unique_urls,
-            results=results
-        )
+        return WebPageResults(urls=unique_urls, results=results)
 
     async def extract_page_links(
         self,
@@ -598,10 +589,7 @@ class AsyncSearchClient:
 
                     links.append(link_info)
 
-                return ExtractedLinks(
-                    url=url,
-                    results=links
-                )
+                return ExtractedLinks(url=url, results=links)
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(retries + 1),

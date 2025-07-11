@@ -119,8 +119,8 @@ def style_renderable(
     style_settings: CLIStyleRenderableSettings | None = None,
     bg: CLIStyleBackgroundType | None = None,
     bg_settings: CLIStyleBackgroundSettings | None = None,
-    border = None,
-    padding = None,
+    border=None,
+    padding=None,
     title: str | None = None,
     expand: bool | None = None,
 ):
@@ -383,7 +383,7 @@ def style_renderable(
                             except Exception:
                                 # Skip property if processing fails
                                 continue
-                    
+
                     # Handle direct panel parameters
                     if title is not None:
                         panel_kwargs["title"] = title
@@ -394,6 +394,7 @@ def style_renderable(
                     if border is not None:
                         try:
                             from rich import box as rich_box_module
+
                             box_map = {
                                 "ascii": rich_box_module.ASCII,
                                 "ascii2": rich_box_module.ASCII2,
@@ -516,7 +517,7 @@ def style_renderable(
                         panel_kwargs = {}
                         bg_style = Style(bgcolor=bg)
                         panel_kwargs["style"] = bg_style
-                        
+
                         # Handle direct panel parameters even with simple bg
                         if title is not None:
                             panel_kwargs["title"] = title
@@ -527,6 +528,7 @@ def style_renderable(
                         if border is not None:
                             try:
                                 from rich import box as rich_box_module
+
                                 box_map = {
                                     "ascii": rich_box_module.ASCII,
                                     "ascii2": rich_box_module.ASCII2,
@@ -558,17 +560,22 @@ def style_renderable(
                             except Exception:
                                 # Use default box if box processing fails
                                 pass
-                        
+
                         return Panel(styled_renderable, **panel_kwargs)
                     except Exception:
                         # Fallback to styled renderable if panel creation fails
                         return styled_renderable
                 else:
                     # Handle panel parameters without background
-                    if title is not None or padding is not None or expand is not None or border is not None:
+                    if (
+                        title is not None
+                        or padding is not None
+                        or expand is not None
+                        or border is not None
+                    ):
                         try:
                             panel_kwargs = {}
-                            
+
                             if title is not None:
                                 panel_kwargs["title"] = title
                             if padding is not None:
@@ -578,6 +585,7 @@ def style_renderable(
                             if border is not None:
                                 try:
                                     from rich import box as rich_box_module
+
                                     box_map = {
                                         "ascii": rich_box_module.ASCII,
                                         "ascii2": rich_box_module.ASCII2,
@@ -609,7 +617,7 @@ def style_renderable(
                                 except Exception:
                                     # Use default box if box processing fails
                                     pass
-                            
+
                             return Panel(styled_renderable, **panel_kwargs)
                         except Exception:
                             # Fallback to styled renderable if panel creation fails

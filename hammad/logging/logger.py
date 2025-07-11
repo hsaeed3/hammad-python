@@ -242,7 +242,7 @@ class RichLoggerFormatter(_logging.Formatter):
 
         # Now format with the styled values
         formatted = self._style._fmt.format(**record.__dict__)
-        return formatted if formatted != 'None' else ''
+        return formatted if formatted != "None" else ""
 
     def _build_renderable_style_string(self, style_dict: dict) -> str:
         """Build a rich markup style string from a CLIStyleRenderableSettings dictionary."""
