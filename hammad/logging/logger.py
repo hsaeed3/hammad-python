@@ -953,3 +953,11 @@ def create_logger(
         console=console,
         handlers=handlers,
     )
+
+
+# internal logger and helper
+_logger = Logger("hammad", level="warning")
+
+
+def _get_internal_logger(name: str) -> Logger:
+    return Logger(name=name, level="warning")
