@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 
+from ...logging.logger import _get_internal_logger
+
 from ..types.base import BaseGenAIModel, BaseGenAIModelSettings
 from ..models.language.model import LanguageModel
 from ..models.language.types import (
@@ -51,6 +53,9 @@ if TYPE_CHECKING:
 
 
 T = TypeVar("T")
+
+
+logger = _get_internal_logger(__name__)
 
 
 @dataclass
@@ -253,6 +258,43 @@ class Agent(BaseGenAIModel, Generic[T]):
         context_format: Literal["json", "python", "markdown"] = "json",
         **kwargs: Any,
     ):
+        """Create a new AI agent with specified capabilities and behavior.
+
+        An agent is an intelligent assistant that can use tools, follow instructions,
+        and maintain context across conversations. It combines a language model with
+        additional capabilities like tool execution and structured output generation.
+
+        Args:
+            name: A human-readable name for the agent (default: "agent")
+            instructions: System instructions that define the agent's behavior and personality
+            model: The language model to use - either a LanguageModel instance or model name string
+            description: Optional description of what the agent does
+            tools: List of tools/functions the agent can call, or a single callable
+            settings: AgentSettings object to customize default behavior
+            instructor_mode: Mode for structured output generation
+            context_updates: When to update context - "before", "after", or both
+            context_confirm: Whether to confirm context updates with the user
+            context_strategy: How to select context updates - "selective" or "all"
+            context_max_retries: Maximum attempts for context update operations
+            context_confirm_instructions: Custom instructions for context confirmation
+            context_selection_instructions: Custom instructions for context selection
+            context_update_instructions: Custom instructions for context updates
+            context_format: Format for context display - "json", "python", or "markdown"
+            **kwargs: Additional parameters passed to the underlying language model
+
+        Example:
+            Basic agent:
+            >>> agent = Agent(name="assistant", instructions="You are helpful")
+
+            Agent with tools:
+            >>> def calculator(x: int, y: int) -> int:
+            ...     return x + y
+            >>> agent = Agent(tools=[calculator])
+
+            Agent with custom settings:
+            >>> settings = AgentSettings(max_steps=5)
+            >>> agent = Agent(settings=settings, model="gpt-4")
+        """
         # Initialize BaseGenAIModel with basic parameters
         super().__init__(
             model=model if isinstance(model, str) else model.model, **kwargs
@@ -297,17 +339,44 @@ class Agent(BaseGenAIModel, Generic[T]):
         """Get the underlying language model."""
         return self._language_model
 
+    def _get_effective_context_settings(
+        self,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
+    ) -> dict:
+        """Get effective context settings, using provided parameters or defaults."""
+        return {
+            "context_updates": context_updates if context_updates is not None else self.context_updates,
+            "context_confirm": context_confirm if context_confirm is not None else self.context_confirm,
+            "context_strategy": context_strategy if context_strategy is not None else self.context_strategy,
+            "context_max_retries": context_max_retries if context_max_retries is not None else self.context_max_retries,
+            "context_confirm_instructions": context_confirm_instructions if context_confirm_instructions is not None else self.context_confirm_instructions,
+            "context_selection_instructions": context_selection_instructions if context_selection_instructions is not None else self.context_selection_instructions,
+            "context_update_instructions": context_update_instructions if context_update_instructions is not None else self.context_update_instructions,
+            "context_format": context_format if context_format is not None else self.context_format,
+        }
+
     def _should_update_context(
-        self, context: AgentContext, timing: Literal["before", "after"]
+        self, context: AgentContext, timing: Literal["before", "after"], context_updates=None
     ) -> bool:
         """Determine if context should be updated based on timing and configuration."""
-        if not self.context_updates:
+        effective_context_updates = context_updates if context_updates is not None else self.context_updates
+        
+        if not effective_context_updates:
             return False
 
-        if isinstance(self.context_updates, str):
-            return self.context_updates == timing
+        if isinstance(effective_context_updates, str):
+            return effective_context_updates == timing
         else:
-            return timing in self.context_updates
+            return timing in effective_context_updates
 
     def _create_context_confirm_model(self):
         """Create IsUpdateRequired model for context confirmation."""
@@ -334,18 +403,44 @@ class Agent(BaseGenAIModel, Generic[T]):
         if field_name:
             # Single field update
             if isinstance(context, BaseModel):
-                field_type = context.model_fields[field_name].annotation
+                field_type = context.__class__.model_fields[field_name].annotation
+                field_info = context.__class__.model_fields[field_name]
+                description = getattr(field_info, 'description', f"Update the {field_name} field")
             elif isinstance(context, dict):
                 field_type = type(context[field_name])
+                description = f"Update the {field_name} field"
             else:
                 field_type = Any
+                description = f"Update the {field_name} field"
 
             return create_model(
-                field_name.capitalize(), **{field_name: (field_type, ...)}
+                f"Update{field_name.capitalize()}",
+                **{field_name: (field_type, Field(description=description))}
             )
         else:
-            # All fields update
-            return create_model("Update", updates=(Dict[str, Any], ...))
+            # All fields update - create a model with the exact same fields as the context
+            if isinstance(context, BaseModel):
+                # Create a model with the same fields as the context
+                field_definitions = {}
+                for field_name, field_info in context.model_fields.items():
+                    field_type = field_info.annotation
+                    current_value = getattr(context, field_name)
+                    description = getattr(field_info, 'description', f"Current value: {current_value}")
+                    field_definitions[field_name] = (field_type, Field(description=description))
+                
+                return create_model("ContextUpdate", **field_definitions)
+            elif isinstance(context, dict):
+                # Create a model with the same keys as the dict
+                field_definitions = {}
+                for key, value in context.items():
+                    field_type = type(value)
+                    description = f"Current value: {value}"
+                    field_definitions[key] = (field_type, Field(description=description))
+                
+                return create_model("ContextUpdate", **field_definitions)
+            else:
+                # Fallback to generic updates
+                return create_model("ContextUpdate", updates=(Dict[str, Any], Field(description="Dictionary of field updates")))
 
     def _perform_context_update(
         self,
@@ -353,20 +448,40 @@ class Agent(BaseGenAIModel, Generic[T]):
         model: LanguageModel,
         current_messages: List[Dict[str, Any]],
         timing: Literal["before", "after"],
+        effective_settings: Optional[dict] = None,
     ) -> AgentContext:
         """Perform context update with retries and error handling."""
         updated_context = context
+        
+        # Use effective settings or defaults
+        if effective_settings is None:
+            effective_settings = {
+                "context_confirm": self.context_confirm,
+                "context_strategy": self.context_strategy,
+                "context_max_retries": self.context_max_retries,
+                "context_confirm_instructions": self.context_confirm_instructions,
+                "context_selection_instructions": self.context_selection_instructions,
+                "context_update_instructions": self.context_update_instructions,
+                "context_format": self.context_format,
+            }
 
-        for attempt in range(self.context_max_retries):
+        for attempt in range(effective_settings["context_max_retries"]):
             try:
                 # Check if update is needed (if confirmation is enabled)
-                if self.context_confirm:
+                if effective_settings["context_confirm"]:
                     confirm_model = self._create_context_confirm_model()
-                    confirm_instructions = f"Based on the conversation, determine if the context should be updated {timing} processing."
-                    if self.context_confirm_instructions:
-                        confirm_instructions += (
-                            f"\n\n{self.context_confirm_instructions}"
-                        )
+                    
+                    # Create detailed instructions with context structure
+                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    confirm_instructions = f"""Based on the conversation, determine if the context should be updated {timing} processing.
+
+Current context structure:
+{context_structure}
+
+Should the context be updated based on the new information provided in the conversation?"""
+                    
+                    if effective_settings["context_confirm_instructions"]:
+                        confirm_instructions += f"\n\nAdditional instructions: {effective_settings['context_confirm_instructions']}"
 
                     confirm_response = model.run(
                         messages=current_messages
@@ -379,16 +494,23 @@ class Agent(BaseGenAIModel, Generic[T]):
                         return updated_context
 
                 # Perform the update based on strategy
-                if self.context_strategy == "selective":
+                if effective_settings["context_strategy"] == "selective":
                     # Get fields to update
                     selection_model = self._create_context_selection_model(
                         updated_context
                     )
-                    selection_instructions = f"Select which fields in the context should be updated {timing} processing."
-                    if self.context_selection_instructions:
-                        selection_instructions += (
-                            f"\n\n{self.context_selection_instructions}"
-                        )
+                    
+                    # Create detailed instructions with context structure
+                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    selection_instructions = f"""Select which fields in the context should be updated {timing} processing based on the conversation.
+
+Current context structure:
+{context_structure}
+
+Choose only the fields that need to be updated based on the new information provided in the conversation."""
+                    
+                    if effective_settings["context_selection_instructions"]:
+                        selection_instructions += f"\n\nAdditional instructions: {effective_settings['context_selection_instructions']}"
 
                     selection_response = model.run(
                         messages=current_messages
@@ -403,13 +525,17 @@ class Agent(BaseGenAIModel, Generic[T]):
                         field_model = self._create_context_update_model(
                             updated_context, field_name
                         )
-                        field_instructions = (
-                            f"Update the {field_name} field in the context."
-                        )
-                        if self.context_update_instructions:
-                            field_instructions += (
-                                f"\n\n{self.context_update_instructions}"
-                            )
+                        # Get current field value for context
+                        current_value = getattr(updated_context, field_name) if isinstance(updated_context, BaseModel) else updated_context.get(field_name)
+                        
+                        field_instructions = f"""Update the {field_name} field in the context based on the conversation.
+
+Current value of {field_name}: {current_value}
+
+Please provide the new value for {field_name} based on the information from the conversation."""
+                        
+                        if effective_settings["context_update_instructions"]:
+                            field_instructions += f"\n\nAdditional instructions: {effective_settings['context_update_instructions']}"
 
                         field_response = model.run(
                             messages=current_messages
@@ -429,9 +555,18 @@ class Agent(BaseGenAIModel, Generic[T]):
                 else:  # strategy == "all"
                     # Update all fields at once
                     update_model = self._create_context_update_model(updated_context)
-                    update_instructions = f"Update the context {timing} processing."
-                    if self.context_update_instructions:
-                        update_instructions += f"\n\n{self.context_update_instructions}"
+                    
+                    # Create detailed instructions with context structure
+                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    update_instructions = f"""Update the context {timing} processing based on the conversation.
+
+Current context structure:
+{context_structure}
+
+Please update the appropriate fields based on the conversation. Only update fields that need to be changed based on the new information provided."""
+                    
+                    if effective_settings["context_update_instructions"]:
+                        update_instructions += f"\n\nAdditional instructions: {effective_settings['context_update_instructions']}"
 
                     update_response = model.run(
                         messages=current_messages
@@ -441,9 +576,18 @@ class Agent(BaseGenAIModel, Generic[T]):
                     )
 
                     # Apply the updates
-                    updated_context = _update_context_object(
-                        updated_context, update_response.output.updates
-                    )
+                    if hasattr(update_response.output, 'updates'):
+                        # Legacy fallback for generic updates
+                        updated_context = _update_context_object(
+                            updated_context, update_response.output.updates
+                        )
+                    else:
+                        # New approach - extract field values directly from the response
+                        updates_dict = {}
+                        for field_name in (context.model_fields.keys() if isinstance(context, BaseModel) else context.keys()):
+                            if hasattr(update_response.output, field_name):
+                                updates_dict[field_name] = getattr(update_response.output, field_name)
+                        updated_context = _update_context_object(updated_context, updates_dict)
 
                 # Trigger context update hooks
                 self.hook_manager.trigger_hooks("context_update", updated_context)
@@ -490,10 +634,20 @@ class Agent(BaseGenAIModel, Generic[T]):
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
         *,
         stream: Literal[False] = False,
         **kwargs: Any,
-    ) -> AgentResponse[T]: ...
+    ) -> AgentResponse[T, AgentContext]: ...
 
     @overload
     def run(
@@ -503,10 +657,20 @@ class Agent(BaseGenAIModel, Generic[T]):
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
         *,
         stream: Literal[True],
         **kwargs: Any,
-    ) -> AgentStream[T]: ...
+    ) -> AgentStream[T, AgentContext]: ...
 
     def run(
         self,
@@ -515,9 +679,19 @@ class Agent(BaseGenAIModel, Generic[T]):
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
         stream: bool = False,
         **kwargs: Any,
-    ) -> Union[AgentResponse[T], AgentStream[T]]:
+    ) -> Union[AgentResponse[T, AgentContext], AgentStream[T, AgentContext]]:
         """Runs this agent and returns a final agent response or stream.
 
         You can override defaults assigned to this agent from this function directly.
@@ -614,6 +788,18 @@ class Agent(BaseGenAIModel, Generic[T]):
         if max_steps is None:
             max_steps = self.settings.max_steps
 
+        # Get effective context settings
+        effective_context_settings = self._get_effective_context_settings(
+            context_updates=context_updates,
+            context_confirm=context_confirm,
+            context_strategy=context_strategy,
+            context_max_retries=context_max_retries,
+            context_confirm_instructions=context_confirm_instructions,
+            context_selection_instructions=context_selection_instructions,
+            context_update_instructions=context_update_instructions,
+            context_format=context_format,
+        )
+
         # Parse initial messages
         parsed_messages = parse_messages(messages)
         current_messages = parsed_messages.copy()
@@ -621,6 +807,16 @@ class Agent(BaseGenAIModel, Generic[T]):
 
         # RUN MAIN AGENTIC LOOP
         for step in range(max_steps):
+            # Update context before processing if configured
+            if context and self._should_update_context(context, "before", effective_context_settings["context_updates"]):
+                context = self._perform_context_update(
+                    context=context,
+                    model=working_model,
+                    current_messages=current_messages,
+                    timing="before",
+                    effective_settings=effective_context_settings,
+                )
+
             # Format messages with instructions and context for first step only
             if step == 0:
                 formatted_messages = self._format_messages_with_context(
@@ -640,7 +836,7 @@ class Agent(BaseGenAIModel, Generic[T]):
             # Get language model response
             response = working_model.run(
                 messages=formatted_messages,
-                tools=[tool.model_dump() for tool in self.tools]
+                tools=[tool.to_dict() for tool in self.tools]
                 if self.tools
                 else None,
                 **model_kwargs,
@@ -663,6 +859,15 @@ class Agent(BaseGenAIModel, Generic[T]):
                 steps.append(response)
             else:
                 # No tool calls - this is the final step
+                # Update context after processing if configured
+                if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+                    context = self._perform_context_update(
+                        context=context,
+                        model=working_model,
+                        current_messages=current_messages,
+                        timing="after",
+                        effective_settings=effective_context_settings,
+                    )
                 return _create_agent_response_from_language_model_response(
                     response=response, steps=steps, context=context
                 )
@@ -680,6 +885,16 @@ class Agent(BaseGenAIModel, Generic[T]):
                 **model_kwargs,
             )
 
+        # Update context after processing if configured
+        if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+            context = self._perform_context_update(
+                context=context,
+                model=working_model,
+                current_messages=current_messages,
+                timing="after",
+                effective_settings=effective_context_settings,
+            )
+
         return _create_agent_response_from_language_model_response(
             response=final_response, steps=steps, context=context
         )
@@ -691,8 +906,18 @@ class Agent(BaseGenAIModel, Generic[T]):
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
         **kwargs: Any,
-    ) -> AgentResponse[T]:
+    ) -> AgentResponse[T, AgentContext]:
         """Runs this agent asynchronously and returns a final agent response.
 
         You can override defaults assigned to this agent from this function directly.
@@ -772,6 +997,18 @@ class Agent(BaseGenAIModel, Generic[T]):
         if max_steps is None:
             max_steps = self.settings.max_steps
 
+        # Get effective context settings
+        effective_context_settings = self._get_effective_context_settings(
+            context_updates=context_updates,
+            context_confirm=context_confirm,
+            context_strategy=context_strategy,
+            context_max_retries=context_max_retries,
+            context_confirm_instructions=context_confirm_instructions,
+            context_selection_instructions=context_selection_instructions,
+            context_update_instructions=context_update_instructions,
+            context_format=context_format,
+        )
+
         # Parse initial messages
         parsed_messages = parse_messages(messages)
         current_messages = parsed_messages.copy()
@@ -779,6 +1016,16 @@ class Agent(BaseGenAIModel, Generic[T]):
 
         # RUN MAIN AGENTIC LOOP
         for step in range(max_steps):
+            # Update context before processing if configured
+            if context and self._should_update_context(context, "before", effective_context_settings["context_updates"]):
+                context = self._perform_context_update(
+                    context=context,
+                    model=working_model,
+                    current_messages=current_messages,
+                    timing="before",
+                    effective_settings=effective_context_settings,
+                )
+
             # Format messages with instructions and context for first step only
             if step == 0:
                 formatted_messages = self._format_messages_with_context(
@@ -798,7 +1045,7 @@ class Agent(BaseGenAIModel, Generic[T]):
             # Get language model response
             response = await working_model.async_run(
                 messages=formatted_messages,
-                tools=[tool.model_dump() for tool in self.tools]
+                tools=[tool.to_dict() for tool in self.tools]
                 if self.tools
                 else None,
                 **model_kwargs,
@@ -821,6 +1068,15 @@ class Agent(BaseGenAIModel, Generic[T]):
                 steps.append(response)
             else:
                 # No tool calls - this is the final step
+                # Update context after processing if configured
+                if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+                    context = self._perform_context_update(
+                        context=context,
+                        model=working_model,
+                        current_messages=current_messages,
+                        timing="after",
+                        effective_settings=effective_context_settings,
+                    )
                 return _create_agent_response_from_language_model_response(
                     response=response, steps=steps, context=context
                 )
@@ -838,6 +1094,16 @@ class Agent(BaseGenAIModel, Generic[T]):
                 **model_kwargs,
             )
 
+        # Update context after processing if configured
+        if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+            context = self._perform_context_update(
+                context=context,
+                model=working_model,
+                current_messages=current_messages,
+                timing="after",
+                effective_settings=effective_context_settings,
+            )
+
         return _create_agent_response_from_language_model_response(
             response=final_response, steps=steps, context=context
         )
@@ -850,7 +1116,7 @@ class Agent(BaseGenAIModel, Generic[T]):
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
         **kwargs: Any,
-    ) -> AgentStream[T]:
+    ) -> AgentStream[T, AgentContext]:
         """Create a stream that yields agent steps.
 
         Args:
@@ -882,8 +1148,18 @@ class Agent(BaseGenAIModel, Generic[T]):
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        context_updates: Optional[
+            Union[List[Literal["before", "after"]], Literal["before", "after"]]
+        ] = None,
+        context_confirm: Optional[bool] = None,
+        context_strategy: Optional[Literal["selective", "all"]] = None,
+        context_max_retries: Optional[int] = None,
+        context_confirm_instructions: Optional[str] = None,
+        context_selection_instructions: Optional[str] = None,
+        context_update_instructions: Optional[str] = None,
+        context_format: Optional[Literal["json", "python", "markdown"]] = None,
         **kwargs: Any,
-    ) -> AgentStream[T]:
+    ) -> AgentStream[T, AgentContext]:
         """Iterate over agent steps, yielding each step response.
 
         You can override defaults assigned to this agent from this function directly.
@@ -986,7 +1262,7 @@ class Agent(BaseGenAIModel, Generic[T]):
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
         **kwargs: Any,
-    ) -> AgentStream[T]:
+    ) -> AgentStream[T, AgentContext]:
         """Async iterate over agent steps, yielding each step response.
 
         Args:
