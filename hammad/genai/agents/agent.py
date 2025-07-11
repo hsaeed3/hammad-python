@@ -256,6 +256,8 @@ class Agent(BaseGenAIModel, Generic[T]):
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Literal["json", "python", "markdown"] = "json",
+        verbose: bool = False,
+        debug: bool = False,
         **kwargs: Any,
     ):
         """Create a new AI agent with specified capabilities and behavior.
@@ -280,6 +282,8 @@ class Agent(BaseGenAIModel, Generic[T]):
             context_selection_instructions: Custom instructions for context selection
             context_update_instructions: Custom instructions for context updates
             context_format: Format for context display - "json", "python", or "markdown"
+            verbose: If True, set logger to INFO level for detailed output
+            debug: If True, set logger to DEBUG level for maximum verbosity
             **kwargs: Additional parameters passed to the underlying language model
 
         Example:
@@ -314,11 +318,21 @@ class Agent(BaseGenAIModel, Generic[T]):
             add_name_to_instructions=self.settings.add_name_to_instructions,
         )
 
+        # Store verbose/debug settings
+        self.verbose = verbose
+        self.debug = debug
+        
+        # Set logger level based on verbose/debug flags
+        if debug:
+            logger.level = "debug"
+        elif verbose:
+            logger.level = "info"
+        
         # Initialize the language model
         if isinstance(model, LanguageModel):
             self._language_model = model
         else:
-            self._language_model = LanguageModel(model=model, **kwargs)
+            self._language_model = LanguageModel(model=model, verbose=verbose, debug=debug, **kwargs)
 
         # Context management settings
         self.context_updates = context_updates
@@ -699,6 +713,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         *,
         stream: Literal[False] = False,
         **kwargs: Any,
@@ -722,6 +738,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         *,
         stream: Literal[True],
         **kwargs: Any,
@@ -744,6 +762,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         stream: bool = False,
         **kwargs: Any,
     ) -> Union[AgentResponse[T, AgentContext], AgentStream[T, AgentContext]]:
@@ -831,132 +851,237 @@ Please update the appropriate fields based on the conversation. Only update fiel
                 **kwargs,
             )
 
-        # Use provided model or default
-        if model is None:
-            working_model = self.language_model
-        elif isinstance(model, str):
-            working_model = LanguageModel(model=model)
-        else:
-            working_model = model
-
-        # Use provided max_steps or default
-        if max_steps is None:
-            max_steps = self.settings.max_steps
-
-        # Get effective context settings
-        effective_context_settings = self._get_effective_context_settings(
-            context_updates=context_updates,
-            context_confirm=context_confirm,
-            context_strategy=context_strategy,
-            context_max_retries=context_max_retries,
-            context_confirm_instructions=context_confirm_instructions,
-            context_selection_instructions=context_selection_instructions,
-            context_update_instructions=context_update_instructions,
-            context_format=context_format,
-        )
-
-        # Parse initial messages
-        parsed_messages = parse_messages(messages)
-        current_messages = parsed_messages.copy()
-        steps: List[LanguageModelResponse[str]] = []
-
-        # RUN MAIN AGENTIC LOOP
-        for step in range(max_steps):
-            # Update context before processing if configured
-            if context and self._should_update_context(
-                context, "before", effective_context_settings["context_updates"]
-            ):
-                context = self._perform_context_update(
-                    context=context,
-                    model=working_model,
-                    current_messages=current_messages,
-                    timing="before",
-                    effective_settings=effective_context_settings,
-                )
-
-            # Format messages with instructions and context for first step only
-            if step == 0:
-                formatted_messages = self._format_messages_with_context(
-                    messages=current_messages,
-                    context=context,
-                )
+        # Set logger level for this request if specified
+        original_level = logger.level
+        if debug or (debug is None and self.debug):
+            logger.level = "debug"
+        elif verbose or (verbose is None and self.verbose):
+            logger.level = "info"
+        
+        # Log agent execution start
+        logger.info(f"Starting agent '{self.name}' execution")
+        logger.debug(f"Agent settings: max_steps={max_steps or self.settings.max_steps}, tools={len(self.tools)}")
+        
+        try:
+            # Use provided model or default
+            if model is None:
+                working_model = self.language_model
+            elif isinstance(model, str):
+                working_model = LanguageModel(model=model, verbose=verbose or self.verbose, debug=debug or self.debug)
             else:
-                formatted_messages = current_messages
+                working_model = model
 
-            # Prepare kwargs for language model
-            model_kwargs = kwargs.copy()
-            if output_type:
-                model_kwargs["type"] = output_type
-            if self.instructor_mode:
-                model_kwargs["instructor_mode"] = self.instructor_mode
+            # Use provided max_steps or default
+            if max_steps is None:
+                max_steps = self.settings.max_steps
 
-            # Get language model response
-            response = working_model.run(
-                messages=formatted_messages,
-                tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
-                **model_kwargs,
+            # Get effective context settings
+            effective_context_settings = self._get_effective_context_settings(
+                context_updates=context_updates,
+                context_confirm=context_confirm,
+                context_strategy=context_strategy,
+                context_max_retries=context_max_retries,
+                context_confirm_instructions=context_confirm_instructions,
+                context_selection_instructions=context_selection_instructions,
+                context_update_instructions=context_update_instructions,
+                context_format=context_format,
             )
 
-            # Check if response has tool calls
-            if response.has_tool_calls():
-                # Add response to message history (with tool calls)
-                current_messages.append(response.to_message())
+            # Parse initial messages
+            parsed_messages = parse_messages(messages)
+            current_messages = parsed_messages.copy()
+            steps: List[LanguageModelResponse[str]] = []
 
-                # Execute tools and add their responses to messages
-                tool_responses = execute_tools_from_language_model_response(
-                    tools=self.tools, response=response
-                )
-                # Add tool responses to message history
-                for tool_resp in tool_responses:
-                    current_messages.append(tool_resp.to_dict())
-
-                # This is not the final step, add to steps
-                steps.append(response)
-            else:
-                # No tool calls - this is the final step
-                # Update context after processing if configured
+            # RUN MAIN AGENTIC LOOP
+            logger.debug(f"Starting agentic loop with max_steps={max_steps}")
+            for step in range(max_steps):
+                logger.debug(f"Agent step {step + 1}/{max_steps}")
+                # Update context before processing if configured
                 if context and self._should_update_context(
-                    context, "after", effective_context_settings["context_updates"]
+                    context, "before", effective_context_settings["context_updates"]
                 ):
                     context = self._perform_context_update(
                         context=context,
                         model=working_model,
                         current_messages=current_messages,
-                        timing="after",
+                        timing="before",
                         effective_settings=effective_context_settings,
                     )
-                return _create_agent_response_from_language_model_response(
-                    response=response, steps=steps, context=context
+
+                # Format messages with instructions and context for first step only
+                if step == 0:
+                    formatted_messages = self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    )
+                else:
+                    formatted_messages = current_messages
+
+                # Prepare kwargs for language model
+                model_kwargs = kwargs.copy()
+                # Don't add output_type for intermediate steps - only for final response
+                if self.instructor_mode:
+                    model_kwargs["instructor_mode"] = self.instructor_mode
+
+                # Get language model response
+                response = working_model.run(
+                    messages=formatted_messages,
+                    tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
+                    **model_kwargs,
                 )
 
-        # Max steps reached - return last response
-        if steps:
-            final_response = steps[-1]
-        else:
-            # No steps taken, make a final call
-            final_response = working_model.run(
-                messages=self._format_messages_with_context(
-                    messages=current_messages,
+                # Check if response has tool calls
+                if response.has_tool_calls():
+                    logger.info(f"Agent '{self.name}' making tool calls: {len(response.tool_calls)} tools")
+                    for tool_call in response.tool_calls:
+                        logger.debug(f"Tool call: {tool_call.function.name}({tool_call.function.arguments})")
+                    
+                    # Add response to message history (with tool calls)
+                    current_messages.append(response.to_message())
+
+                    # Execute tools and add their responses to messages
+                    tool_responses = execute_tools_from_language_model_response(
+                        tools=self.tools, response=response
+                    )
+                    # Add tool responses to message history
+                    for tool_resp in tool_responses:
+                        current_messages.append(tool_resp.to_dict())
+
+                    # This is not the final step, add to steps
+                    steps.append(response)
+                else:
+                    # No tool calls - this is the final step
+                    logger.info(f"Agent '{self.name}' completed execution in {step + 1} steps")
+                    # Now we can make the final call with the output_type if specified
+                    if output_type:
+                        # Make a final call with the structured output type
+                        final_model_kwargs = kwargs.copy()
+                        final_model_kwargs["type"] = output_type
+                        if self.instructor_mode:
+                            final_model_kwargs["instructor_mode"] = self.instructor_mode
+                        
+                        # Create a clean conversation history for structured output
+                        # Include the original messages and the final response content
+                        clean_messages = []
+                        # Add original user messages (excluding tool calls/responses)
+                        for msg in formatted_messages:
+                            if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                                clean_messages.append(msg)
+                            elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                                clean_messages.append(msg.to_dict())
+                        
+                        # Add the final assistant response content
+                        clean_messages.append({
+                            "role": "assistant",
+                            "content": response.get_content()
+                        })
+                        
+                        # Use the clean conversation history to generate structured output
+                        final_response = working_model.run(
+                            messages=clean_messages,
+                            **final_model_kwargs,
+                        )
+                        
+                        # Update context after processing if configured
+                        if context and self._should_update_context(
+                            context, "after", effective_context_settings["context_updates"]
+                        ):
+                            context = self._perform_context_update(
+                                context=context,
+                                model=working_model,
+                                current_messages=current_messages,
+                                timing="after",
+                                effective_settings=effective_context_settings,
+                            )
+                        return _create_agent_response_from_language_model_response(
+                            response=final_response, steps=steps, context=context
+                        )
+                    else:
+                        # Update context after processing if configured
+                        if context and self._should_update_context(
+                            context, "after", effective_context_settings["context_updates"]
+                        ):
+                            context = self._perform_context_update(
+                                context=context,
+                                model=working_model,
+                                current_messages=current_messages,
+                                timing="after",
+                                effective_settings=effective_context_settings,
+                            )
+                        return _create_agent_response_from_language_model_response(
+                            response=response, steps=steps, context=context
+                        )
+
+            # Max steps reached - return last response
+            if steps:
+                final_response = steps[-1]
+                # If we have an output_type, make a final structured call
+                if output_type:
+                    final_model_kwargs = kwargs.copy()
+                    final_model_kwargs["type"] = output_type
+                    if self.instructor_mode:
+                        final_model_kwargs["instructor_mode"] = self.instructor_mode
+                    
+                    # Create clean messages for structured output
+                    clean_messages = []
+                    formatted_messages = self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    )
+                    
+                    # Add original user messages (excluding tool calls/responses)
+                    for msg in formatted_messages:
+                        if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                            clean_messages.append(msg)
+                        elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                            clean_messages.append(msg.to_dict())
+                    
+                    # Add final response content
+                    clean_messages.append({
+                        "role": "assistant",
+                        "content": final_response.get_content()
+                    })
+                    
+                    final_response = working_model.run(
+                        messages=clean_messages,
+                        **final_model_kwargs,
+                    )
+            else:
+                # No steps taken, make a final call
+                final_model_kwargs = kwargs.copy()
+                if output_type:
+                    final_model_kwargs["type"] = output_type
+                if self.instructor_mode:
+                    final_model_kwargs["instructor_mode"] = self.instructor_mode
+                
+                final_response = working_model.run(
+                    messages=self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    ),
+                    **final_model_kwargs,
+                )
+
+            # Update context after processing if configured
+            if context and self._should_update_context(
+                context, "after", effective_context_settings["context_updates"]
+            ):
+                context = self._perform_context_update(
                     context=context,
-                ),
-                **model_kwargs,
-            )
+                    model=working_model,
+                    current_messages=current_messages,
+                    timing="after",
+                    effective_settings=effective_context_settings,
+                )
 
-        # Update context after processing if configured
-        if context and self._should_update_context(
-            context, "after", effective_context_settings["context_updates"]
-        ):
-            context = self._perform_context_update(
-                context=context,
-                model=working_model,
-                current_messages=current_messages,
-                timing="after",
-                effective_settings=effective_context_settings,
+            return _create_agent_response_from_language_model_response(
+                response=final_response, steps=steps, context=context
             )
-
-        return _create_agent_response_from_language_model_response(
-            response=final_response, steps=steps, context=context
-        )
+        
+        finally:
+            # Restore original logger level
+            if debug is not None or verbose is not None:
+                logger.level = original_level
 
     async def async_run(
         self,
@@ -975,6 +1100,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         **kwargs: Any,
     ) -> AgentResponse[T, AgentContext]:
         """Runs this agent asynchronously and returns a final agent response.
@@ -1044,132 +1171,226 @@ Please update the appropriate fields based on the conversation. Only update fiel
             ...     )
             ...     return response.output
         """
-        # Use provided model or default
-        if model is None:
-            working_model = self.language_model
-        elif isinstance(model, str):
-            working_model = LanguageModel(model=model)
-        else:
-            working_model = model
-
-        # Use provided max_steps or default
-        if max_steps is None:
-            max_steps = self.settings.max_steps
-
-        # Get effective context settings
-        effective_context_settings = self._get_effective_context_settings(
-            context_updates=context_updates,
-            context_confirm=context_confirm,
-            context_strategy=context_strategy,
-            context_max_retries=context_max_retries,
-            context_confirm_instructions=context_confirm_instructions,
-            context_selection_instructions=context_selection_instructions,
-            context_update_instructions=context_update_instructions,
-            context_format=context_format,
-        )
-
-        # Parse initial messages
-        parsed_messages = parse_messages(messages)
-        current_messages = parsed_messages.copy()
-        steps: List[LanguageModelResponse[str]] = []
-
-        # RUN MAIN AGENTIC LOOP
-        for step in range(max_steps):
-            # Update context before processing if configured
-            if context and self._should_update_context(
-                context, "before", effective_context_settings["context_updates"]
-            ):
-                context = self._perform_context_update(
-                    context=context,
-                    model=working_model,
-                    current_messages=current_messages,
-                    timing="before",
-                    effective_settings=effective_context_settings,
-                )
-
-            # Format messages with instructions and context for first step only
-            if step == 0:
-                formatted_messages = self._format_messages_with_context(
-                    messages=current_messages,
-                    context=context,
-                )
+        # Set logger level for this request if specified
+        original_level = logger.level
+        if debug or (debug is None and self.debug):
+            logger.level = "debug"
+        elif verbose or (verbose is None and self.verbose):
+            logger.level = "info"
+        
+        try:
+            # Use provided model or default
+            if model is None:
+                working_model = self.language_model
+            elif isinstance(model, str):
+                working_model = LanguageModel(model=model, verbose=verbose or self.verbose, debug=debug or self.debug)
             else:
-                formatted_messages = current_messages
+                working_model = model
 
-            # Prepare kwargs for language model
-            model_kwargs = kwargs.copy()
-            if output_type:
-                model_kwargs["type"] = output_type
-            if self.instructor_mode:
-                model_kwargs["instructor_mode"] = self.instructor_mode
+            # Use provided max_steps or default
+            if max_steps is None:
+                max_steps = self.settings.max_steps
 
-            # Get language model response
-            response = await working_model.async_run(
-                messages=formatted_messages,
-                tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
-                **model_kwargs,
+            # Get effective context settings
+            effective_context_settings = self._get_effective_context_settings(
+                context_updates=context_updates,
+                context_confirm=context_confirm,
+                context_strategy=context_strategy,
+                context_max_retries=context_max_retries,
+                context_confirm_instructions=context_confirm_instructions,
+                context_selection_instructions=context_selection_instructions,
+                context_update_instructions=context_update_instructions,
+                context_format=context_format,
             )
 
-            # Check if response has tool calls
-            if response.has_tool_calls():
-                # Add response to message history (with tool calls)
-                current_messages.append(response.to_message())
+            # Parse initial messages
+            parsed_messages = parse_messages(messages)
+            current_messages = parsed_messages.copy()
+            steps: List[LanguageModelResponse[str]] = []
 
-                # Execute tools and add their responses to messages
-                tool_responses = execute_tools_from_language_model_response(
-                    tools=self.tools, response=response
-                )
-                # Add tool responses to message history
-                for tool_resp in tool_responses:
-                    current_messages.append(tool_resp.to_dict())
-
-                # This is not the final step, add to steps
-                steps.append(response)
-            else:
-                # No tool calls - this is the final step
-                # Update context after processing if configured
+            # RUN MAIN AGENTIC LOOP
+            for step in range(max_steps):
+                # Update context before processing if configured
                 if context and self._should_update_context(
-                    context, "after", effective_context_settings["context_updates"]
+                    context, "before", effective_context_settings["context_updates"]
                 ):
                     context = self._perform_context_update(
                         context=context,
                         model=working_model,
                         current_messages=current_messages,
-                        timing="after",
+                        timing="before",
                         effective_settings=effective_context_settings,
                     )
-                return _create_agent_response_from_language_model_response(
-                    response=response, steps=steps, context=context
+
+                # Format messages with instructions and context for first step only
+                if step == 0:
+                    formatted_messages = self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    )
+                else:
+                    formatted_messages = current_messages
+
+                # Prepare kwargs for language model
+                model_kwargs = kwargs.copy()
+                # Don't add output_type for intermediate steps - only for final response
+                if self.instructor_mode:
+                    model_kwargs["instructor_mode"] = self.instructor_mode
+
+                # Get language model response
+                response = await working_model.async_run(
+                    messages=formatted_messages,
+                    tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
+                    **model_kwargs,
                 )
 
-        # Max steps reached - return last response
-        if steps:
-            final_response = steps[-1]
-        else:
-            # No steps taken, make a final call
-            final_response = await working_model.async_run(
-                messages=self._format_messages_with_context(
-                    messages=current_messages,
+                # Check if response has tool calls
+                if response.has_tool_calls():
+                    # Add response to message history (with tool calls)
+                    current_messages.append(response.to_message())
+
+                    # Execute tools and add their responses to messages
+                    tool_responses = execute_tools_from_language_model_response(
+                        tools=self.tools, response=response
+                    )
+                    # Add tool responses to message history
+                    for tool_resp in tool_responses:
+                        current_messages.append(tool_resp.to_dict())
+
+                    # This is not the final step, add to steps
+                    steps.append(response)
+                else:
+                    # No tool calls - this is the final step
+                    # Now we can make the final call with the output_type if specified
+                    if output_type:
+                        # Make a final call with the structured output type
+                        final_model_kwargs = kwargs.copy()
+                        final_model_kwargs["type"] = output_type
+                        if self.instructor_mode:
+                            final_model_kwargs["instructor_mode"] = self.instructor_mode
+                        
+                        # Create a clean conversation history for structured output
+                        # Include the original messages and the final response content
+                        clean_messages = []
+                        # Add original user messages (excluding tool calls/responses)
+                        for msg in formatted_messages:
+                            if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                                clean_messages.append(msg)
+                            elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                                clean_messages.append(msg.to_dict())
+                        
+                        # Add the final assistant response content
+                        clean_messages.append({
+                            "role": "assistant",
+                            "content": response.get_content()
+                        })
+                        
+                        # Use the clean conversation history to generate structured output
+                        final_response = await working_model.async_run(
+                            messages=clean_messages,
+                            **final_model_kwargs,
+                        )
+                        
+                        # Update context after processing if configured
+                        if context and self._should_update_context(
+                            context, "after", effective_context_settings["context_updates"]
+                        ):
+                            context = self._perform_context_update(
+                                context=context,
+                                model=working_model,
+                                current_messages=current_messages,
+                                timing="after",
+                                effective_settings=effective_context_settings,
+                            )
+                        return _create_agent_response_from_language_model_response(
+                            response=final_response, steps=steps, context=context
+                        )
+                    else:
+                        # Update context after processing if configured
+                        if context and self._should_update_context(
+                            context, "after", effective_context_settings["context_updates"]
+                        ):
+                            context = self._perform_context_update(
+                                context=context,
+                                model=working_model,
+                                current_messages=current_messages,
+                                timing="after",
+                                effective_settings=effective_context_settings,
+                            )
+                        return _create_agent_response_from_language_model_response(
+                            response=response, steps=steps, context=context
+                        )
+
+            # Max steps reached - return last response
+            if steps:
+                final_response = steps[-1]
+                # If we have an output_type, make a final structured call
+                if output_type:
+                    final_model_kwargs = kwargs.copy()
+                    final_model_kwargs["type"] = output_type
+                    if self.instructor_mode:
+                        final_model_kwargs["instructor_mode"] = self.instructor_mode
+                    
+                    # Create clean messages for structured output
+                    clean_messages = []
+                    formatted_messages = self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    )
+                    
+                    # Add original user messages (excluding tool calls/responses)
+                    for msg in formatted_messages:
+                        if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                            clean_messages.append(msg)
+                        elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                            clean_messages.append(msg.to_dict())
+                    
+                    # Add final response content
+                    clean_messages.append({
+                        "role": "assistant",
+                        "content": final_response.get_content()
+                    })
+                    
+                    final_response = await working_model.async_run(
+                        messages=clean_messages,
+                        **final_model_kwargs,
+                    )
+            else:
+                # No steps taken, make a final call
+                final_model_kwargs = kwargs.copy()
+                if output_type:
+                    final_model_kwargs["type"] = output_type
+                if self.instructor_mode:
+                    final_model_kwargs["instructor_mode"] = self.instructor_mode
+                
+                final_response = await working_model.async_run(
+                    messages=self._format_messages_with_context(
+                        messages=current_messages,
+                        context=context,
+                    ),
+                    **final_model_kwargs,
+                )
+
+            # Update context after processing if configured
+            if context and self._should_update_context(
+                context, "after", effective_context_settings["context_updates"]
+            ):
+                context = self._perform_context_update(
                     context=context,
-                ),
-                **model_kwargs,
-            )
+                    model=working_model,
+                    current_messages=current_messages,
+                    timing="after",
+                    effective_settings=effective_context_settings,
+                )
 
-        # Update context after processing if configured
-        if context and self._should_update_context(
-            context, "after", effective_context_settings["context_updates"]
-        ):
-            context = self._perform_context_update(
-                context=context,
-                model=working_model,
-                current_messages=current_messages,
-                timing="after",
-                effective_settings=effective_context_settings,
+            return _create_agent_response_from_language_model_response(
+                response=final_response, steps=steps, context=context
             )
-
-        return _create_agent_response_from_language_model_response(
-            response=final_response, steps=steps, context=context
-        )
+        
+        finally:
+            # Restore original logger level
+            if debug is not None or verbose is not None:
+                logger.level = original_level
 
     def stream(
         self,
@@ -1370,6 +1591,8 @@ def create_agent(
     context_selection_instructions: Optional[str] = None,
     context_update_instructions: Optional[str] = None,
     context_format: Literal["json", "python", "markdown"] = "json",
+    verbose: bool = False,
+    debug: bool = False,
     **kwargs: Any,
 ) -> Agent[T]:
     """Create a new AI agent with specified capabilities and behavior.
@@ -1394,6 +1617,8 @@ def create_agent(
         context_selection_instructions: Custom instructions for context selection
         context_update_instructions: Custom instructions for context updates
         context_format: Format for context display - "json", "python", or "markdown"
+        verbose: If True, set logger to INFO level for detailed output
+        debug: If True, set logger to DEBUG level for maximum verbosity
         **kwargs: Additional parameters passed to the underlying language model
 
     Example:
@@ -1425,6 +1650,8 @@ def create_agent(
         context_selection_instructions=context_selection_instructions,
         context_update_instructions=context_update_instructions,
         context_format=context_format,
+        verbose=verbose,
+        debug=debug,
         **kwargs,
     )
 

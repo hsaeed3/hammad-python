@@ -100,6 +100,8 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         instructor_mode: LanguageModelInstructorMode = "tool_call",
+        verbose: bool = False,
+        debug: bool = False,
         **kwargs: Any,
     ):
         """Initialize the language model.
@@ -109,6 +111,8 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             base_url: Custom base URL for the API
             api_key: API key for authentication
             instructor_mode: Default instructor mode for structured outputs
+            verbose: If True, set logger to INFO level for detailed output
+            debug: If True, set logger to DEBUG level for maximum verbosity
             **kwargs: Additional arguments passed to BaseGenAIModel
         """
         # Initialize BaseGenAIModel via super()
@@ -116,6 +120,14 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
 
         # Initialize LanguageModel-specific attributes
         self._instructor_client = None
+        self.verbose = verbose
+        self.debug = debug
+        
+        # Set logger level based on verbose/debug flags
+        if debug:
+            logger.setLevel("DEBUG")
+        elif verbose:
+            logger.setLevel("INFO")
 
         logger.info(f"Initialized LanguageModel w/ model: {self.model}")
         logger.debug(f"LanguageModel settings: {self.settings}")
@@ -337,6 +349,8 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         messages: LanguageModelMessages,
         instructions: Optional[str] = None,
         mock_response: Optional[str] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         **kwargs: Any,
     ) -> Union[LanguageModelResponse[Any], LanguageModelStream[Any]]:
         """Run a language model request.
@@ -345,11 +359,20 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             messages: The input messages/content for the request
             instructions: Optional system instructions to prepend
             mock_response: Mock response string for testing (saves API costs)
+            verbose: If True, set logger to INFO level for this request
+            debug: If True, set logger to DEBUG level for this request
             **kwargs: Additional request parameters
 
         Returns:
             LanguageModelResponse or LanguageModelStream depending on parameters
         """
+        # Set logger level for this request if specified
+        original_level = logger.level
+        if debug or (debug is None and self.debug):
+            logger.setLevel("DEBUG")
+        elif verbose or (verbose is None and self.verbose):
+            logger.setLevel("INFO")
+        
         logger.info(f"Running LanguageModel request with model: {self.model}")
         logger.debug(f"LanguageModel request kwargs: {kwargs}")
 
@@ -388,6 +411,10 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
 
         except Exception as e:
             raise LanguageModelError(f"Error in language model request: {e}") from e
+        finally:
+            # Restore original logger level
+            if debug is not None or verbose is not None:
+                logger.setLevel(original_level)
 
     # Overloaded async_run methods for different return types
 
@@ -574,6 +601,8 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         messages: LanguageModelMessages,
         instructions: Optional[str] = None,
         mock_response: Optional[str] = None,
+        verbose: Optional[bool] = None,
+        debug: Optional[bool] = None,
         **kwargs: Any,
     ) -> Union[LanguageModelResponse[Any], LanguageModelStream[Any]]:
         """Run an async language model request.
@@ -582,11 +611,20 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             messages: The input messages/content for the request
             instructions: Optional system instructions to prepend
             mock_response: Mock response string for testing (saves API costs)
+            verbose: If True, set logger to INFO level for this request
+            debug: If True, set logger to DEBUG level for this request
             **kwargs: Additional request parameters
 
         Returns:
             LanguageModelResponse or LanguageModelAsyncStream depending on parameters
         """
+        # Set logger level for this request if specified
+        original_level = logger.level
+        if debug or (debug is None and self.debug):
+            logger.setLevel("DEBUG")
+        elif verbose or (verbose is None and self.verbose):
+            logger.setLevel("INFO")
+        
         logger.info(f"Running async LanguageModel request with model: {self.model}")
         logger.debug(f"LanguageModel request kwargs: {kwargs}")
 
@@ -631,6 +669,10 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             raise LanguageModelError(
                 f"Error in async language model request: {e}"
             ) from e
+        finally:
+            # Restore original logger level
+            if debug is not None or verbose is not None:
+                logger.setLevel(original_level)
 
     def _handle_completion_request(
         self, request: LanguageModelRequestBuilder, parsed_messages: List[Any]
@@ -1038,6 +1080,8 @@ def create_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> LanguageModel:
     """Create a language model instance."""
     return LanguageModel(
@@ -1049,4 +1093,6 @@ def create_language_model(
         deployment_id=deployment_id,
         model_list=model_list,
         extra_headers=extra_headers,
+        verbose=verbose,
+        debug=debug,
     )

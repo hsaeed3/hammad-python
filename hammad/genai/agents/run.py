@@ -123,7 +123,7 @@ def run_agent(
 ) -> "AgentResponse[T]": ...
 
 
-def run_agent(messages: "AgentMessages", **kwargs: Any) -> "AgentResponse[Any]":
+def run_agent(messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any) -> "AgentResponse[Any]":
     """Runs this agent and returns a final agent response or stream.
 
     You can override defaults assigned to this agent from this function directly.
@@ -145,6 +145,8 @@ def run_agent(messages: "AgentMessages", **kwargs: Any) -> "AgentResponse[Any]":
         stream: Whether to return a stream instead of a final response.
             - If True, returns AgentStream for real-time processing
             - If False, returns complete AgentResponse
+        verbose: If True, set logger to INFO level for detailed output
+        debug: If True, set logger to DEBUG level for maximum verbosity
         **kwargs: Additional keyword arguments passed to the language model.
             - Examples: temperature=0.7, top_p=0.9, presence_penalty=0.1
 
@@ -195,8 +197,8 @@ def run_agent(messages: "AgentMessages", **kwargs: Any) -> "AgentResponse[Any]":
         ...     context=context
         ... )
     """
-    agent = Agent(**kwargs)
-    return agent.run(messages, **kwargs)
+    agent = Agent(verbose=verbose, debug=debug, **kwargs)
+    return agent.run(messages, verbose=verbose, debug=debug, **kwargs)
 
 
 # Overloads for async_run_agent
@@ -347,8 +349,8 @@ async def async_run_agent(
         ...     )
         ...     return response.output
     """
-    agent = Agent(**kwargs)
-    return await agent.async_run(messages, **kwargs)
+    agent = Agent(verbose=verbose, debug=debug, **kwargs)
+    return await agent.async_run(messages, verbose=verbose, debug=debug, **kwargs)
 
 
 # Overloads for run_agent_iter
@@ -513,8 +515,8 @@ def run_agent_iter(messages: "AgentMessages", **kwargs: Any) -> "AgentStream[Any
         ... except Exception as e:
         ...     print(f"Stream error: {e}")
     """
-    agent = Agent(**kwargs)
-    return agent.run(messages, stream=True, **kwargs)
+    agent = Agent(verbose=verbose, debug=debug, **kwargs)
+    return agent.run(messages, stream=True, verbose=verbose, debug=debug, **kwargs)
 
 
 # Overloads for async_run_agent_iter
@@ -596,7 +598,7 @@ def async_run_agent_iter(
 
 
 def async_run_agent_iter(
-    messages: "AgentMessages", **kwargs: Any
+    messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any
 ) -> "AgentStream[Any]":
     """Async iterate over agent steps, yielding each step response.
 
@@ -611,5 +613,5 @@ def async_run_agent_iter(
     Returns:
         An AgentStream that can be iterated over asynchronously
     """
-    agent = Agent(**kwargs)
-    return agent.run(messages, stream=True, **kwargs)
+    agent = Agent(verbose=verbose, debug=debug, **kwargs)
+    return agent.run(messages, stream=True, verbose=verbose, debug=debug, **kwargs)

@@ -275,6 +275,8 @@ def run_language_model(
     messages: "LanguageModelMessages",
     instructions: Optional[str] = None,
     mock_response: Optional[bool] = None,
+    verbose: bool = False,
+    debug: bool = False,
     **kwargs: Any,
 ) -> Union["LanguageModelResponse[Any]", "LanguageModelStream[Any]"]:
     """Run a language model request with full parameter support.
@@ -282,6 +284,8 @@ def run_language_model(
     Args:
         messages: The input messages/content for the request
         instructions: Optional system instructions to prepend
+        verbose: If True, set logger to INFO level for detailed output
+        debug: If True, set logger to DEBUG level for maximum verbosity
         **kwargs: All request parameters from LanguageModelRequest
 
     Returns:
@@ -291,11 +295,11 @@ def run_language_model(
     model = kwargs.pop("model", "openai/gpt-4o-mini")
 
     # Create language model instance
-    language_model = LanguageModel(model=model)
+    language_model = LanguageModel(model=model, verbose=verbose, debug=debug)
 
     # Forward to the instance method
     return language_model.run(
-        messages, instructions, mock_response=mock_response, **kwargs
+        messages, instructions, mock_response=mock_response, verbose=verbose, debug=debug, **kwargs
     )
 
 
@@ -528,6 +532,8 @@ async def async_run_language_model(
     messages: "LanguageModelMessages",
     instructions: Optional[str] = None,
     mock_response: Optional[bool] = None,
+    verbose: bool = False,
+    debug: bool = False,
     **kwargs: Any,
 ) -> Union["LanguageModelResponse[Any]", "LanguageModelStream[Any]"]:
     """Run an async language model request with full parameter support.
@@ -535,6 +541,8 @@ async def async_run_language_model(
     Args:
         messages: The input messages/content for the request
         instructions: Optional system instructions to prepend
+        verbose: If True, set logger to INFO level for detailed output
+        debug: If True, set logger to DEBUG level for maximum verbosity
         **kwargs: All request parameters from LanguageModelRequest
 
     Returns:
@@ -544,9 +552,9 @@ async def async_run_language_model(
     model = kwargs.pop("model", "openai/gpt-4o-mini")
 
     # Create language model instance
-    language_model = LanguageModel(model=model)
+    language_model = LanguageModel(model=model, verbose=verbose, debug=debug)
 
     # Forward to the instance method
     return await language_model.async_run(
-        messages, instructions, mock_response=mock_response, **kwargs
+        messages, instructions, mock_response=mock_response, verbose=verbose, debug=debug, **kwargs
     )
