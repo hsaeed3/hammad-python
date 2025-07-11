@@ -47,7 +47,6 @@ __all__ = (
     # hammad.data.types
     "BaseText",
     "Text",
-
     # hammad.data.models
     "Model",
     "model_settings",
@@ -55,7 +54,6 @@ __all__ = (
     "validator",
     "is_field",
     "is_model",
-
     # hammad.data.collections
     "Collection",
     "TantivyCollectionIndex",
@@ -64,12 +62,10 @@ __all__ = (
     "TantivyCollectionIndexQuerySettings",
     "QdrantCollectionIndexSettings",
     "QdrantCollectionIndexQuerySettings",
-
     # hammad.data.sql
     "DatabaseItemType",
     "DatabaseItem",
     "Database",
-
     # hammad.data.configurations
     "Configuration",
 )

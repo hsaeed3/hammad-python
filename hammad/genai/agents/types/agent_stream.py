@@ -34,7 +34,10 @@ from ...models.language.utils.requests import (
     consolidate_system_messages,
 )
 
-from .agent_response import AgentResponse, _create_agent_response_from_language_model_response
+from .agent_response import (
+    AgentResponse,
+    _create_agent_response_from_language_model_response,
+)
 
 if TYPE_CHECKING:
     from ..agent import Agent
@@ -56,7 +59,7 @@ class AgentResponseChunk(LanguageModelResponseChunk[T], Generic[T]):
         **kwargs: Any,
     ):
         """Initialize a AgentResponseChunk.
-        
+
         Args:
             step_number: The step number of this chunk
             response: The language model response for this step
@@ -134,9 +137,7 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T]):
         if stream:
             self.model_kwargs["stream"] = stream
 
-    def _format_messages(
-        self, messages: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _format_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if self.agent.instructions:
             system_message = {"role": "system", "content": self.agent.instructions}
             messages = [system_message] + messages
@@ -239,5 +240,3 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T]):
         async for _ in self:
             pass
         return self._build_response()
-
-

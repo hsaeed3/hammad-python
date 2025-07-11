@@ -21,7 +21,7 @@ else:
 
 if TYPE_CHECKING:
     pass
-        
+
 from .language_model_name import LanguageModelName
 from .language_model_instructor_mode import LanguageModelInstructorMode
 from ....types.base import BaseGenAIModelSettings
@@ -37,7 +37,7 @@ T = TypeVar("T")
 
 class LanguageModelSettings(BaseGenAIModelSettings):
     """Complete settings for language model requests."""
-    
+
     # Structured output settings
     type: Optional[Type[T]] = None
     instructor_mode: Optional[LanguageModelInstructorMode] = None
@@ -47,25 +47,25 @@ class LanguageModelSettings(BaseGenAIModelSettings):
     strict: Optional[bool] = None
     validation_context: Optional[Dict[str, Any]] = None
     context: Optional[Dict[str, Any]] = None
-    
+
     # Tool settings
     tools: Optional[List[Any]] = None
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
     parallel_tool_calls: Optional[bool] = None
     functions: Optional[List[Any]] = None
     function_call: Optional[str] = None
-    
+
     # Streaming settings
     stream: Optional[bool] = None
     stream_options: Optional[Dict[str, Any]] = None
-    
+
     # Hook settings
     completion_kwargs_hooks: Optional[List[Callable[..., None]]] = None
     completion_response_hooks: Optional[List[Callable[..., None]]] = None
     completion_error_hooks: Optional[List[Callable[..., None]]] = None
     completion_last_attempt_hooks: Optional[List[Callable[..., None]]] = None
     parse_error_hooks: Optional[List[Callable[..., None]]] = None
-    
+
     # Extended settings
     timeout: Optional[Union[float, str]] = None
     temperature: Optional[float] = None

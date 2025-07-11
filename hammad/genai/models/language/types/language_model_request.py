@@ -24,7 +24,7 @@ if TYPE_CHECKING:
         ChatCompletionPredictionContentParam,
         ChatCompletionAudioParam,
     )
-        
+
 from .language_model_name import LanguageModelName
 from .language_model_instructor_mode import LanguageModelInstructorMode
 
@@ -38,6 +38,7 @@ T = TypeVar("T")
 
 class LanguageModelRequestProviderSettings(TypedDict, total=False):
     """Provider-specific settings for language model requests."""
+
     model: Required[LanguageModelName]
     base_url: NotRequired[str]
     api_key: NotRequired[str]
@@ -50,6 +51,7 @@ class LanguageModelRequestProviderSettings(TypedDict, total=False):
 
 class LanguageModelRequestStructuredOutputSettings(TypedDict, total=False):
     """Settings for structured output generation."""
+
     type: Required[Type[T]]
     instructor_mode: NotRequired[LanguageModelInstructorMode]
     response_field_name: NotRequired[str]
@@ -62,6 +64,7 @@ class LanguageModelRequestStructuredOutputSettings(TypedDict, total=False):
 
 class LanguageModelRequestToolsSettings(TypedDict, total=False):
     """Settings for tool usage in language model requests."""
+
     tools: NotRequired[List[Any]]
     tool_choice: NotRequired[Union[str, Dict[str, Any]]]
     parallel_tool_calls: NotRequired[bool]
@@ -71,12 +74,14 @@ class LanguageModelRequestToolsSettings(TypedDict, total=False):
 
 class LanguageModelRequestStreamingSettings(TypedDict, total=False):
     """Settings for streaming responses."""
+
     stream: Required[bool]
     stream_options: NotRequired[Dict[str, Any]]
 
 
 class LanguageModelRequestHooksSettings(TypedDict, total=False):
     """Settings for instructor hooks."""
+
     completion_kwargs_hooks: NotRequired[List[Callable[..., None]]]
     completion_response_hooks: NotRequired[List[Callable[..., None]]]
     completion_error_hooks: NotRequired[List[Callable[..., None]]]
@@ -86,6 +91,7 @@ class LanguageModelRequestHooksSettings(TypedDict, total=False):
 
 class LanguageModelRequestExtendedSettings(TypedDict, total=False):
     """Extended settings for language model requests."""
+
     timeout: NotRequired[Union[float, str, "Timeout"]]
     temperature: NotRequired[float]
     top_p: NotRequired[float]
@@ -117,4 +123,5 @@ class LanguageModelRequest(
     LanguageModelRequestExtendedSettings,
 ):
     """Complete settings for language model requests."""
+
     pass

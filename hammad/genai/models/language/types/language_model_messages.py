@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-LanguageModelMessages : TypeAlias = Union[
+LanguageModelMessages: TypeAlias = Union[
     str,
     "ChatCompletionMessageParam",
     "List[ChatCompletionMessageParam]",

@@ -19,17 +19,13 @@ if TYPE_CHECKING:
 
 __all__ = [
     "EmbeddingModel",
-
     # hammad.genai.models.embeddings.run
     "run_embedding_model",
     "async_run_embedding_model",
-
     # hammad.genai.models.embeddings.types.embedding
     "Embedding",
-
     # hammad.genai.models.embeddings.types.embedding_model_response
     "EmbeddingModelResponse",
-
     # hammad.genai.models.embeddings.types.embedding_model_settings
     "EmbeddingModelSettings",
 ]
@@ -41,4 +37,3 @@ __getattr__ = create_getattr_importer(__all__)
 def __dir__() -> list[str]:
     """Return the list of attributes to be shown in the REPL."""
     return __all__
-

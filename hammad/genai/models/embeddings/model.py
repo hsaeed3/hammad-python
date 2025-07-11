@@ -39,7 +39,9 @@ class EmbeddingModelError(Exception):
         super().__init__(self.message)
 
 
-def _parse_litellm_response_to_embedding_model_response(response: "litellm.EmbeddingResponse") -> EmbeddingModelResponse:
+def _parse_litellm_response_to_embedding_model_response(
+    response: "litellm.EmbeddingResponse",
+) -> EmbeddingModelResponse:
     """Parse the response from `litellm` to an `EmbeddingModelResponse` object."""
     try:
         embedding_data: List[Embedding] = []
@@ -70,7 +72,7 @@ def _parse_litellm_response_to_embedding_model_response(response: "litellm.Embed
 class EmbeddingModel:
     """Embeddings provider client that utilizes the `litellm` module
     when generating embeddings."""
-    
+
     model: EmbeddingModelName | str = "openai/text-embedding-3-small"
 
     base_url: Optional[str] = None
@@ -87,7 +89,7 @@ class EmbeddingModel:
 
     settings: EmbeddingModelSettings = EmbeddingModelSettings()
     """Optional settings for the embedding model."""
-    
+
     async def async_run(
         self,
         input: List[Any] | Any,
@@ -147,7 +149,9 @@ class EmbeddingModel:
                 user=user or self.settings.user,
             )
         except Exception as e:
-            raise EmbeddingModelError(f"Error in embedding model request: {e}", response=None) from e
+            raise EmbeddingModelError(
+                f"Error in embedding model request: {e}", response=None
+            ) from e
 
         return _parse_litellm_response_to_embedding_model_response(response)
 

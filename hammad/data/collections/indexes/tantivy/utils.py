@@ -1,25 +1,15 @@
 """hammad.data.collections.indexes.tantivy.utils"""
 
-from dataclasses import (
-    dataclass,
-    is_dataclass,
-    asdict
-)
+from dataclasses import dataclass, is_dataclass, asdict
 from msgspec import json
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    final
-)
+from typing import Any, Dict, List, Optional, final
 
 import tantivy
 
 from .....cache import cached
 from .settings import (
     TantivyCollectionIndexSettings,
-    TantivyCollectionIndexQuerySettings
+    TantivyCollectionIndexQuerySettings,
 )
 
 
@@ -37,20 +27,20 @@ class TantivyCollectionIndexError(Exception):
 class TantivyIndexWrapper:
     """Wrapper over the `tantivy` index object."""
 
-    index : tantivy.Index
+    index: tantivy.Index
     """The `tantivy` index object."""
 
-    schema : tantivy.Schema
+    schema: tantivy.Schema
     """The `tantivy` schema object."""
 
-    index_writer : Any
+    index_writer: Any
     """The `tantivy` index writer object."""
 
 
 @cached
 def match_filters_for_query(
-    stored_filters : Dict[str, Any] | None = None,
-    query_filters : Dict[str, Any] | None = None
+    stored_filters: Dict[str, Any] | None = None,
+    query_filters: Dict[str, Any] | None = None,
 ) -> bool:
     """Checks if stored filters match query filters."""
     if query_filters is None:
@@ -61,9 +51,7 @@ def match_filters_for_query(
 
 
 @cached
-def serialize(
-    obj : Any
-) -> Any:
+def serialize(obj: Any) -> Any:
     """Serializes an object to JSON."""
     try:
         return json.decode(json.encode(obj))
@@ -85,7 +73,7 @@ def serialize(
 
 @cached
 def build_tantivy_index_from_settings(
-    settings : TantivyCollectionIndexSettings
+    settings: TantivyCollectionIndexSettings,
 ) -> TantivyIndexWrapper:
     """Builds a new `tantivy` index from the given settings."""
     # Init schema for index
@@ -93,48 +81,41 @@ def build_tantivy_index_from_settings(
 
     # Add fields
     # ID (stored and indexed)
-    schema_builder.add_text_field(
-        "id",
-        **settings.get_tantivy_config()["text_fields"]
-    )
+    schema_builder.add_text_field("id", **settings.get_tantivy_config()["text_fields"])
     # Content (stored and indexed) Contains entry content
     schema_builder.add_text_field(
         "content",
         **{
             **settings.get_tantivy_config()["text_fields"],
-            "tokenizer_name" : "default",
-            "index_option" : "position"
-        }
+            "tokenizer_name": "default",
+            "index_option": "position",
+        },
     )
     # Title (stored and indexed) Contains entry title
     schema_builder.add_text_field(
         "title",
         **{
             **settings.get_tantivy_config()["text_fields"],
-            "tokenizer_name" : "default",
-            "index_option" : "position"
-        }
+            "tokenizer_name": "default",
+            "index_option": "position",
+        },
     )
     # JSON (stored) Contains actual entry data
     schema_builder.add_json_field(
-        "data",
-        **settings.get_tantivy_config()["json_fields"]
+        "data", **settings.get_tantivy_config()["json_fields"]
     )
 
     # Timestamps
     schema_builder.add_date_field(
-        "created_at",
-        **settings.get_tantivy_config()["date_fields"]
+        "created_at", **settings.get_tantivy_config()["date_fields"]
     )
     schema_builder.add_date_field(
-        "expires_at",
-        **settings.get_tantivy_config()["date_fields"]
+        "expires_at", **settings.get_tantivy_config()["date_fields"]
     )
 
     # Sorting / Scoring
     schema_builder.add_integer_field(
-        "score",
-        **settings.get_tantivy_config()["numeric_fields"]
+        "score", **settings.get_tantivy_config()["numeric_fields"]
     )
 
     # Facet for Optional filters
@@ -151,7 +132,9 @@ def build_tantivy_index_from_settings(
     if "writer_heap_size" in settings.get_tantivy_config():
         writer_config["heap_size"] = settings.get_tantivy_config()["writer_heap_size"]
     if "writer_num_threads" in settings.get_tantivy_config():
-        writer_config["num_threads"] = settings.get_tantivy_config()["writer_num_threads"]
+        writer_config["num_threads"] = settings.get_tantivy_config()[
+            "writer_num_threads"
+        ]
 
     index_writer = index.writer(**writer_config)
 
@@ -160,16 +143,9 @@ def build_tantivy_index_from_settings(
     if reader_config:
         reload_policy = reader_config.get("reload_policy", "commit")
         num_warmers = reader_config.get("num_warmers", 0)
-        index.config_reader(
-            reload_policy=reload_policy,
-            num_warmers=num_warmers
-        )
+        index.config_reader(reload_policy=reload_policy, num_warmers=num_warmers)
 
-    return TantivyIndexWrapper(
-        schema=schema,
-        index=index,
-        index_writer=index_writer
-    )
+    return TantivyIndexWrapper(schema=schema, index=index, index_writer=index_writer)
 
 
 @cached

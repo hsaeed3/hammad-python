@@ -21,7 +21,7 @@ try:
         create_engine,
         Column,
         String,
-        Text, 
+        Text,
         DateTime,
         Integer,
         MetaData,
@@ -36,6 +36,7 @@ try:
     )
     from sqlalchemy.orm import sessionmaker, Session
     from sqlalchemy.sql import Select
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     # SQLAlchemy not available
@@ -69,7 +70,7 @@ class Database(Generic[DatabaseItemType]):
     """
     A clean SQL-based database implementation using SQLAlchemy that provides
     the lowest-level storage backend for collections.
-    
+
     Features:
     - Optional schema validation
     - Custom path format support (memory or file-based)
@@ -91,7 +92,7 @@ class Database(Generic[DatabaseItemType]):
     ) -> None:
         """
         Initialize a new Database instance.
-        
+
         Args:
             name: The name of the database
             schema: Optional schema type for validation
@@ -168,7 +169,7 @@ class Database(Generic[DatabaseItemType]):
     def _serialize_item(self, item: DatabaseItemType) -> str:
         """Serialize an item to JSON string."""
         from dataclasses import is_dataclass, asdict
-        
+
         if isinstance(item, (str, int, float, bool, type(None))):
             return json.dumps(item)
         elif isinstance(item, (list, dict)):
@@ -188,9 +189,7 @@ class Database(Generic[DatabaseItemType]):
         """Validate item against schema if one is set."""
         if self.schema is not None:
             if not isinstance(item, self.schema):
-                raise ValueError(
-                    f"Item is not of type {self.schema.__name__}"
-                )
+                raise ValueError(f"Item is not of type {self.schema.__name__}")
 
     def _build_query_conditions(
         self,
@@ -199,12 +198,12 @@ class Database(Generic[DatabaseItemType]):
     ) -> Any:
         """Build SQLAlchemy query conditions from QueryFilter."""
         conditions = []
-        
+
         for condition in query_filter.conditions:
             column = getattr(table.c, condition.field, None)
             if column is None:
                 continue
-                
+
             if condition.operator == "eq":
                 conditions.append(column == condition.value)
             elif condition.operator == "ne":
@@ -238,7 +237,7 @@ class Database(Generic[DatabaseItemType]):
 
         if not conditions:
             return None
-            
+
         if query_filter.logic == "and":
             return and_(*conditions)
         else:  # or
@@ -248,27 +247,25 @@ class Database(Generic[DatabaseItemType]):
         """Remove expired items from the database."""
         if not self.auto_cleanup_expired:
             return 0
-            
+
         now = datetime.now(timezone.utc)
-        
+
         # Find expired items by checking created_at + ttl < now
         stmt = select(self._table).where(
             and_(
                 self._table.c.ttl.isnot(None),
-                self._table.c.created_at + 
-                    (self._table.c.ttl * timedelta(seconds=1)) < now
+                self._table.c.created_at + (self._table.c.ttl * timedelta(seconds=1))
+                < now,
             )
         )
-        
+
         expired_items = session.execute(stmt).fetchall()
         expired_ids = [item.id for item in expired_items]
-        
+
         if expired_ids:
-            delete_stmt = delete(self._table).where(
-                self._table.c.id.in_(expired_ids)
-            )
+            delete_stmt = delete(self._table).where(self._table.c.id.in_(expired_ids))
             session.execute(delete_stmt)
-            
+
         return len(expired_ids)
 
     def add(
@@ -281,31 +278,31 @@ class Database(Generic[DatabaseItemType]):
     ) -> str:
         """
         Add an item to the database.
-        
+
         Args:
             item: The item to store
             id: Optional ID (will generate UUID if not provided)
             filters: Optional filters/metadata
             ttl: Optional TTL in seconds
-            
+
         Returns:
             The ID of the stored item
         """
         self._validate_schema(item)
-        
+
         item_id = id or str(uuid.uuid4())
         item_ttl = ttl or self.ttl
         now = datetime.now(timezone.utc)
-        
+
         serialized_item = self._serialize_item(item)
         serialized_filters = json.dumps(filters or {})
-        
+
         with self._session_factory() as session:
             # Check if item already exists
             existing = session.execute(
                 select(self._table).where(self._table.c.id == item_id)
             ).fetchone()
-            
+
             if existing:
                 # Update existing item
                 stmt = (
@@ -329,14 +326,14 @@ class Database(Generic[DatabaseItemType]):
                     ttl=item_ttl,
                     table_name=self.table_name,
                 )
-            
+
             session.execute(stmt)
-            
+
             # Cleanup expired items
             self._cleanup_expired_items(session)
-            
+
             session.commit()
-            
+
         return item_id
 
     def get(
@@ -347,42 +344,40 @@ class Database(Generic[DatabaseItemType]):
     ) -> Optional[DatabaseItem[DatabaseItemType]]:
         """
         Get an item by ID.
-        
+
         Args:
             id: The item ID
             filters: Optional filters to match
-            
+
         Returns:
             The database item or None if not found
         """
         with self._session_factory() as session:
             stmt = select(self._table).where(self._table.c.id == id)
             result = session.execute(stmt).fetchone()
-            
+
             if not result:
                 return None
-            
+
             # Check if expired
             if result.ttl is not None:
                 expires_at = result.created_at + timedelta(seconds=result.ttl)
                 if datetime.now(timezone.utc) >= expires_at:
                     # Delete expired item
-                    session.execute(
-                        delete(self._table).where(self._table.c.id == id)
-                    )
+                    session.execute(delete(self._table).where(self._table.c.id == id))
                     session.commit()
                     return None
-            
+
             # Check filters if provided
             if filters:
                 stored_filters = json.loads(result.filters or "{}")
                 if not all(stored_filters.get(k) == v for k, v in filters.items()):
                     return None
-            
+
             # Deserialize and return
             item_data = self._deserialize_item(result.item_data)
             stored_filters = json.loads(result.filters or "{}")
-            
+
             return DatabaseItem(
                 id=result.id,
                 item=item_data,
@@ -404,29 +399,29 @@ class Database(Generic[DatabaseItemType]):
     ) -> List[DatabaseItem[DatabaseItemType]]:
         """
         Query items from the database.
-        
+
         Args:
             query_filter: Filter conditions to apply
             limit: Maximum number of results
             offset: Number of results to skip
             order_by: Field to order by
             ascending: Sort direction
-            
+
         Returns:
             List of matching database items
         """
         with self._session_factory() as session:
             # Cleanup expired items first
             self._cleanup_expired_items(session)
-            
+
             stmt = select(self._table)
-            
+
             # Apply filters
             if query_filter:
                 conditions = self._build_query_conditions(query_filter, self._table)
                 if conditions is not None:
                     stmt = stmt.where(conditions)
-            
+
             # Apply ordering
             if order_by:
                 column = getattr(self._table.c, order_by, None)
@@ -438,15 +433,15 @@ class Database(Generic[DatabaseItemType]):
             else:
                 # Default order by created_at desc
                 stmt = stmt.order_by(self._table.c.created_at.desc())
-            
+
             # Apply pagination
             if offset > 0:
                 stmt = stmt.offset(offset)
             if limit is not None:
                 stmt = stmt.limit(limit)
-            
+
             results = session.execute(stmt).fetchall()
-            
+
             items = []
             for result in results:
                 # Double-check expiration (in case of race conditions)
@@ -454,29 +449,31 @@ class Database(Generic[DatabaseItemType]):
                     expires_at = result.created_at + timedelta(seconds=result.ttl)
                     if datetime.now(timezone.utc) >= expires_at:
                         continue
-                
+
                 item_data = self._deserialize_item(result.item_data)
                 stored_filters = json.loads(result.filters or "{}")
-                
-                items.append(DatabaseItem(
-                    id=result.id,
-                    item=item_data,
-                    created_at=result.created_at,
-                    updated_at=result.updated_at,
-                    ttl=result.ttl,
-                    filters=stored_filters,
-                    table_name=result.table_name,
-                ))
-            
+
+                items.append(
+                    DatabaseItem(
+                        id=result.id,
+                        item=item_data,
+                        created_at=result.created_at,
+                        updated_at=result.updated_at,
+                        ttl=result.ttl,
+                        filters=stored_filters,
+                        table_name=result.table_name,
+                    )
+                )
+
             return items
 
     def delete(self, id: str) -> bool:
         """
         Delete an item by ID.
-        
+
         Args:
             id: The item ID
-            
+
         Returns:
             True if item was deleted, False if not found
         """
@@ -492,32 +489,33 @@ class Database(Generic[DatabaseItemType]):
     ) -> int:
         """
         Count items matching the filter.
-        
+
         Args:
             query_filter: Filter conditions to apply
-            
+
         Returns:
             Number of matching items
         """
         with self._session_factory() as session:
             # Cleanup expired items first
             self._cleanup_expired_items(session)
-            
+
             from sqlalchemy import func
+
             stmt = select(func.count(self._table.c.id))
-            
+
             if query_filter:
                 conditions = self._build_query_conditions(query_filter, self._table)
                 if conditions is not None:
                     stmt = stmt.where(conditions)
-            
+
             result = session.execute(stmt).fetchone()
             return result[0] if result else 0
 
     def clear(self) -> int:
         """
         Clear all items from the database.
-        
+
         Returns:
             Number of items deleted
         """
@@ -530,7 +528,7 @@ class Database(Generic[DatabaseItemType]):
     def cleanup_expired(self) -> int:
         """
         Manually cleanup expired items.
-        
+
         Returns:
             Number of items cleaned up
         """
@@ -543,7 +541,7 @@ class Database(Generic[DatabaseItemType]):
         """String representation of the database."""
         location = str(self.path) if self.path else "memory"
         return f"<Database name='{self.name}' location='{location}' table='{self.table_name}'>"
-    
+
 
 def create_database(
     name: str,
@@ -556,7 +554,7 @@ def create_database(
 ) -> Database[DatabaseItemType]:
     """
     Create a new database instance.
-    
+
     Args:
         name: The name of the database
         schema: Optional schema type for validation
@@ -573,6 +571,6 @@ def create_database(
         schema=schema,
         ttl=ttl,
         path=path,
-        table_name=table_name,  
+        table_name=table_name,
         auto_cleanup_expired=auto_cleanup_expired,
     )

@@ -153,6 +153,6 @@ def convert_to_json_schema(t: Any) -> dict:
 
 
 def convert_to_json(
-    target : Any,
+    target: Any,
 ) -> str:
     return encode_json(target).decode()

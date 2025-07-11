@@ -3,7 +3,18 @@
 Standalone functions for running language models with full parameter typing.
 """
 
-from typing import Any, List, TypeVar, Union, Optional, Type, overload, Dict, TYPE_CHECKING, Callable
+from typing import (
+    Any,
+    List,
+    TypeVar,
+    Union,
+    Optional,
+    Type,
+    overload,
+    Dict,
+    TYPE_CHECKING,
+    Callable,
+)
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -50,7 +61,7 @@ def run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Streaming settings
     stream: Literal[False] = False,
     stream_options: Optional[Dict[str, Any]] = None,
@@ -99,7 +110,7 @@ def run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Streaming settings
     stream: Literal[True],
     stream_options: Optional[Dict[str, Any]] = None,
@@ -148,7 +159,7 @@ def run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Structured output settings
     type: Type[T],
     instructor_mode: Optional[LanguageModelInstructorMode] = "tool_call",
@@ -212,7 +223,7 @@ def run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Structured output settings
     type: Type[T],
     instructor_mode: Optional[LanguageModelInstructorMode] = "tool_call",
@@ -264,27 +275,29 @@ def run_language_model(
 def run_language_model(
     messages: "LanguageModelMessages",
     instructions: Optional[str] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["LanguageModelResponse[Any]", "LanguageModelStream[Any]"]:
     """Run a language model request with full parameter support.
-    
+
     Args:
         messages: The input messages/content for the request
         instructions: Optional system instructions to prepend
         **kwargs: All request parameters from LanguageModelRequest
-        
+
     Returns:
         LanguageModelResponse or Stream depending on parameters
     """
     # Extract model parameter or use default
     model = kwargs.pop("model", "openai/gpt-4o-mini")
-    
+
     # Create language model instance
     language_model = LanguageModel(model=model)
-    
+
     # Forward to the instance method
-    return language_model.run(messages, instructions, mock_response=mock_response, **kwargs)
+    return language_model.run(
+        messages, instructions, mock_response=mock_response, **kwargs
+    )
 
 
 # Async overloads for async_run_language_model - String output, non-streaming
@@ -350,7 +363,7 @@ async def async_run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Streaming settings
     stream: Literal[True],
     stream_options: Optional[Dict[str, Any]] = None,
@@ -399,7 +412,7 @@ async def async_run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Structured output settings
     type: Type[T],
     instructor_mode: Optional[LanguageModelInstructorMode] = "tool_call",
@@ -463,7 +476,7 @@ async def async_run_language_model(
     deployment_id: Optional[str] = None,
     model_list: Optional[List[Any]] = None,
     extra_headers: Optional[Dict[str, str]] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     # Structured output settings
     type: Type[T],
     instructor_mode: Optional[LanguageModelInstructorMode] = "tool_call",
@@ -515,24 +528,26 @@ async def async_run_language_model(
 async def async_run_language_model(
     messages: "LanguageModelMessages",
     instructions: Optional[str] = None,
-    mock_response : Optional[bool] = None,
+    mock_response: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["LanguageModelResponse[Any]", "LanguageModelStream[Any]"]:
     """Run an async language model request with full parameter support.
-    
+
     Args:
         messages: The input messages/content for the request
         instructions: Optional system instructions to prepend
         **kwargs: All request parameters from LanguageModelRequest
-        
+
     Returns:
         LanguageModelResponse or AsyncStream depending on parameters
     """
     # Extract model parameter or use default
     model = kwargs.pop("model", "openai/gpt-4o-mini")
-    
+
     # Create language model instance
     language_model = LanguageModel(model=model)
-    
+
     # Forward to the instance method
-    return await language_model.async_run(messages, instructions, mock_response=mock_response, **kwargs)
+    return await language_model.async_run(
+        messages, instructions, mock_response=mock_response, **kwargs
+    )

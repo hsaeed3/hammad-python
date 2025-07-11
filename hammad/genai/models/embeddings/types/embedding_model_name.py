@@ -3,9 +3,7 @@
 from typing import Literal
 
 
-__all__ = (
-    "EmbeddingModelName",
-)
+__all__ = ("EmbeddingModelName",)
 
 
 EmbeddingModelName = Literal[

@@ -12,9 +12,7 @@ if TYPE_CHECKING:
         Model,
         model_settings,
     )
-    from .fields import (
-        field
-    )
+    from .fields import field
     from .utils import (
         validator,
         is_field,
@@ -23,7 +21,7 @@ if TYPE_CHECKING:
     from .extensions.pydantic.converters import (
         convert_to_pydantic_model,
         convert_to_pydantic_field,
-        is_pydantic_model_class
+        is_pydantic_model_class,
     )
 
 
@@ -31,16 +29,13 @@ __all__ = (
     # hammad.lib.data.models.model
     "Model",
     "model_settings",
-
     # hammad.lib.data.models.fields
     "field",
-
     # hammad.lib.data.models.utils
     "validator",
     "is_field",
     "is_model",
     "model_settings",
-
     # hammad.lib.data.models.extensions.pydantic.converters
     "convert_to_pydantic_model",
     "convert_to_pydantic_field",

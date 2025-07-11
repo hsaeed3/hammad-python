@@ -5,7 +5,7 @@ from ..._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .collection import Collection
-    
+
     from .indexes import (
         TantivyCollectionIndex,
         QdrantCollectionIndex,
@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 __all__ = (
     # hammad.data.collections.collection
     "Collection",
-
     # hammad.data.collections.indexes
     "TantivyCollectionIndex",
     "QdrantCollectionIndex",

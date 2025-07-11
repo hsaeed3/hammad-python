@@ -576,7 +576,7 @@ def create_mcp_client(
     timeout: float = 30.0,
 ) -> MCPClient:
     """Create an MCP client with the specified transport type.
-    
+
     Args:
         service_type: The type of transport to use ("stdio", "sse", or "http").
         command: Command to run for stdio transport.
@@ -585,10 +585,10 @@ def create_mcp_client(
         cwd: Working directory for the command (stdio only).
         url: URL for SSE or HTTP transport.
         timeout: Connection timeout in seconds.
-        
+
     Returns:
         A configured MCPClient instance.
-        
+
     Raises:
         ValueError: If required parameters for the transport type are missing.
     """
@@ -597,28 +597,28 @@ def create_mcp_client(
     if service_type == "stdio":
         if command is None:
             raise ValueError("command is required for stdio transport")
-        
+
         service = MCPClientServiceStdio(
             command=command,
             args=args or [],
             env=env or {},
             cwd=Path(cwd) if cwd else None,
         )
-        
+
     elif service_type == "sse":
         if url is None:
             raise ValueError("url is required for SSE transport")
-        
+
         service = MCPClientServiceSse(url=url)
-        
+
     elif service_type == "http":
         if url is None:
             raise ValueError("url is required for HTTP transport")
-        
+
         service = MCPClientServiceStreamableHttp(url=url)
-        
+
     else:
         raise ValueError(f"Unsupported service_type: {service_type}")
-    
+
     settings = MCPClientSettings(timeout=timeout)
     return MCPClient(service=service, settings=settings)

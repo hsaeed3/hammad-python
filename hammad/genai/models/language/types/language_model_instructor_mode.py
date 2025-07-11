@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-LanguageModelInstructorMode : TypeAlias = Literal[
+LanguageModelInstructorMode: TypeAlias = Literal[
     "function_call",
     "parallel_tool_call",
     "tool_call",

@@ -6,10 +6,7 @@ from typing import (
     Dict,
 )
 
-__all__ = (
-    "TantivyCollectionIndexSettings",
-    "TantivyCollectionIndexQuerySettings"
-)
+__all__ = ("TantivyCollectionIndexSettings", "TantivyCollectionIndexQuerySettings")
 
 
 @dataclass
@@ -17,7 +14,7 @@ class TantivyCollectionIndexSettings:
     """Object representation of user configurable settings
     that can be used to configure a `TantivyCollectionIndex`."""
 
-    fast : bool = True
+    fast: bool = True
     """Whether to use fast schema building & indexing from
     `tantivy`'s builtin implementation."""
 
@@ -26,18 +23,10 @@ class TantivyCollectionIndexSettings:
         to configure the tantivy index internally."""
 
         return {
-            "text_fields" : {
-                "stored" : True, "fast" : self.fast
-            },
-            "numeric_fields" : {
-                "stored" : True, "indexed" : True, "fast" : self.fast
-            },
-            "date_fields" : {
-                "stored" : True, "indexed" : True, "fast" : self.fast
-            },
-            "json_fields" : {
-                "stored" : True
-            }
+            "text_fields": {"stored": True, "fast": self.fast},
+            "numeric_fields": {"stored": True, "indexed": True, "fast": self.fast},
+            "date_fields": {"stored": True, "indexed": True, "fast": self.fast},
+            "json_fields": {"stored": True},
         }
 
 
@@ -47,5 +36,5 @@ class TantivyCollectionIndexQuerySettings:
     that can be used to configure the query engine for a
     `TantivyCollectionIndex`."""
 
-    limit : int = 10
+    limit: int = 10
     """The maximum number of results to return."""

@@ -284,15 +284,15 @@ def print(
         get_console = _get_rich_console()
         Console, _ = _get_rich_console_classes()
         console = get_console() if file is None else Console(file=file)
-        
+
         if transient:
             # Use Rich's Live with transient for temporary output
             import time
             from rich.live import Live
-            
+
             # Auto-set duration to 2.5 when transient=True and duration is None
             display_duration = duration if duration is not None else 2.5
-            
+
             with Live(
                 styled_content,
                 console=console,
@@ -302,7 +302,9 @@ def print(
             ) as live:
                 live.update(styled_content)
                 live.refresh()
-                time.sleep(display_duration)  # Use duration parameter for transient content
+                time.sleep(
+                    display_duration
+                )  # Use duration parameter for transient content
         else:
             console.print(
                 styled_content,
@@ -794,10 +796,10 @@ def animate(
         animation = animations["CLIFlashingAnimation"](
             renderable,
             speed=speed if speed is not None else 0.5,
-            colors=colors, # Class handles default if None
+            colors=colors,  # Class handles default if None
             on_color=on_color if on_color is not None else "white",
             off_color=off_color if off_color is not None else "dim white",
-            duration=duration, # Base class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     elif type == "pulsing":
         animation = animations["CLIPulsingAnimation"](
@@ -806,39 +808,43 @@ def animate(
             min_opacity=min_opacity if min_opacity is not None else 0.3,
             max_opacity=max_opacity if max_opacity is not None else 1.0,
             color=color if color is not None else "white",
-            duration=duration, # Base class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     elif type == "shaking":
         animation = animations["CLIShakingAnimation"](
             renderable,
             intensity=intensity if intensity is not None else 1,
             speed=speed if speed is not None else 0.1,
-            duration=duration, # Base class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     elif type == "typing":
         # Note: CLITypingAnimation expects 'text', assuming renderable is a string here.
-        animation = animations["CLITypingAnimation"](
+        animation = animations[
+            "CLITypingAnimation"
+        ](
             renderable,
-            speed=speed if speed is not None else 0.05, # Pass animate's speed, using CLITypingAnimation's speed default
-            typing_speed=typing_speed, # Pass animate's typing_speed, CLITypingAnimation handles its None default
+            speed=speed
+            if speed is not None
+            else 0.05,  # Pass animate's speed, using CLITypingAnimation's speed default
+            typing_speed=typing_speed,  # Pass animate's typing_speed, CLITypingAnimation handles its None default
             cursor=cursor if cursor is not None else "█",
             show_cursor=show_cursor if show_cursor is not None else True,
-            duration=duration, # Base class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     elif type == "spinning":
         animation = animations["CLISpinningAnimation"](
             renderable,
-            frames=frames, # Class handles default if None
+            frames=frames,  # Class handles default if None
             speed=speed if speed is not None else 0.1,
             prefix=prefix if prefix is not None else True,
-            duration=duration, # Base class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     elif type == "rainbow":
         animation = animations["CLIRainbowAnimation"](
             renderable,
             speed=speed if speed is not None else 0.5,
-            colors=colors, # Class handles default if None
-            duration=duration, # Base class handles default if None
+            colors=colors,  # Class handles default if None
+            duration=duration,  # Base class handles default if None
         )
     else:
         raise ValueError(f"Unknown animation type: {type}")

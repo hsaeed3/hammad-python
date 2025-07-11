@@ -1,6 +1,7 @@
 """hammad.genai.embedding_models.embedding_model_run_params"""
 
 import sys
+
 if sys.version_info >= (3, 12):
     from typing import TypedDict, Required, NotRequired
 else:

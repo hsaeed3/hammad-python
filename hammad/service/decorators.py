@@ -280,6 +280,4 @@ def serve_mcp(
         # Called as serve_mcp([func1, func2, ...])
         return handle_multiple_functions(fn)
     else:
-        raise TypeError(
-            f"Expected callable or list of callables, got {type(fn)}"
-        )
+        raise TypeError(f"Expected callable or list of callables, got {type(fn)}")

@@ -202,9 +202,7 @@ class HttpResponse(BaseModel):
 
     # NOTE: This is a workaround to avoid the issue with the `json` field
     # might consider moving to dataclasses
-    json_data: Optional[Dict[str, Any]] = Field(
-        alias="json"
-    )
+    json_data: Optional[Dict[str, Any]] = Field(alias="json")
     """Parsed JSON content if Content-Type is JSON."""
 
     text: str

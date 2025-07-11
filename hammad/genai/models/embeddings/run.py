@@ -56,7 +56,7 @@ def run_embedding_model(
     format: bool = False,
 ) -> EmbeddingModelResponse:
     """Run an embedding model with the given input.
-    
+
     Args:
         input: The input text/content to generate embeddings for
         model: The embedding model to use
@@ -70,7 +70,7 @@ def run_embedding_model(
         caching: Whether to cache the request
         user: The user to use for the request
         format: Whether to format each non-string input as a markdown string
-        
+
     Returns:
         EmbeddingModelResponse: The embedding response
     """
@@ -129,7 +129,7 @@ async def async_run_embedding_model(
     format: bool = False,
 ) -> EmbeddingModelResponse:
     """Asynchronously run an embedding model with the given input.
-    
+
     Args:
         input: The input text/content to generate embeddings for
         model: The embedding model to use
@@ -143,7 +143,7 @@ async def async_run_embedding_model(
         caching: Whether to cache the request
         user: The user to use for the request
         format: Whether to format each non-string input as a markdown string
-        
+
     Returns:
         EmbeddingModelResponse: The embedding response
     """
