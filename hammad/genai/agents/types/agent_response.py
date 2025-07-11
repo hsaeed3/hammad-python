@@ -57,7 +57,7 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
     empty.
     """
 
-    context: AgentContext = None
+    context: AgentContext | None = None
     """
     The final context object after agent execution.
     
@@ -68,7 +68,7 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
     @cached
     def __str__(self) -> str:
         """Pretty prints the response object."""
-        output = "AgentResponse:"
+        output = ">>> AgentResponse:"
 
         if self.output or self.content:
             output += f"\n{self.output if self.output else self.content}"

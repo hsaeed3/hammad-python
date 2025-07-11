@@ -12,6 +12,8 @@ from typing import (
     Literal,
 )
 
+from .....cache import cached
+
 from ...model_provider import litellm
 from ....types.base import BaseGenAIModelResponse
 from openai.types.chat import (
@@ -197,9 +199,10 @@ class LanguageModelResponse(BaseGenAIModelResponse[T]):
         content part object."""
         return {"type": "text", "text": self.content}
 
+    @cached
     def __str__(self) -> str:
         """Pretty prints the response object."""
-        output = "LanguageModelResponse:"
+        output = ">>> LanguageModelResponse:"
 
         if self.output or self.content:
             output += f"\n{self.output if self.output else self.content}"
