@@ -15,6 +15,7 @@ if TYPE_CHECKING:
         Tool,
         ToolResponseMessage,
         function_tool,
+        execute_tools_from_language_model_response,
     )
 
 
@@ -25,6 +26,7 @@ __all__ = (
     "Tool",
     "function_tool",
     "ToolResponseMessage",
+    "execute_tools_from_language_model_response",
 )
 
 

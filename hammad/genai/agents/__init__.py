@@ -29,7 +29,7 @@ __all__ = [
     "BaseAgentResponse",
     "BaseAgentStream",
     "BaseAgentAsyncStream",
-    "BaseAgentResponseChunk"
+    "BaseAgentResponseChunk",
 
     # hammad.genai.agents.types
     "Tool",
