@@ -28,7 +28,7 @@ if TYPE_CHECKING:
         DistanceMetric,
     )
     from ..sql.types import DatabaseItemType
-    from ...genai.embedding_models.embedding_model_name import EmbeddingModelName
+    from ...genai.models.embeddings.types import EmbeddingModelName
 else:
     from .indexes.tantivy.index import TantivyCollectionIndex
     from .indexes.qdrant.index import QdrantCollectionIndex, VectorSearchResult

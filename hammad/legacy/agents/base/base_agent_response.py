@@ -1,7 +1,7 @@
 """hammad.genai.agents.base.base_agent_response"""
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Any
 
 from ....cache import cached
 from ...language_models.language_model_response import (
@@ -17,7 +17,8 @@ __all__ = [
 
 def _create_agent_response_from_language_model_response(
     response : LanguageModelResponse[T],
-    steps : List[LanguageModelResponse[str]] | None = None
+    steps : List[LanguageModelResponse[str]] | None = None,
+    context: Any = None
 ) -> "BaseAgentResponse[T]":
     """Create a BaseAgentResponse from a LanguageModelResponse."""
     response_dict = response.model_dump()
@@ -26,6 +27,7 @@ def _create_agent_response_from_language_model_response(
         return BaseAgentResponse(
             **response_dict,
             steps = steps or [],
+            context = context,
         )
     except Exception as e:
         raise ValueError(
@@ -43,6 +45,14 @@ class BaseAgentResponse(LanguageModelResponse[T]):
 
     NOTE: If the final output was also the first step, this will be
     empty.
+    """
+    
+    context : Any = None
+    """
+    The final context object after agent execution.
+    
+    This is always the final version of the context after any updates
+    have been applied during the agent's execution.
     """
 
     @cached

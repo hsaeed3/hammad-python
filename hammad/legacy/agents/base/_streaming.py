@@ -10,11 +10,16 @@ from typing import (
     Dict,
     Optional,
     TYPE_CHECKING,
+    Type,
+    Union,
+    Literal,
 )
+from contextlib import contextmanager, asynccontextmanager
 
 from ...language_models.language_model import LanguageModel, LanguageModelMessagesParam
 from ...language_models.language_model_response import LanguageModelResponse
 from ...language_models.language_model_response_chunk import LanguageModelResponseChunk
+from ...language_models._streaming import Stream, AsyncStream
 from ...language_models._utils._completions import parse_messages_input
 from ...language_models._utils._messages import consolidate_system_messages
 from .base_agent_response import BaseAgentResponse, _create_agent_response_from_language_model_response
@@ -70,14 +75,17 @@ class BaseAgentResponseChunk(LanguageModelResponseChunk[T], Generic[T]):
 
 
 class BaseAgentStream(Generic[T]):
-    """Stream of agent responses for iter() method."""
+    """Stream of agent responses for iter() method that works as a context manager."""
     
     def __init__(
         self,
         agent: "BaseAgent[T]",
         messages: LanguageModelMessagesParam,
-        model: LanguageModel,
-        max_steps: int,
+        model: LanguageModel | str | None = None,
+        max_steps: int | None = None,
+        context: Any = None,
+        output_type: Type[T] | None = None,
+        stream: bool = False,
         **kwargs: Any
     ):
         """Initialize the BaseAgentStream.
@@ -87,17 +95,47 @@ class BaseAgentStream(Generic[T]):
             messages: The messages to process
             model: The language model to use
             max_steps: Maximum number of steps
+            context: Context object for agent execution
+            output_type: Output type for structured responses
+            stream: Whether to enable streaming at language model level
             **kwargs: Additional keyword arguments for model.run()
         """
         self.agent = agent
         self.messages = messages
-        self.model = model
-        self.max_steps = max_steps
+        self.context = context
+        self.output_type = output_type
+        self.stream = stream
         self.kwargs = kwargs
         self.current_step = 0
         self.steps: List[LanguageModelResponse[str]] = []
         self.current_messages = self._parse_initial_messages(messages)
         self.is_done = False
+        
+        # Use provided model or default
+        if model is None:
+            self.model = agent.model
+        elif isinstance(model, str):
+            self.model = LanguageModel(model=model)
+        else:
+            self.model = model
+        
+        # Use provided max_steps or default
+        if max_steps is None:
+            self.max_steps = agent.run_settings.max_steps
+        else:
+            self.max_steps = max_steps
+        
+        # Context handling
+        self.current_context = context
+        
+        # Set up kwargs for model calls
+        self.model_kwargs = kwargs.copy()
+        if output_type:
+            self.model_kwargs["type"] = output_type
+        if agent.output_instructor_mode:
+            self.model_kwargs["instructor_mode"] = agent.output_instructor_mode
+        if stream:
+            self.model_kwargs["stream"] = stream
     
     def _parse_initial_messages(self, messages: LanguageModelMessagesParam) -> List[Dict[str, Any]]:
         """Parse initial messages into a list of message dicts."""
@@ -117,6 +155,19 @@ class BaseAgentStream(Generic[T]):
             messages = [system_message] + messages
         return consolidate_system_messages(messages)
     
+    def __enter__(self) -> "BaseAgentStream[T]":
+        """Enter the context manager."""
+        # Handle context updates before processing
+        if self.current_context is not None and self.agent._should_update_context(self.current_context, "before"):
+            self.current_context = self.agent._perform_context_update(self.current_context, self.model, self.current_messages, "before")
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context manager."""
+        # Handle context updates after processing
+        if self.current_context is not None and self.agent._should_update_context(self.current_context, "after"):
+            self.current_context = self.agent._perform_context_update(self.current_context, self.model, self.current_messages, "after")
+    
     def __iter__(self) -> Iterator[BaseAgentResponseChunk[T]]:
         """Iterate over agent steps."""
         while not self.is_done and self.current_step < self.max_steps:
@@ -135,7 +186,7 @@ class BaseAgentStream(Generic[T]):
             response = self.model.run(
                 messages=formatted_messages,
                 tools=[tool.to_dict() for tool in self.agent.tools] if self.agent.tools else None,
-                **self.kwargs
+                **self.model_kwargs
             )
             
             # Add response to message history
@@ -186,7 +237,8 @@ class BaseAgentStream(Generic[T]):
         
         return _create_agent_response_from_language_model_response(
             response=final_response,
-            steps=self.steps
+            steps=self.steps,
+            context=self.current_context
         )
 
 
@@ -312,7 +364,8 @@ class BaseAgentAsyncStream(Generic[T]):
         
         return _create_agent_response_from_language_model_response(
             response=final_response,
-            steps=self.steps
+            steps=self.steps,
+            context=self.current_context
         )
 
 

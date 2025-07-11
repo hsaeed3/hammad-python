@@ -16,7 +16,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from .....genai.embedding_models.embedding_model_name import EmbeddingModelName
+    from .....genai.models.embeddings.types import EmbeddingModelName
 # import uuid  # Unused import
 from pathlib import Path
 import json
@@ -178,7 +178,7 @@ class QdrantCollectionIndex:
     def _get_embedding_function(self) -> Optional[Callable[[Any], List[float]]]:
         """Get or create embedding function from model configuration."""
         if self._embedding_function is None and self.embedding_model:
-            from .....genai.embedding_models.embedding_model import EmbeddingModel
+            from .....genai.models.embeddings.model import EmbeddingModel
             
             model = EmbeddingModel(model=self.embedding_model)
             
@@ -222,7 +222,7 @@ class QdrantCollectionIndex:
             return results
         
         try:
-            from .....genai.rerank_models import run_rerank_model
+            from .....genai.models.reranking import run_reranking_model
             
             # Extract documents for reranking
             documents = []
@@ -235,7 +235,7 @@ class QdrantCollectionIndex:
                 documents.append(doc_text)
             
             # Perform reranking
-            rerank_response = run_rerank_model(
+            rerank_response = run_reranking_model(
                 model=self.rerank_model,
                 query=query,
                 documents=documents,
@@ -316,7 +316,7 @@ class QdrantCollectionIndex:
                 from qdrant_client.models import PointStruct
             except ImportError:
                 raise ImportError(
-                    "Using Qdrant requires the `qdrant-client` package. Please install with: pip install 'hammad-python[ai]'"
+                    "Using Qdrant requires the `qdrant-client` package. Please install with: pip install 'hammad-python[genai]'"
                 )
             
             # Prepare payload with metadata

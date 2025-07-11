@@ -9,6 +9,7 @@ dependencies = [
     "ddgs>=9.0.0",
     "httpx>=0.28.1",
     "msgspec>=0.19.0",
+    "nest-asyncio>=1.6.0",
     "pydantic>=2.11.7",
     "rich>=14.0.0",
     "selectolax>=0.3.31",
@@ -35,7 +36,7 @@ serve = [
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
 ]
-all = [
+genai = [
     "litellm>=1.73.6",
     "instructor>=1.9.0",
     "qdrant-client>=1.14.3",
