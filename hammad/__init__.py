@@ -56,18 +56,6 @@ if TYPE_CHECKING:
         convert_type_to_text
     )
 
-    # hammad.genai
-    from .genai.embedding_models import (
-        EmbeddingModel,
-        run_embedding_model,
-        async_run_embedding_model
-    )
-    from .genai.language_models import (
-        LanguageModel,
-        run_language_model,
-        async_run_language_model
-    )
-
     # hammad.logging
     from .logging.logger import (
         Logger,
@@ -139,14 +127,6 @@ __all__ = [
     "convert_to_json_schema",
     "convert_to_text",
     "convert_type_to_text",
-
-    # hammad.genai
-    "EmbeddingModel",
-    "run_embedding_model",
-    "async_run_embedding_model",
-    "LanguageModel",
-    "run_language_model",
-    "async_run_language_model",
 
     # hammad.logging
     "Logger",
