@@ -87,18 +87,20 @@ class AgentResponseChunk(LanguageModelResponseChunk[T], Generic[T]):
     def __str__(self) -> str:
         """String representation of the chunk."""
         output = f"AgentResponseChunk(step={self.step_number}, final={self.is_final})"
-        
+
         # Show content if available
         if self.output or self.content:
             content_preview = str(self.output if self.output else self.content)
             if len(content_preview) > 100:
                 content_preview = content_preview[:100] + "..."
             output += f"\nContent: {content_preview}"
-        
+
         return output
 
 
-class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentContext]):
+class AgentStream(
+    BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentContext]
+):
     """Stream of agent responses that can be used in sync and async contexts."""
 
     def __init__(
@@ -151,16 +153,17 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
     def _format_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if self.agent.instructions:
             system_content = self.agent.instructions
-            
+
             # Add context if available
             if self.current_context is not None:
                 from ..agent import _format_context_for_instructions
+
                 context_str = _format_context_for_instructions(
                     self.current_context, self.agent.context_format
                 )
                 if context_str:
                     system_content += f"\n\nContext:\n{context_str}"
-            
+
             system_message = {"role": "system", "content": system_content}
             messages = [system_message] + messages
         return consolidate_system_messages(messages)
@@ -184,16 +187,18 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
         else:
             self.is_done = True
             self._final_response = response
-            
+
             # Update context after processing if configured
-            if self.current_context and self.agent._should_update_context(self.current_context, "after"):
+            if self.current_context and self.agent._should_update_context(
+                self.current_context, "after"
+            ):
                 self.current_context = self.agent._perform_context_update(
                     context=self.current_context,
                     model=self.model,
                     current_messages=self.current_messages,
                     timing="after",
                 )
-            
+
             return AgentResponseChunk(
                 step_number=self.current_step, response=response, is_final=True
             )
@@ -204,7 +209,9 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
             self.current_step += 1
 
             # Update context before processing if configured
-            if self.current_context and self.agent._should_update_context(self.current_context, "before"):
+            if self.current_context and self.agent._should_update_context(
+                self.current_context, "before"
+            ):
                 self.current_context = self.agent._perform_context_update(
                     context=self.current_context,
                     model=self.model,
@@ -240,7 +247,9 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
         self.current_step += 1
 
         # Update context before processing if configured
-        if self.current_context and self.agent._should_update_context(self.current_context, "before"):
+        if self.current_context and self.agent._should_update_context(
+            self.current_context, "before"
+        ):
             self.current_context = self.agent._perform_context_update(
                 context=self.current_context,
                 model=self.model,
@@ -283,16 +292,16 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
         """Format context for display in string representation."""
         if context is None:
             return "None"
-        
+
         try:
             # For Pydantic models, show as dict
-            if hasattr(context, 'model_dump'):
+            if hasattr(context, "model_dump"):
                 context_dict = context.model_dump()
             elif isinstance(context, dict):
                 context_dict = context
             else:
                 return str(context)
-            
+
             # Format as compact JSON-like string
             items = []
             for key, value in context_dict.items():
@@ -300,7 +309,7 @@ class AgentStream(BaseGenAIModelStream[AgentResponseChunk[T]], Generic[T, AgentC
                     items.append(f"{key}='{value}'")
                 else:
                     items.append(f"{key}={value}")
-            
+
             return "{" + ", ".join(items) + "}"
         except Exception:
             return str(context)

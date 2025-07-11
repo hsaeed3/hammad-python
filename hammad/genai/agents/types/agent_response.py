@@ -91,7 +91,9 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
 
         # Show context if available
         if self.context:
-            output += f"\n>>> Final Context: {self._format_context_display(self.context)}"
+            output += (
+                f"\n>>> Final Context: {self._format_context_display(self.context)}"
+            )
 
         return output
 
@@ -99,16 +101,16 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
         """Format context for display in string representation."""
         if context is None:
             return "None"
-        
+
         try:
             # For Pydantic models, show as dict
-            if hasattr(context, 'model_dump'):
+            if hasattr(context, "model_dump"):
                 context_dict = context.model_dump()
             elif isinstance(context, dict):
                 context_dict = context
             else:
                 return str(context)
-            
+
             # Format as compact JSON-like string
             items = []
             for key, value in context_dict.items():
@@ -116,7 +118,7 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
                     items.append(f"{key}='{value}'")
                 else:
                     items.append(f"{key}={value}")
-            
+
             return "{" + ", ".join(items) + "}"
         except Exception:
             return str(context)

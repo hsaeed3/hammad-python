@@ -354,22 +354,43 @@ class Agent(BaseGenAIModel, Generic[T]):
     ) -> dict:
         """Get effective context settings, using provided parameters or defaults."""
         return {
-            "context_updates": context_updates if context_updates is not None else self.context_updates,
-            "context_confirm": context_confirm if context_confirm is not None else self.context_confirm,
-            "context_strategy": context_strategy if context_strategy is not None else self.context_strategy,
-            "context_max_retries": context_max_retries if context_max_retries is not None else self.context_max_retries,
-            "context_confirm_instructions": context_confirm_instructions if context_confirm_instructions is not None else self.context_confirm_instructions,
-            "context_selection_instructions": context_selection_instructions if context_selection_instructions is not None else self.context_selection_instructions,
-            "context_update_instructions": context_update_instructions if context_update_instructions is not None else self.context_update_instructions,
-            "context_format": context_format if context_format is not None else self.context_format,
+            "context_updates": context_updates
+            if context_updates is not None
+            else self.context_updates,
+            "context_confirm": context_confirm
+            if context_confirm is not None
+            else self.context_confirm,
+            "context_strategy": context_strategy
+            if context_strategy is not None
+            else self.context_strategy,
+            "context_max_retries": context_max_retries
+            if context_max_retries is not None
+            else self.context_max_retries,
+            "context_confirm_instructions": context_confirm_instructions
+            if context_confirm_instructions is not None
+            else self.context_confirm_instructions,
+            "context_selection_instructions": context_selection_instructions
+            if context_selection_instructions is not None
+            else self.context_selection_instructions,
+            "context_update_instructions": context_update_instructions
+            if context_update_instructions is not None
+            else self.context_update_instructions,
+            "context_format": context_format
+            if context_format is not None
+            else self.context_format,
         }
 
     def _should_update_context(
-        self, context: AgentContext, timing: Literal["before", "after"], context_updates=None
+        self,
+        context: AgentContext,
+        timing: Literal["before", "after"],
+        context_updates=None,
     ) -> bool:
         """Determine if context should be updated based on timing and configuration."""
-        effective_context_updates = context_updates if context_updates is not None else self.context_updates
-        
+        effective_context_updates = (
+            context_updates if context_updates is not None else self.context_updates
+        )
+
         if not effective_context_updates:
             return False
 
@@ -405,7 +426,9 @@ class Agent(BaseGenAIModel, Generic[T]):
             if isinstance(context, BaseModel):
                 field_type = context.__class__.model_fields[field_name].annotation
                 field_info = context.__class__.model_fields[field_name]
-                description = getattr(field_info, 'description', f"Update the {field_name} field")
+                description = getattr(
+                    field_info, "description", f"Update the {field_name} field"
+                )
             elif isinstance(context, dict):
                 field_type = type(context[field_name])
                 description = f"Update the {field_name} field"
@@ -415,7 +438,7 @@ class Agent(BaseGenAIModel, Generic[T]):
 
             return create_model(
                 f"Update{field_name.capitalize()}",
-                **{field_name: (field_type, Field(description=description))}
+                **{field_name: (field_type, Field(description=description))},
             )
         else:
             # All fields update - create a model with the exact same fields as the context
@@ -425,9 +448,14 @@ class Agent(BaseGenAIModel, Generic[T]):
                 for field_name, field_info in context.model_fields.items():
                     field_type = field_info.annotation
                     current_value = getattr(context, field_name)
-                    description = getattr(field_info, 'description', f"Current value: {current_value}")
-                    field_definitions[field_name] = (field_type, Field(description=description))
-                
+                    description = getattr(
+                        field_info, "description", f"Current value: {current_value}"
+                    )
+                    field_definitions[field_name] = (
+                        field_type,
+                        Field(description=description),
+                    )
+
                 return create_model("ContextUpdate", **field_definitions)
             elif isinstance(context, dict):
                 # Create a model with the same keys as the dict
@@ -435,12 +463,21 @@ class Agent(BaseGenAIModel, Generic[T]):
                 for key, value in context.items():
                     field_type = type(value)
                     description = f"Current value: {value}"
-                    field_definitions[key] = (field_type, Field(description=description))
-                
+                    field_definitions[key] = (
+                        field_type,
+                        Field(description=description),
+                    )
+
                 return create_model("ContextUpdate", **field_definitions)
             else:
                 # Fallback to generic updates
-                return create_model("ContextUpdate", updates=(Dict[str, Any], Field(description="Dictionary of field updates")))
+                return create_model(
+                    "ContextUpdate",
+                    updates=(
+                        Dict[str, Any],
+                        Field(description="Dictionary of field updates"),
+                    ),
+                )
 
     def _perform_context_update(
         self,
@@ -452,7 +489,7 @@ class Agent(BaseGenAIModel, Generic[T]):
     ) -> AgentContext:
         """Perform context update with retries and error handling."""
         updated_context = context
-        
+
         # Use effective settings or defaults
         if effective_settings is None:
             effective_settings = {
@@ -470,16 +507,18 @@ class Agent(BaseGenAIModel, Generic[T]):
                 # Check if update is needed (if confirmation is enabled)
                 if effective_settings["context_confirm"]:
                     confirm_model = self._create_context_confirm_model()
-                    
+
                     # Create detailed instructions with context structure
-                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    context_structure = _format_context_for_instructions(
+                        updated_context, effective_settings["context_format"]
+                    )
                     confirm_instructions = f"""Based on the conversation, determine if the context should be updated {timing} processing.
 
 Current context structure:
 {context_structure}
 
 Should the context be updated based on the new information provided in the conversation?"""
-                    
+
                     if effective_settings["context_confirm_instructions"]:
                         confirm_instructions += f"\n\nAdditional instructions: {effective_settings['context_confirm_instructions']}"
 
@@ -499,16 +538,18 @@ Should the context be updated based on the new information provided in the conve
                     selection_model = self._create_context_selection_model(
                         updated_context
                     )
-                    
+
                     # Create detailed instructions with context structure
-                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    context_structure = _format_context_for_instructions(
+                        updated_context, effective_settings["context_format"]
+                    )
                     selection_instructions = f"""Select which fields in the context should be updated {timing} processing based on the conversation.
 
 Current context structure:
 {context_structure}
 
 Choose only the fields that need to be updated based on the new information provided in the conversation."""
-                    
+
                     if effective_settings["context_selection_instructions"]:
                         selection_instructions += f"\n\nAdditional instructions: {effective_settings['context_selection_instructions']}"
 
@@ -526,14 +567,18 @@ Choose only the fields that need to be updated based on the new information prov
                             updated_context, field_name
                         )
                         # Get current field value for context
-                        current_value = getattr(updated_context, field_name) if isinstance(updated_context, BaseModel) else updated_context.get(field_name)
-                        
+                        current_value = (
+                            getattr(updated_context, field_name)
+                            if isinstance(updated_context, BaseModel)
+                            else updated_context.get(field_name)
+                        )
+
                         field_instructions = f"""Update the {field_name} field in the context based on the conversation.
 
 Current value of {field_name}: {current_value}
 
 Please provide the new value for {field_name} based on the information from the conversation."""
-                        
+
                         if effective_settings["context_update_instructions"]:
                             field_instructions += f"\n\nAdditional instructions: {effective_settings['context_update_instructions']}"
 
@@ -555,16 +600,18 @@ Please provide the new value for {field_name} based on the information from the 
                 else:  # strategy == "all"
                     # Update all fields at once
                     update_model = self._create_context_update_model(updated_context)
-                    
+
                     # Create detailed instructions with context structure
-                    context_structure = _format_context_for_instructions(updated_context, effective_settings["context_format"])
+                    context_structure = _format_context_for_instructions(
+                        updated_context, effective_settings["context_format"]
+                    )
                     update_instructions = f"""Update the context {timing} processing based on the conversation.
 
 Current context structure:
 {context_structure}
 
 Please update the appropriate fields based on the conversation. Only update fields that need to be changed based on the new information provided."""
-                    
+
                     if effective_settings["context_update_instructions"]:
                         update_instructions += f"\n\nAdditional instructions: {effective_settings['context_update_instructions']}"
 
@@ -576,7 +623,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     )
 
                     # Apply the updates
-                    if hasattr(update_response.output, 'updates'):
+                    if hasattr(update_response.output, "updates"):
                         # Legacy fallback for generic updates
                         updated_context = _update_context_object(
                             updated_context, update_response.output.updates
@@ -584,10 +631,18 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     else:
                         # New approach - extract field values directly from the response
                         updates_dict = {}
-                        for field_name in (context.model_fields.keys() if isinstance(context, BaseModel) else context.keys()):
+                        for field_name in (
+                            context.model_fields.keys()
+                            if isinstance(context, BaseModel)
+                            else context.keys()
+                        ):
                             if hasattr(update_response.output, field_name):
-                                updates_dict[field_name] = getattr(update_response.output, field_name)
-                        updated_context = _update_context_object(updated_context, updates_dict)
+                                updates_dict[field_name] = getattr(
+                                    update_response.output, field_name
+                                )
+                        updated_context = _update_context_object(
+                            updated_context, updates_dict
+                        )
 
                 # Trigger context update hooks
                 self.hook_manager.trigger_hooks("context_update", updated_context)
@@ -808,7 +863,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
         # RUN MAIN AGENTIC LOOP
         for step in range(max_steps):
             # Update context before processing if configured
-            if context and self._should_update_context(context, "before", effective_context_settings["context_updates"]):
+            if context and self._should_update_context(
+                context, "before", effective_context_settings["context_updates"]
+            ):
                 context = self._perform_context_update(
                     context=context,
                     model=working_model,
@@ -836,9 +893,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             # Get language model response
             response = working_model.run(
                 messages=formatted_messages,
-                tools=[tool.to_dict() for tool in self.tools]
-                if self.tools
-                else None,
+                tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
                 **model_kwargs,
             )
 
@@ -860,7 +915,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
             else:
                 # No tool calls - this is the final step
                 # Update context after processing if configured
-                if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+                if context and self._should_update_context(
+                    context, "after", effective_context_settings["context_updates"]
+                ):
                     context = self._perform_context_update(
                         context=context,
                         model=working_model,
@@ -886,7 +943,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
             )
 
         # Update context after processing if configured
-        if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+        if context and self._should_update_context(
+            context, "after", effective_context_settings["context_updates"]
+        ):
             context = self._perform_context_update(
                 context=context,
                 model=working_model,
@@ -1017,7 +1076,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
         # RUN MAIN AGENTIC LOOP
         for step in range(max_steps):
             # Update context before processing if configured
-            if context and self._should_update_context(context, "before", effective_context_settings["context_updates"]):
+            if context and self._should_update_context(
+                context, "before", effective_context_settings["context_updates"]
+            ):
                 context = self._perform_context_update(
                     context=context,
                     model=working_model,
@@ -1045,9 +1106,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             # Get language model response
             response = await working_model.async_run(
                 messages=formatted_messages,
-                tools=[tool.to_dict() for tool in self.tools]
-                if self.tools
-                else None,
+                tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
                 **model_kwargs,
             )
 
@@ -1069,7 +1128,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
             else:
                 # No tool calls - this is the final step
                 # Update context after processing if configured
-                if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+                if context and self._should_update_context(
+                    context, "after", effective_context_settings["context_updates"]
+                ):
                     context = self._perform_context_update(
                         context=context,
                         model=working_model,
@@ -1095,7 +1156,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
             )
 
         # Update context after processing if configured
-        if context and self._should_update_context(context, "after", effective_context_settings["context_updates"]):
+        if context and self._should_update_context(
+            context, "after", effective_context_settings["context_updates"]
+        ):
             context = self._perform_context_update(
                 context=context,
                 model=working_model,

@@ -130,7 +130,9 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             self._instructor_client is None
             or getattr(self._instructor_client, "_mode", None) != effective_mode
         ):
-            logger.debug(f"Creating new instructor client for mode: {effective_mode} from old mode: {getattr(self._instructor_client, '_mode', None)}")
+            logger.debug(
+                f"Creating new instructor client for mode: {effective_mode} from old mode: {getattr(self._instructor_client, '_mode', None)}"
+            )
 
             self._instructor_client = instructor.from_litellm(
                 completion=litellm.completion, mode=instructor.Mode(effective_mode)
