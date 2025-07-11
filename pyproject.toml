@@ -44,6 +44,14 @@ genai = [
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
 ]
+all = [
+    "litellm>=1.73.6",
+    "instructor>=1.9.0",
+    "qdrant-client>=1.14.3",
+    "mcp>=1.10.1",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+]
 
 [dependency-groups]
 dev = [
@@ -57,12 +65,11 @@ dev = [
     "ipykernel",
     "fastapi",
     "uvicorn",
-]
-docs = [
     "mkdocs",
     "mkdocstrings[python]",
     "mkdocs-material",
     "mkdocs-material-extensions",
+    "mkdocs-jupyter",
 ]
 
 [tool.hatch.build.targets.wheel]
