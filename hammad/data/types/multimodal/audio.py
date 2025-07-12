@@ -120,33 +120,33 @@ class Audio(File):
             ValueError: If the file is not a valid audio file.
         """
         path_obj = Path(path)
-        
+
         if not path_obj.exists():
             raise FileNotFoundError(f"Audio file not found: {path}")
-        
+
         if not path_obj.is_file():
             raise ValueError(f"Path is not a file: {path}")
-        
+
         # Read file data
         data = path_obj.read_bytes()
-        
+
         # Determine MIME type
         type = None
-        
+
         # Check file signature first
         for signature, mime_type in _FILE_SIGNATURES.items():
             if data.startswith(signature) and mime_type.startswith("audio/"):
                 type = mime_type
                 break
-        
+
         # Fall back to mimetypes module
         if not type:
             type, _ = mimetypes.guess_type(str(path))
-        
+
         # Validate it's an audio file
         if type and not type.startswith("audio/"):
             raise ValueError(f"File is not an audio file: {type}")
-        
+
         return cls(
             data=data,
             type=type,

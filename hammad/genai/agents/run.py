@@ -3,6 +3,7 @@
 Standalone functions for running agents with full parameter typing.
 """
 
+import functools
 from typing import (
     Any,
     Callable,
@@ -40,6 +41,7 @@ __all__ = [
     "async_run_agent",
     "run_agent_iter",
     "async_run_agent_iter",
+    "agent_decorator",
 ]
 
 T = TypeVar("T")
@@ -209,8 +211,20 @@ def run_agent(
         ...     context=context
         ... )
     """
-    agent = Agent(verbose=verbose, debug=debug, **kwargs)
-    return agent.run(messages, verbose=verbose, debug=debug, **kwargs)
+    # Separate agent constructor parameters from run parameters
+    agent_constructor_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k in ["name", "instructions", "description", "tools", "settings", "model"]
+    }
+    agent_run_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k not in ["name", "instructions", "description", "tools", "settings"]
+    }
+
+    agent = Agent(verbose=verbose, debug=debug, **agent_constructor_params)
+    return agent.run(messages, verbose=verbose, debug=debug, **agent_run_params)
 
 
 # Overloads for async_run_agent
@@ -371,8 +385,22 @@ async def async_run_agent(
         ...     )
         ...     return response.output
     """
-    agent = Agent(verbose=verbose, debug=debug, **kwargs)
-    return await agent.async_run(messages, verbose=verbose, debug=debug, **kwargs)
+    # Separate agent constructor parameters from run parameters
+    agent_constructor_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k in ["name", "instructions", "description", "tools", "settings", "model"]
+    }
+    agent_run_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k not in ["name", "instructions", "description", "tools", "settings"]
+    }
+
+    agent = Agent(verbose=verbose, debug=debug, **agent_constructor_params)
+    return await agent.async_run(
+        messages, verbose=verbose, debug=debug, **agent_run_params
+    )
 
 
 # Overloads for run_agent_iter
@@ -545,8 +573,22 @@ def run_agent_iter(
         ... except Exception as e:
         ...     print(f"Stream error: {e}")
     """
-    agent = Agent(verbose=verbose, debug=debug, **kwargs)
-    return agent.run(messages, stream=True, verbose=verbose, debug=debug, **kwargs)
+    # Separate agent constructor parameters from run parameters
+    agent_constructor_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k in ["name", "instructions", "description", "tools", "settings", "model"]
+    }
+    agent_run_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k not in ["name", "instructions", "description", "tools", "settings"]
+    }
+
+    agent = Agent(verbose=verbose, debug=debug, **agent_constructor_params)
+    return agent.run(
+        messages, stream=True, verbose=verbose, debug=debug, **agent_run_params
+    )
 
 
 # Overloads for async_run_agent_iter
@@ -649,5 +691,334 @@ def async_run_agent_iter(
     Returns:
         An AgentStream that can be iterated over asynchronously
     """
-    agent = Agent(verbose=verbose, debug=debug, **kwargs)
-    return agent.run(messages, stream=True, verbose=verbose, debug=debug, **kwargs)
+    # Separate agent constructor parameters from run parameters
+    agent_constructor_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k in ["name", "instructions", "description", "tools", "settings", "model"]
+    }
+    agent_run_params = {
+        k: v
+        for k, v in kwargs.items()
+        if k not in ["name", "instructions", "description", "tools", "settings"]
+    }
+
+    agent = Agent(verbose=verbose, debug=debug, **agent_constructor_params)
+    return agent.run(
+        messages, stream=True, verbose=verbose, debug=debug, **agent_run_params
+    )
+
+
+def agent_decorator(
+    fn: Union[str, Callable, None] = None,
+    *,
+    # Agent settings
+    name: Optional[str] = None,
+    instructions: Optional[str] = None,
+    description: Optional[str] = None,
+    tools: Union[List["Tool"], Callable, None] = None,
+    settings: Optional[AgentSettings] = None,
+    # Context management
+    context: Optional["AgentContext"] = None,
+    context_updates: Optional[
+        Union[List[Literal["before", "after"]], Literal["before", "after"]]
+    ] = None,
+    context_confirm: bool = False,
+    context_strategy: Literal["selective", "all"] = "all",
+    context_max_retries: int = 3,
+    context_confirm_instructions: Optional[str] = None,
+    context_selection_instructions: Optional[str] = None,
+    context_update_instructions: Optional[str] = None,
+    context_format: Literal["json", "python", "markdown"] = "json",
+    # Model settings
+    model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
+    max_steps: Optional[int] = None,
+    instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    return_output: bool = True,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
+    # LM settings
+    timeout: Optional[Union[float, str, "Timeout"]] = None,
+    temperature: Optional[float] = None,
+    top_p: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    presence_penalty: Optional[float] = None,
+    frequency_penalty: Optional[float] = None,
+    seed: Optional[int] = None,
+    user: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """Decorator that converts a function into an agent.
+
+    The function's parameters become the input to the LLM (converted to a string),
+    the function's return type annotation becomes the agent's output type,
+    and the function's docstring becomes the agent's instructions.
+
+    Works with both sync and async functions.
+
+    Can be used in multiple ways:
+
+    1. As a decorator with parameters:
+       @agent_decorator(name="steve", temperature=0.7)
+       def my_agent():
+           pass
+
+    2. As a decorator without parameters:
+       @agent_decorator
+       def my_agent():
+           pass
+
+    3. As an inline function with name as first argument:
+       agent = agent_decorator("steve")
+       # Then use: decorated_func = agent(my_function)
+
+    4. As an inline function with all parameters:
+       agent = agent_decorator(name="steve", temperature=0.7)
+       # Then use: decorated_func = agent(my_function)
+    """
+    # Handle different calling patterns
+    if callable(fn):
+        # Case: @agent_decorator (no parentheses)
+        func = fn
+        actual_name = name or "agent"
+        return _create_agent_wrapper(
+            func,
+            actual_name,
+            instructions,
+            description,
+            tools,
+            settings,
+            context,
+            context_updates,
+            context_confirm,
+            context_strategy,
+            context_max_retries,
+            context_confirm_instructions,
+            context_selection_instructions,
+            context_update_instructions,
+            context_format,
+            model,
+            max_steps,
+            instructor_mode,
+            return_output,
+            end_strategy,
+            end_tool,
+            timeout,
+            temperature,
+            top_p,
+            max_tokens,
+            presence_penalty,
+            frequency_penalty,
+            seed,
+            user,
+            verbose,
+            debug,
+        )
+    elif isinstance(fn, str):
+        # Case: agent_decorator("steve") - first arg is name
+        actual_name = fn
+    else:
+        # Case: agent_decorator() or agent_decorator(name="steve")
+        actual_name = name or "agent"
+
+    def decorator(func: Callable) -> Callable:
+        return _create_agent_wrapper(
+            func,
+            actual_name,
+            instructions,
+            description,
+            tools,
+            settings,
+            context,
+            context_updates,
+            context_confirm,
+            context_strategy,
+            context_max_retries,
+            context_confirm_instructions,
+            context_selection_instructions,
+            context_update_instructions,
+            context_format,
+            model,
+            max_steps,
+            instructor_mode,
+            return_output,
+            end_strategy,
+            end_tool,
+            timeout,
+            temperature,
+            top_p,
+            max_tokens,
+            presence_penalty,
+            frequency_penalty,
+            seed,
+            user,
+            verbose,
+            debug,
+        )
+
+    return decorator
+
+
+def _create_agent_wrapper(
+    func: Callable,
+    name: str,
+    instructions: Optional[str],
+    description: Optional[str],
+    tools: Union[List["Tool"], Callable, None],
+    settings: Optional[AgentSettings],
+    context: Optional["AgentContext"],
+    context_updates: Optional[
+        Union[List[Literal["before", "after"]], Literal["before", "after"]]
+    ],
+    context_confirm: bool,
+    context_strategy: Literal["selective", "all"],
+    context_max_retries: int,
+    context_confirm_instructions: Optional[str],
+    context_selection_instructions: Optional[str],
+    context_update_instructions: Optional[str],
+    context_format: Literal["json", "python", "markdown"],
+    model: Optional[Union["LanguageModel", "LanguageModelName"]],
+    max_steps: Optional[int],
+    instructor_mode: Optional["LanguageModelInstructorMode"],
+    return_output: bool,
+    end_strategy: Optional[Literal["tool"]],
+    end_tool: Optional[Callable],
+    timeout: Optional[Union[float, str, "Timeout"]],
+    temperature: Optional[float],
+    top_p: Optional[float],
+    max_tokens: Optional[int],
+    presence_penalty: Optional[float],
+    frequency_penalty: Optional[float],
+    seed: Optional[int],
+    user: Optional[str],
+    verbose: bool,
+    debug: bool,
+) -> Callable:
+    """Helper function to create the actual agent wrapper."""
+    import inspect
+    import asyncio
+    from typing import get_type_hints
+
+    # Get function metadata
+    sig = inspect.signature(func)
+    type_hints = get_type_hints(func)
+    return_type = type_hints.get("return", str)
+    func_instructions = instructions or func.__doc__ or ""
+
+    # Check if function is async
+    is_async = asyncio.iscoroutinefunction(func)
+
+    if is_async:
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            # Convert function parameters to message string
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            # Create message from parameters
+            param_parts = []
+            for param_name, param_value in bound_args.arguments.items():
+                param_parts.append(f"{param_name}: {param_value}")
+            message = "\n".join(param_parts)
+
+            # Run agent with extracted parameters
+            response = await async_run_agent(
+                messages=message,
+                output_type=return_type,
+                name=name,
+                instructions=func_instructions,
+                description=description,
+                tools=tools,
+                settings=settings,
+                context=context,
+                context_updates=context_updates,
+                context_confirm=context_confirm,
+                context_strategy=context_strategy,
+                context_max_retries=context_max_retries,
+                context_confirm_instructions=context_confirm_instructions,
+                context_selection_instructions=context_selection_instructions,
+                context_update_instructions=context_update_instructions,
+                context_format=context_format,
+                model=model or "openai/gpt-4o-mini",
+                max_steps=max_steps,
+                instructor_mode=instructor_mode,
+                end_strategy=end_strategy,
+                end_tool=end_tool,
+                timeout=timeout,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                presence_penalty=presence_penalty,
+                frequency_penalty=frequency_penalty,
+                seed=seed,
+                user=user,
+                verbose=verbose,
+                debug=debug,
+            )
+
+            # Return just the output if return_output is True (default behavior)
+            if return_output:
+                return response.output
+            else:
+                return response
+
+        return async_wrapper
+    else:
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            # Convert function parameters to message string
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            # Create message from parameters
+            param_parts = []
+            for param_name, param_value in bound_args.arguments.items():
+                param_parts.append(f"{param_name}: {param_value}")
+            message = "\n".join(param_parts)
+
+            # Run agent with extracted parameters
+            response = run_agent(
+                messages=message,
+                output_type=return_type,
+                name=name,
+                instructions=func_instructions,
+                description=description,
+                tools=tools,
+                settings=settings,
+                context=context,
+                context_updates=context_updates,
+                context_confirm=context_confirm,
+                context_strategy=context_strategy,
+                context_max_retries=context_max_retries,
+                context_confirm_instructions=context_confirm_instructions,
+                context_selection_instructions=context_selection_instructions,
+                context_update_instructions=context_update_instructions,
+                context_format=context_format,
+                model=model or "openai/gpt-4o-mini",
+                max_steps=max_steps,
+                instructor_mode=instructor_mode,
+                end_strategy=end_strategy,
+                end_tool=end_tool,
+                timeout=timeout,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                presence_penalty=presence_penalty,
+                frequency_penalty=frequency_penalty,
+                seed=seed,
+                user=user,
+                verbose=verbose,
+                debug=debug,
+            )
+
+            # Return just the output if return_output is True (default behavior)
+            if return_output:
+                return response.output
+            else:
+                return response
+
+        return sync_wrapper

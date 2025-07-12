@@ -104,31 +104,31 @@ class Image(File):
             ValueError: If the file is not a valid image.
         """
         path_obj = Path(path)
-        
+
         if not path_obj.exists():
             raise FileNotFoundError(f"Image file not found: {path}")
-        
+
         if not path_obj.is_file():
             raise ValueError(f"Path is not a file: {path}")
-        
+
         # Read the file data
         data = path_obj.read_bytes()
-        
+
         # Detect MIME type
         type = None
         for sig, mime in _FILE_SIGNATURES.items():
             if data.startswith(sig):
                 type = mime
                 break
-        
+
         # Fallback to mimetypes module
         if not type:
             type, _ = mimetypes.guess_type(str(path))
-        
+
         # Validate it's an image
         if type and not type.startswith("image/"):
             raise ValueError(f"File is not an image: {type}")
-        
+
         return cls(
             data=data,
             type=type,

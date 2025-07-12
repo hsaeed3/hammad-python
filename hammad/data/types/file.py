@@ -429,9 +429,3 @@ def read_file_from_bytes(
         A File instance containing the bytes data.
     """
     return File.from_bytes(data, type=type, name=name)
-
-
-
-
-
-

@@ -30,12 +30,7 @@ if TYPE_CHECKING:
         QdrantCollectionIndexSettings,
         QdrantCollectionIndexQuerySettings,
     )
-    from .sql import (
-        DatabaseItemType,
-        DatabaseItem,
-        Database,
-        create_database
-    )
+    from .sql import DatabaseItemType, DatabaseItem, Database, create_database
     from .configurations import (
         Configuration,
         read_configuration_from_file,

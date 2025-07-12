@@ -46,7 +46,16 @@ from ..._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from .base import BaseGraph, action, ActionNode, GraphBuilder
+    from .base import (
+        ActionDecorator,
+        ActionNode,
+        ActionSettings,
+        BaseGraph,
+        GraphBuilder,
+        action,
+        select,
+        SelectionStrategy,
+    )
     from .types import (
         GraphContext,
         GraphResponse,
@@ -77,11 +86,14 @@ __all__ = (
     # Core graph classes
     "BaseGraph",
     "GraphBuilder",
+    "ActionDecorator",
     # Action system
     "action",
     "ActionNode",
     "ActionSettings",
     "ActionInfo",
+    "select",
+    "SelectionStrategy",
     # Plugin system
     "plugin",
     "BasePlugin",

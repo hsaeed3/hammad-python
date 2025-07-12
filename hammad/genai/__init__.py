@@ -5,6 +5,12 @@ from .._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
+    from .a2a import (
+        as_a2a_app,
+        GraphWorker,
+        AgentWorker,
+    )
+if TYPE_CHECKING:
     from .agents import (
         Agent,
         AgentEvent,
@@ -21,6 +27,7 @@ if TYPE_CHECKING:
         run_agent_iter,
         async_run_agent,
         async_run_agent_iter,
+        agent_decorator,
     )
     from .graphs import (
         GraphBuilder,
@@ -47,6 +54,9 @@ if TYPE_CHECKING:
         ActionSettings,
         action,
         plugin,
+        select,
+        SelectionStrategy,
+        ActionDecorator,
     )
     from .models.embeddings import (
         Embedding,
@@ -69,6 +79,7 @@ if TYPE_CHECKING:
         LanguageModelStream,
         run_language_model,
         async_run_language_model,
+        language_model_decorator,
         create_language_model,
     )
     from .models.reranking import run_reranking_model, async_run_reranking_model
@@ -100,6 +111,10 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    # hammad.genai.a2a
+    "as_a2a_app",
+    "GraphWorker",
+    "AgentWorker",
     # hammad.genai.agents.agent
     "Agent",
     "AgentEvent",
@@ -115,6 +130,7 @@ __all__ = [
     "run_agent_iter",
     "async_run_agent",
     "async_run_agent_iter",
+    "agent_decorator",
     # hammad.genai.graphs
     "GraphBuilder",
     "GraphContext",
@@ -140,6 +156,9 @@ __all__ = [
     "ActionSettings",
     "action",
     "plugin",
+    "select",
+    "SelectionStrategy",
+    "ActionDecorator",
     # hammad.genai.models.embeddings
     "Embedding",
     "EmbeddingModel",
@@ -161,6 +180,7 @@ __all__ = [
     "run_language_model",
     "async_run_language_model",
     "create_language_model",
+    "language_model_decorator",
     # hammad.genai.models.reranking
     "run_reranking_model",
     "async_run_reranking_model",

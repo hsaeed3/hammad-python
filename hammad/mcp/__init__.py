@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
+    from mcp.server.fastmcp import FastMCP
     from .client.client import (
         convert_mcp_tool_to_openai_tool,
         MCPClient,
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
 
 
 __all__ = (
+    # fastmcp
+    "FastMCP",
     # hammad.mcp.client
     "MCPClient",
     "MCPClientService",

@@ -12,7 +12,9 @@ from typing import (
     Callable,
     get_type_hints,
     ParamSpec,
+    TypeAlias,
     Awaitable,
+    TYPE_CHECKING,
 )
 from typing_extensions import Literal
 from dataclasses import dataclass, field
@@ -21,12 +23,11 @@ from functools import wraps
 import asyncio
 
 from pydantic_graph import BaseNode, End, Graph as PydanticGraph, GraphRunContext
-from pydantic import BaseModel
 from ..models.language.utils import (
-    LanguageModelRequestBuilder,
     parse_messages_input,
     consolidate_system_messages,
 )
+from ...formatting.text import convert_to_text
 
 from ..agents.agent import Agent
 from ..agents.types.agent_response import AgentResponse
@@ -44,6 +45,12 @@ from .types import (
     GraphHistoryEntry,
 )
 
+if TYPE_CHECKING:
+    try:
+        from fasta2a import FastA2A
+    except ImportError:
+        FastA2A: TypeAlias = Any
+
 __all__ = [
     "BaseGraph",
     "action",
@@ -51,11 +58,264 @@ __all__ = [
     "GraphBuilder",
     "GraphStream",
     "GraphResponseChunk",
+    "select",
+    "SelectionStrategy",
 ]
 
 T = TypeVar("T")
 StateT = TypeVar("StateT")
 P = ParamSpec("P")
+
+
+class SelectionStrategy:
+    """LLM-based selection strategy for choosing the next action."""
+
+    def __init__(
+        self,
+        *actions: str,
+        instructions: Optional[str] = None,
+        model: Optional[str] = None,
+    ):
+        self.actions = list(actions)
+        self.instructions = instructions
+        self.model = model or "openai/gpt-4o-mini"
+        self._language_model = None
+        self._use_all_actions = (
+            len(actions) == 0
+        )  # If no actions specified, use all available
+
+    def _get_language_model(self):
+        """Lazy load the language model."""
+        if self._language_model is None:
+            from ..models.language.model import LanguageModel
+
+            self._language_model = LanguageModel(model=self.model)
+        return self._language_model
+
+    def select(self, context: Optional[Dict[str, Any]] = None) -> str:
+        """Use LLM to select the most appropriate action."""
+        if not context:
+            context = {}
+
+        # Get available actions
+        actions_to_choose_from = self.actions
+        if self._use_all_actions and "all_actions" in context:
+            # Use all available actions from the graph
+            actions_to_choose_from = context["all_actions"]
+
+        if not actions_to_choose_from:
+            return ""
+
+        # If only one action, return it
+        if len(actions_to_choose_from) == 1:
+            return actions_to_choose_from[0]
+
+        # Import here to avoid circular imports
+        from pydantic import BaseModel, Field, create_model
+        from enum import Enum
+
+        # Create enum for available actions
+        ActionEnum = Enum(
+            "ActionEnum", {action: action for action in actions_to_choose_from}
+        )
+
+        # Create selection model
+        SelectionModel = create_model(
+            "ActionSelection",
+            action=(
+                ActionEnum,
+                Field(description="The selected action to execute next"),
+            ),
+            reasoning=(str, Field(description="Brief reasoning for the selection")),
+        )
+
+        # Build context description
+        context_parts = []
+
+        # Add result from previous action
+        if "result" in context:
+            context_parts.append(f"Previous action result: {context['result']}")
+
+        # Add conversation history
+        if "messages" in context and context["messages"]:
+            # Get last few messages for context
+            recent_messages = context["messages"][-5:]  # Last 5 messages
+            messages_str = "\n".join(
+                [
+                    f"{msg.get('role', 'unknown')}: {msg.get('content', '')}"
+                    for msg in recent_messages
+                ]
+            )
+            context_parts.append(f"Recent conversation:\n{messages_str}")
+
+        # Add state information
+        if "state" in context and context["state"]:
+            context_parts.append(f"Current state: {context['state']}")
+
+        context_description = "\n\n".join(context_parts)
+
+        # Build selection prompt
+        base_instructions = f"""Based on the context below, select the most appropriate next action from the available options.
+
+Available actions:
+{", ".join(actions_to_choose_from)}
+
+Context:
+{context_description}
+
+Consider the conversation flow, user's request, and any patterns in the conversation when making your selection.
+For example, if the user asked to do something multiple times (e.g., "reason twice"), and you've only done it once, select that action again."""
+
+        # Add custom instructions if provided
+        if self.instructions:
+            base_instructions = (
+                f"{base_instructions}\n\nAdditional instructions:\n{self.instructions}"
+            )
+
+        # Get language model to make selection
+        try:
+            lm = self._get_language_model()
+            response = lm.run(
+                messages=[{"role": "user", "content": base_instructions}],
+                type=SelectionModel,
+            )
+
+            selected_action = response.output.action.value
+
+            # Validate the selection
+            if selected_action in actions_to_choose_from:
+                return selected_action
+            else:
+                # Fallback to first action if invalid selection
+                return actions_to_choose_from[0]
+
+        except Exception:
+            # Fallback to first action on any error
+            return actions_to_choose_from[0] if actions_to_choose_from else ""
+
+    def __repr__(self) -> str:
+        if self._use_all_actions:
+            return f"SelectionStrategy(all_actions)"
+        return f"SelectionStrategy({', '.join(repr(a) for a in self.actions)})"
+
+    def select(self, context: Optional[Dict[str, Any]] = None) -> str:
+        """Use LLM to select the most appropriate action."""
+        if not context or not self.actions:
+            return self.actions[0] if self.actions else ""
+
+        # Import here to avoid circular imports
+        from pydantic import BaseModel, Field, create_model
+        from enum import Enum
+
+        # Create enum for available actions
+        ActionEnum = Enum("ActionEnum", {action: action for action in self.actions})
+
+        # Create selection model
+        SelectionModel = create_model(
+            "ActionSelection",
+            action=(
+                ActionEnum,
+                Field(description="The selected action to execute next"),
+            ),
+            reasoning=(str, Field(description="Brief reasoning for the selection")),
+        )
+
+        # Build context description
+        context_parts = []
+
+        # Add result from previous action
+        if "result" in context:
+            context_parts.append(f"Previous action result: {context['result']}")
+
+        # Add conversation history
+        if "messages" in context and context["messages"]:
+            # Get last few messages for context
+            recent_messages = context["messages"][-5:]  # Last 5 messages
+            messages_str = "\n".join(
+                [
+                    f"{msg.get('role', 'unknown')}: {msg.get('content', '')}"
+                    for msg in recent_messages
+                ]
+            )
+            context_parts.append(f"Recent conversation:\n{messages_str}")
+
+        # Add state information
+        if "state" in context and context["state"]:
+            context_parts.append(f"Current state: {context['state']}")
+
+        context_description = "\n\n".join(context_parts)
+
+        # Build selection prompt
+        base_instructions = f"""Based on the context below, select the most appropriate next action from the available options.
+
+Available actions:
+{", ".join(self.actions)}
+
+Context:
+{context_description}
+
+Consider the conversation flow and any specific instructions from the user when making your selection."""
+
+        # Add custom instructions if provided
+        if self.instructions:
+            base_instructions = (
+                f"{base_instructions}\n\nAdditional instructions:\n{self.instructions}"
+            )
+
+        # Get language model to make selection
+        try:
+            lm = self._get_language_model()
+            response = lm.run(
+                messages=[{"role": "user", "content": base_instructions}],
+                type=SelectionModel,
+            )
+
+            selected_action = response.output.action.value
+
+            # Validate the selection
+            if selected_action in self.actions:
+                return selected_action
+            else:
+                # Fallback to first action if invalid selection
+                return self.actions[0]
+
+        except Exception:
+            # Fallback to first action on any error
+            return self.actions[0] if self.actions else ""
+
+
+def select(
+    *actions: str, instructions: Optional[str] = None, model: Optional[str] = None
+) -> SelectionStrategy:
+    """
+    Create an LLM-based selection strategy for choosing between multiple actions.
+
+    Args:
+        *actions: The action names to choose from. If empty, will select from all available actions.
+        instructions: Optional instructions for the LLM selection
+        model: Optional model to use for selection (defaults to gpt-4o-mini)
+
+    Returns:
+        A SelectionStrategy instance
+
+    Examples:
+        # Select between specific actions
+        @action(next=select("poem", "response"))
+        def reasoning(self, message: str) -> str:
+            ...
+
+        # Select from all available actions in the graph
+        @action(next=select())
+        def reasoning(self, message: str) -> str:
+            ...
+
+        # With custom instructions
+        @action(next=select("reasoning", "response",
+                          instructions="If the user asked for multiple reasonings, select 'reasoning' again"))
+        def reasoning(self, message: str) -> str:
+            ...
+    """
+    return SelectionStrategy(*actions, instructions=instructions, model=model)
 
 
 class ActionNode(BaseNode[StateT, None, Any]):
@@ -79,6 +339,10 @@ class ActionNode(BaseNode[StateT, None, Any]):
 
     async def run(self, ctx: GraphRunContext[StateT]) -> Union[BaseNode, End]:
         """Execute the action function using Agent/LanguageModel infrastructure."""
+
+        # Track this node's execution
+        execution_tracker = getattr(self, "_execution_tracker", [])
+        execution_tracker.append(self.action_name)
 
         # Create enhanced context that wraps pydantic-graph context
         enhanced_ctx = GraphContext(
@@ -104,18 +368,12 @@ class ActionNode(BaseNode[StateT, None, Any]):
         if hasattr(self, "_graph_docstring"):
             global_system_prompt = self._graph_docstring
 
-        # Add well-defined step execution context
-        step_context = f"""
-You are executing step '{self.action_name}' in a multi-step graph workflow.
-
-Step Purpose: {field_instructions or "Execute the requested action"}
-
-Execution Guidelines:
-- Focus on completing this specific step's objective
-- Provide clear, actionable output that can be used by subsequent steps
-- If this step involves decision-making, be explicit about your reasoning
-- Maintain consistency with the overall workflow context
-"""
+        # Get state from the context if available
+        current_state = None
+        if hasattr(ctx, "state") and ctx.state is not None:
+            current_state = ctx.state
+        elif hasattr(self, "_state"):
+            current_state = getattr(self, "_state", None)
 
         # Check if the action function expects to handle the language model itself
         expects_language_model = (
@@ -124,14 +382,19 @@ Execution Guidelines:
 
         if expects_language_model:
             # Legacy mode: action function expects to handle language model
-            # Combine global system prompt with field-level instructions and step context
+            # Combine global system prompt with field-level instructions and state
             combined_instructions = global_system_prompt
-            if step_context:
-                combined_instructions += f"\n\n{step_context}"
             if field_instructions and field_instructions not in combined_instructions:
-                combined_instructions += (
-                    f"\n\nAdditional Instructions: {field_instructions}"
-                )
+                if combined_instructions:
+                    combined_instructions += f"\n\n{field_instructions}"
+                else:
+                    combined_instructions = field_instructions
+
+            # Add state to instructions if available
+            if current_state is not None:
+                state_str = convert_to_text(current_state, show_defaults=False)
+                if state_str:
+                    combined_instructions += f"\n\nState: {state_str}"
 
             # Get verbose/debug flags and language model kwargs from the node
             verbose = getattr(self, "_verbose", self.settings.verbose)
@@ -144,17 +407,40 @@ Execution Guidelines:
             end_tool = getattr(self, "_end_tool", self.settings.end_tool)
 
             if self.settings.tools or self.settings.instructions:
+                # Get model from settings, then language_model_kwargs, then default
+                model = self.settings.model or language_model_kwargs.get(
+                    "model", "openai/gpt-4o-mini"
+                )
+
+                # Remove parameters that will be passed explicitly to avoid duplicates
+                filtered_kwargs = {
+                    k: v
+                    for k, v in language_model_kwargs.items()
+                    if k
+                    not in [
+                        "model",
+                        "name",
+                        "instructions",
+                        "tools",
+                        "max_steps",
+                        "end_strategy",
+                        "end_tool",
+                        "verbose",
+                        "debug",
+                    ]
+                }
+
                 agent = Agent(
                     name=self.settings.name or self.action_name,
                     instructions=self.settings.instructions or combined_instructions,
-                    model=self.settings.model or "openai/gpt-4o-mini",
+                    model=model,
                     tools=self.settings.tools,
                     max_steps=max_steps,
                     end_strategy=end_strategy,
                     end_tool=end_tool,
                     verbose=verbose,
                     debug=debug,
-                    **language_model_kwargs,
+                    **filtered_kwargs,
                 )
                 # Pass history to context if available
                 history = getattr(self, "_history", None)
@@ -168,11 +454,23 @@ Execution Guidelines:
                 else:
                     result = self.action_func(enhanced_ctx, agent, **action_params)
             else:
+                # Get model from settings, then language_model_kwargs, then default
+                model = self.settings.model or language_model_kwargs.get(
+                    "model", "openai/gpt-4o-mini"
+                )
+
+                # Remove parameters that will be passed explicitly to avoid duplicates
+                filtered_kwargs = {
+                    k: v
+                    for k, v in language_model_kwargs.items()
+                    if k not in ["model", "verbose", "debug"]
+                }
+
                 language_model = LanguageModel(
-                    model=self.settings.model or "openai/gpt-4o-mini",
+                    model=model,
                     verbose=verbose,
                     debug=debug,
-                    **language_model_kwargs,
+                    **filtered_kwargs,
                 )
                 # Pass history to context if available
                 history = getattr(self, "_history", None)
@@ -189,42 +487,37 @@ Execution Guidelines:
                     )
         else:
             # New mode: framework handles language model internally
-            # Build the user message from the action parameters with clear context
+            # Build the user message from the action parameters
             user_message = ""
             if action_params:
                 if len(action_params) == 1:
-                    # Single parameter - use its value directly with context
+                    # Single parameter - use its value directly
                     param_value = list(action_params.values())[0]
-                    user_message = f"Process the following input for step '{self.action_name}':\n\n{param_value}"
+                    user_message = str(param_value)
                 else:
                     # Multiple parameters - format them clearly
                     param_list = "\n".join(
-                        f"- {k}: {v}" for k, v in action_params.items()
+                        f"{k}: {v}" for k, v in action_params.items()
                     )
-                    user_message = f"Execute step '{self.action_name}' with the following parameters:\n\n{param_list}"
+                    user_message = param_list
             else:
-                # No parameters - provide clear step instruction
-                user_message = f"Execute the '{self.action_name}' step of the workflow."
+                # No parameters - check if we have previous conversation history
+                # If we do, don't add an empty user message
+                user_message = ""
 
-            # Combine global system prompt with step context and field-level instructions
+            # Combine global system prompt with field-level instructions and state
             combined_instructions = global_system_prompt
-            if step_context:
-                combined_instructions += f"\n\n{step_context}"
             if field_instructions and field_instructions not in combined_instructions:
-                combined_instructions += (
-                    f"\n\nAdditional Instructions: {field_instructions}"
-                )
+                if combined_instructions:
+                    combined_instructions += f"\n\n{field_instructions}"
+                else:
+                    combined_instructions = field_instructions
 
-            # Add execution guidelines for framework mode
-            execution_guidelines = """
-            
-Execution Guidelines:
-- Provide a clear, direct response that addresses the step's objective
-- Your output will be used as input for subsequent workflow steps
-- Be concise but comprehensive in your response
-- If making decisions or analysis, show your reasoning process
-"""
-            combined_instructions += execution_guidelines
+            # Add state to instructions if available
+            if current_state is not None:
+                state_str = convert_to_text(current_state, show_defaults=False)
+                if state_str:
+                    combined_instructions += f"\n\nContext: {state_str}"
 
             # Get verbose/debug flags and language model kwargs from the node
             verbose = getattr(self, "_verbose", self.settings.verbose)
@@ -239,43 +532,107 @@ Execution Guidelines:
             # Determine if we need to use Agent or LanguageModel
             if self.settings.tools or self.settings.instructions:
                 # Use Agent for complex operations with tools/instructions
+                # Get model from settings, then language_model_kwargs, then default
+                model = self.settings.model or language_model_kwargs.get(
+                    "model", "openai/gpt-4o-mini"
+                )
+
+                # Remove parameters that will be passed explicitly to avoid duplicates
+                filtered_kwargs = {
+                    k: v
+                    for k, v in language_model_kwargs.items()
+                    if k
+                    not in [
+                        "model",
+                        "name",
+                        "instructions",
+                        "tools",
+                        "max_steps",
+                        "end_strategy",
+                        "end_tool",
+                        "verbose",
+                        "debug",
+                    ]
+                }
+
                 agent = Agent(
                     name=self.settings.name or self.action_name,
                     instructions=self.settings.instructions or combined_instructions,
-                    model=self.settings.model or "openai/gpt-4o-mini",
+                    model=model,
                     tools=self.settings.tools,
                     max_steps=max_steps,
                     end_strategy=end_strategy,
                     end_tool=end_tool,
                     verbose=verbose,
                     debug=debug,
-                    **language_model_kwargs,
+                    **filtered_kwargs,
                 )
 
                 # Get history if available
                 history = getattr(self, "_history", None)
+
+                # Check if we have previous conversation history from the graph execution
+                previous_messages = getattr(self, "_graph_messages", [])
+
+                # Store the current user message for history building
+                if user_message:
+                    self._current_user_message = user_message
 
                 # Run the agent with the user message and history
                 if history:
                     # If history is provided, we need to combine it with the user message
                     # The history should be the conversation context, and user_message is the new input
                     combined_messages = parse_messages_input(history)
-                    combined_messages.append({"role": "user", "content": user_message})
+                    combined_messages.extend(previous_messages)
+                    if user_message:  # Only add non-empty user messages
+                        combined_messages.append(
+                            {"role": "user", "content": user_message}
+                        )
+                    agent_result = await agent.async_run(combined_messages)
+                elif previous_messages:
+                    # If we have previous messages from the graph, use them
+                    combined_messages = previous_messages.copy()
+                    if user_message:  # Only add non-empty user messages
+                        combined_messages.append(
+                            {"role": "user", "content": user_message}
+                        )
                     agent_result = await agent.async_run(combined_messages)
                 else:
-                    agent_result = await agent.async_run(user_message)
+                    # Only run with user message if it's not empty
+                    if user_message:
+                        agent_result = await agent.async_run(user_message)
+                    else:
+                        # If no user message and no history, we can't run the agent
+                        raise ValueError(
+                            "No user message or history provided for agent execution"
+                        )
                 result = agent_result.output
             else:
                 # Use LanguageModel for simple operations
+                # Get model from settings, then language_model_kwargs, then default
+                model = self.settings.model or language_model_kwargs.get(
+                    "model", "openai/gpt-4o-mini"
+                )
+
+                # Remove parameters that will be passed explicitly to avoid duplicates
+                filtered_kwargs = {
+                    k: v
+                    for k, v in language_model_kwargs.items()
+                    if k not in ["model", "verbose", "debug"]
+                }
+
                 language_model = LanguageModel(
-                    model=self.settings.model or "openai/gpt-4o-mini",
+                    model=model,
                     verbose=verbose,
                     debug=debug,
-                    **language_model_kwargs,
+                    **filtered_kwargs,
                 )
 
                 # Get history if available
                 history = getattr(self, "_history", None)
+
+                # Check if we have previous conversation history from the graph execution
+                previous_messages = getattr(self, "_graph_messages", [])
 
                 # Create messages using the language model utils
                 if history:
@@ -283,14 +640,35 @@ Execution Guidelines:
                     messages = parse_messages_input(
                         history, instructions=combined_instructions
                     )
+                    # Add any previous graph messages
+                    messages.extend(previous_messages)
                     # Then add the user message from action parameters
-                    messages.append({"role": "user", "content": user_message})
-                else:
-                    # Otherwise, use the user message
+                    if user_message:  # Only add non-empty user messages
+                        messages.append({"role": "user", "content": user_message})
+                elif previous_messages:
+                    # If we have previous messages from the graph, use them
                     messages = parse_messages_input(
-                        user_message, instructions=combined_instructions
+                        "", instructions=combined_instructions
                     )
+                    messages.extend(previous_messages)
+                    if user_message:  # Only add non-empty user messages
+                        messages.append({"role": "user", "content": user_message})
+                else:
+                    # Otherwise, use the user message (if not empty)
+                    if user_message:
+                        messages = parse_messages_input(
+                            user_message, instructions=combined_instructions
+                        )
+                    else:
+                        # If no user message and no history, just use instructions
+                        messages = parse_messages_input(
+                            "", instructions=combined_instructions
+                        )
                 messages = consolidate_system_messages(messages)
+
+                # Store the current user message for history building
+                if user_message:
+                    self._current_user_message = user_message
 
                 # Run the language model with the consolidated messages
                 lm_result = await language_model.async_run(messages)
@@ -310,9 +688,83 @@ Execution Guidelines:
         elif self.settings.terminates:
             return End(result)
         else:
-            # For non-terminating actions that don't return a node, continue to next
-            # This would be more sophisticated in a real implementation with routing
-            return End(result)
+            # Check if there's a next action defined
+            if self.settings.next:
+                # Handle different types of next specifications
+                next_action_name = None
+
+                if isinstance(self.settings.next, str):
+                    # Simple string case
+                    next_action_name = self.settings.next
+                elif isinstance(self.settings.next, list):
+                    # List case - for now, just pick the first one
+                    # In the future, this could execute all in parallel
+                    if self.settings.next:
+                        next_action_name = self.settings.next[0]
+                elif isinstance(self.settings.next, SelectionStrategy):
+                    # Selection strategy case - use the strategy to pick an action
+                    context = {
+                        "result": result,
+                        "state": getattr(self, "_state", None),
+                        "messages": getattr(self, "_graph_messages", []),
+                    }
+                    # If using all actions, pass them in the context
+                    if self.settings.next._use_all_actions and hasattr(
+                        self, "_graph_action_nodes"
+                    ):
+                        context["all_actions"] = list(self._graph_action_nodes.keys())
+                    next_action_name = self.settings.next.select(context)
+                else:
+                    # Invalid type for next
+                    return End(result)
+
+                # Find the next node class from the graph's action nodes
+                if hasattr(self, "_graph_action_nodes") and next_action_name:
+                    next_node_class = self._graph_action_nodes.get(next_action_name)
+                    if next_node_class:
+                        # Create the next node instance
+                        # For graph flow, we don't pass the result as a parameter
+                        # The conversation history will contain the context
+                        next_node = next_node_class()
+
+                        # Copy over any graph-specific attributes
+                        for attr in [
+                            "_graph_docstring",
+                            "_verbose",
+                            "_debug",
+                            "_language_model_kwargs",
+                            "_history",
+                            "_state",
+                            "_graph_action_nodes",
+                            "_execution_tracker",
+                        ]:
+                            if hasattr(self, attr):
+                                setattr(next_node, attr, getattr(self, attr))
+
+                        # Build up the conversation history for the next node
+                        current_messages = getattr(self, "_graph_messages", [])
+                        # Add the current interaction to the conversation history
+                        # Only add the user message if it was actually provided (not empty)
+                        if (
+                            hasattr(self, "_current_user_message")
+                            and self._current_user_message
+                        ):
+                            current_messages.append(
+                                {"role": "user", "content": self._current_user_message}
+                            )
+                        # Add the assistant response from this node
+                        current_messages.append(
+                            {"role": "assistant", "content": str(result)}
+                        )
+                        next_node._graph_messages = current_messages
+
+                        return next_node
+
+                # If we can't find any valid next node, terminate
+                return End(result)
+            else:
+                # No next action defined, terminate
+                return End(result)
 
 
 class ActionDecorator:
@@ -333,7 +785,7 @@ class ActionDecorator:
         start: bool = False,
         terminates: bool = False,
         xml: Optional[str] = None,
-        next: Optional[Union[str, List[str]]] = None,
+        next: Optional[Union[str, List[str], SelectionStrategy]] = None,
         read_history: bool = False,
         persist_history: bool = False,
         condition: Optional[str] = None,
@@ -374,7 +826,7 @@ class ActionDecorator:
         def decorator(f: Callable) -> Callable:
             action_name = name or f.__name__
 
-            # Create a dynamic ActionNode class for this specific action
+            # Create a dynamic ActionNode class for this specific action with unique name
             class DynamicActionNode(ActionNode[StateT]):
                 def __init__(self, **action_params):
                     super().__init__(
@@ -383,6 +835,11 @@ class ActionDecorator:
                         settings=settings,
                         **action_params,
                     )
+
+                @classmethod
+                def get_node_id(cls):
+                    """Override to provide unique node ID based on action name."""
+                    return f"DynamicActionNode_{action_name}"
 
             # Store the action
             self._actions[action_name] = DynamicActionNode
@@ -460,10 +917,44 @@ class GraphBuilder(Generic[StateT, T]):
 class BaseGraph(Generic[StateT, T]):
     """Base class for graphs that provides action decorator support on top of pydantic-graph."""
 
-    def __init__(self, state: Optional[StateT] = None):
-        self._plugins: List[BasePlugin] = []
-        self._global_model: Optional[LanguageModelName] = None
-        self._global_settings: Dict[str, Any] = {}
+    def __init__(
+        self,
+        state: Optional[StateT] = None,
+        *,
+        model: Optional[LanguageModelName | str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        tools: Optional[List[Callable]] = None,
+        verbose: bool = False,
+        debug: bool = False,
+        max_steps: Optional[int] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
+        summarize_tools: bool = True,
+        summarize_tools_with_model: bool = False,
+        plugins: Optional[List[BasePlugin]] = None,
+        **kwargs: Any,
+    ):
+        self._plugins: List[BasePlugin] = plugins or []
+        self._global_model: Optional[LanguageModelName] = model
+        self._global_settings: Dict[str, Any] = {
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "tools": tools,
+            "verbose": verbose,
+            "debug": debug,
+            "max_steps": max_steps,
+            "end_strategy": end_strategy,
+            "end_tool": end_tool,
+            "summarize_tools": summarize_tools,
+            "summarize_tools_with_model": summarize_tools_with_model,
+            **kwargs,
+        }
+        # Remove None values from settings
+        self._global_settings = {
+            k: v for k, v in self._global_settings.items() if v is not None
+        }
+
         self._pydantic_graph: Optional[PydanticGraph] = None
         self._action_nodes: Dict[str, Type[ActionNode]] = {}
         self._start_action_name: Optional[str] = None
@@ -503,6 +994,8 @@ class BaseGraph(Generic[StateT, T]):
     def _collect_actions(self) -> None:
         """Collect all actions defined in the graph class."""
         actions_found = []
+        start_action = None
+        end_action = None
 
         # Get the graph class docstring for global system prompt
         graph_docstring = self.__class__.__doc__ or ""
@@ -523,6 +1016,14 @@ class BaseGraph(Generic[StateT, T]):
                         )
                     self._start_action_name = action_name
                     self._start_action_func = attr
+                    start_action = attr
+
+                # Check if this is an end action (terminates=True)
+                if (
+                    hasattr(attr, "_action_settings")
+                    and attr._action_settings.terminates
+                ):
+                    end_action = attr
 
         # If no explicit start action was defined and we have exactly one action,
         # automatically make it the start action
@@ -530,6 +1031,13 @@ class BaseGraph(Generic[StateT, T]):
             action_name, action_func = actions_found[0]
             self._start_action_name = action_name
             self._start_action_func = action_func
+
+        # Special case: If we have exactly 2 actions (start -> end), automatically set up routing
+        if len(actions_found) == 2 and start_action and end_action:
+            # Check if the start action doesn't already have a 'next' defined
+            if start_action._action_settings.next is None:
+                # Automatically set the start action to route to the end action
+                start_action._action_settings.next = end_action._action_name
 
         # Store the graph docstring in all action nodes for access during execution
         for action_node_class in self._action_nodes.values():
@@ -648,20 +1156,34 @@ class BaseGraph(Generic[StateT, T]):
         start_node = start_node_class(**bound_args.arguments)
         # Pass the graph docstring to the node for global system prompt
         start_node._graph_docstring = self.__class__.__doc__ or ""
-        # Pass verbose/debug flags and language model kwargs
-        start_node._verbose = verbose
-        start_node._debug = debug
-        start_node._language_model_kwargs = language_model_kwargs
+
+        # Merge global settings with provided kwargs
+        merged_settings = self._global_settings.copy()
+        merged_settings.update(language_model_kwargs)
+
+        # Pass verbose/debug flags (prefer explicit params over global settings)
+        start_node._verbose = (
+            verbose if verbose else merged_settings.get("verbose", False)
+        )
+        start_node._debug = debug if debug else merged_settings.get("debug", False)
+        start_node._language_model_kwargs = merged_settings
+
         # Pass history if provided
         start_node._history = history
+        # Pass the graph's action nodes for routing
+        start_node._graph_action_nodes = self._action_nodes
 
-        # Pass end strategy parameters if provided
-        if "max_steps" in language_model_kwargs:
-            start_node._max_steps = language_model_kwargs["max_steps"]
-        if "end_strategy" in language_model_kwargs:
-            start_node._end_strategy = language_model_kwargs["end_strategy"]
-        if "end_tool" in language_model_kwargs:
-            start_node._end_tool = language_model_kwargs["end_tool"]
+        # Initialize execution tracking
+        self._execution_tracker = []
+        start_node._execution_tracker = self._execution_tracker
+
+        # Pass end strategy parameters (from merged settings)
+        if "max_steps" in merged_settings:
+            start_node._max_steps = merged_settings["max_steps"]
+        if "end_strategy" in merged_settings:
+            start_node._end_strategy = merged_settings["end_strategy"]
+        if "end_tool" in merged_settings:
+            start_node._end_tool = merged_settings["end_tool"]
 
         # Run the pydantic graph
         if not self._pydantic_graph:
@@ -669,6 +1191,8 @@ class BaseGraph(Generic[StateT, T]):
 
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
+        # Pass state to the node
+        start_node._state = execution_state
 
         # Execute the graph using pydantic-graph
         try:
@@ -683,6 +1207,13 @@ class BaseGraph(Generic[StateT, T]):
             else:
                 output = str(result)
 
+            # Get nodes executed from the execution tracker
+            nodes_executed = getattr(self, "_execution_tracker", [])
+
+            # If no nodes tracked, at least include the start node
+            if not nodes_executed:
+                nodes_executed = [self._start_action_name]
+
             # Create our response object
             return GraphResponse(
                 type="graph",
@@ -693,7 +1224,7 @@ class BaseGraph(Generic[StateT, T]):
                 state=execution_state,
                 history=[],  # Would be populated from pydantic-graph execution
                 start_node=self._start_action_name,
-                nodes_executed=[self._start_action_name],  # Would track from execution
+                nodes_executed=nodes_executed,
                 metadata={},
             )
 
@@ -794,23 +1325,40 @@ class BaseGraph(Generic[StateT, T]):
         start_node = start_node_class(**bound_args.arguments)
         # Pass the graph docstring to the node for global system prompt
         start_node._graph_docstring = self.__class__.__doc__ or ""
-        # Pass verbose/debug flags and language model kwargs
-        start_node._verbose = verbose
-        start_node._debug = debug
-        start_node._language_model_kwargs = language_model_kwargs
+
+        # Merge global settings with provided kwargs
+        merged_settings = self._global_settings.copy()
+        merged_settings.update(language_model_kwargs)
+
+        # Pass verbose/debug flags (prefer explicit params over global settings)
+        start_node._verbose = (
+            verbose if verbose else merged_settings.get("verbose", False)
+        )
+        start_node._debug = debug if debug else merged_settings.get("debug", False)
+        start_node._language_model_kwargs = merged_settings
+
         # Pass history if provided
         start_node._history = history
+        # Pass the graph's action nodes for routing
+        start_node._graph_action_nodes = self._action_nodes
 
-        # Pass end strategy parameters if provided
-        if max_steps is not None:
-            start_node._max_steps = max_steps
-        if end_strategy is not None:
-            start_node._end_strategy = end_strategy
-        if end_tool is not None:
-            start_node._end_tool = end_tool
+        # Pass end strategy parameters (prefer explicit params over merged settings)
+        start_node._max_steps = (
+            max_steps if max_steps is not None else merged_settings.get("max_steps")
+        )
+        start_node._end_strategy = (
+            end_strategy
+            if end_strategy is not None
+            else merged_settings.get("end_strategy")
+        )
+        start_node._end_tool = (
+            end_tool if end_tool is not None else merged_settings.get("end_tool")
+        )
 
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
+        # Pass state to the node
+        start_node._state = execution_state
 
         # Create and return GraphStream
         return GraphStream(
@@ -914,20 +1462,39 @@ class BaseGraph(Generic[StateT, T]):
         start_node = start_node_class(**bound_args.arguments)
         # Pass the graph docstring to the node for global system prompt
         start_node._graph_docstring = self.__class__.__doc__ or ""
-        # Pass verbose/debug flags and language model kwargs
-        start_node._verbose = verbose
-        start_node._debug = debug
-        start_node._language_model_kwargs = language_model_kwargs
+
+        # Merge global settings with provided kwargs
+        merged_settings = self._global_settings.copy()
+        merged_settings.update(language_model_kwargs)
+
+        # Pass verbose/debug flags (prefer explicit params over global settings)
+        start_node._verbose = (
+            verbose if verbose else merged_settings.get("verbose", False)
+        )
+        start_node._debug = debug if debug else merged_settings.get("debug", False)
+        start_node._language_model_kwargs = merged_settings
+
         # Pass history if provided
         start_node._history = history
+        # Pass the graph's action nodes for routing
+        start_node._graph_action_nodes = self._action_nodes
 
-        # Pass end strategy parameters if provided
-        if max_steps is not None:
-            start_node._max_steps = max_steps
-        if end_strategy is not None:
-            start_node._end_strategy = end_strategy
-        if end_tool is not None:
-            start_node._end_tool = end_tool
+        # Initialize execution tracking
+        self._execution_tracker = []
+        start_node._execution_tracker = self._execution_tracker
+
+        # Pass end strategy parameters (prefer explicit params over merged settings)
+        start_node._max_steps = (
+            max_steps if max_steps is not None else merged_settings.get("max_steps")
+        )
+        start_node._end_strategy = (
+            end_strategy
+            if end_strategy is not None
+            else merged_settings.get("end_strategy")
+        )
+        start_node._end_tool = (
+            end_tool if end_tool is not None else merged_settings.get("end_tool")
+        )
 
         # Run the pydantic graph asynchronously
         if not self._pydantic_graph:
@@ -935,6 +1502,8 @@ class BaseGraph(Generic[StateT, T]):
 
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
+        # Pass state to the node
+        start_node._state = execution_state
 
         try:
             # Execute the graph using pydantic-graph async
@@ -948,6 +1517,13 @@ class BaseGraph(Generic[StateT, T]):
             else:
                 output = str(result)
 
+            # Get nodes executed from the execution tracker
+            nodes_executed = getattr(self, "_execution_tracker", [])
+
+            # If no nodes tracked, at least include the start node
+            if not nodes_executed:
+                nodes_executed = [self._start_action_name]
+
             # Create our response object
             return GraphResponse(
                 type="graph",
@@ -958,7 +1534,7 @@ class BaseGraph(Generic[StateT, T]):
                 state=execution_state,
                 history=[],  # Would be populated from pydantic-graph execution
                 start_node=self._start_action_name,
-                nodes_executed=[self._start_action_name],  # Would track from execution
+                nodes_executed=nodes_executed,
                 metadata={},
             )
 
@@ -1054,23 +1630,40 @@ class BaseGraph(Generic[StateT, T]):
         start_node = start_node_class(**bound_args.arguments)
         # Pass the graph docstring to the node for global system prompt
         start_node._graph_docstring = self.__class__.__doc__ or ""
-        # Pass verbose/debug flags and language model kwargs
-        start_node._verbose = verbose
-        start_node._debug = debug
-        start_node._language_model_kwargs = language_model_kwargs
+
+        # Merge global settings with provided kwargs
+        merged_settings = self._global_settings.copy()
+        merged_settings.update(language_model_kwargs)
+
+        # Pass verbose/debug flags (prefer explicit params over global settings)
+        start_node._verbose = (
+            verbose if verbose else merged_settings.get("verbose", False)
+        )
+        start_node._debug = debug if debug else merged_settings.get("debug", False)
+        start_node._language_model_kwargs = merged_settings
+
         # Pass history if provided
         start_node._history = history
+        # Pass the graph's action nodes for routing
+        start_node._graph_action_nodes = self._action_nodes
 
-        # Pass end strategy parameters if provided
-        if max_steps is not None:
-            start_node._max_steps = max_steps
-        if end_strategy is not None:
-            start_node._end_strategy = end_strategy
-        if end_tool is not None:
-            start_node._end_tool = end_tool
+        # Pass end strategy parameters (prefer explicit params over merged settings)
+        start_node._max_steps = (
+            max_steps if max_steps is not None else merged_settings.get("max_steps")
+        )
+        start_node._end_strategy = (
+            end_strategy
+            if end_strategy is not None
+            else merged_settings.get("end_strategy")
+        )
+        start_node._end_tool = (
+            end_tool if end_tool is not None else merged_settings.get("end_tool")
+        )
 
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
+        # Pass state to the node
+        start_node._state = execution_state
 
         # Create and return GraphStream
         return GraphStream(
@@ -1101,3 +1694,93 @@ class BaseGraph(Generic[StateT, T]):
     def builder(cls) -> GraphBuilder[StateT, T]:
         """Create a builder for this graph."""
         return GraphBuilder(cls)
+
+    def as_a2a(
+        self,
+        *,
+        # Worker configuration
+        state: Optional[StateT] = None,
+        # Storage and broker configuration
+        storage: Optional[Any] = None,
+        broker: Optional[Any] = None,
+        # Server configuration
+        host: str = "0.0.0.0",
+        port: int = 8000,
+        reload: bool = False,
+        workers: int = 1,
+        log_level: str = "info",
+        # A2A configuration
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        version: str = "1.0.0",
+        description: Optional[str] = None,
+        # Advanced configuration
+        lifespan_timeout: int = 30,
+        **uvicorn_kwargs: Any,
+    ) -> "FastA2A":  # type: ignore
+        """
+        Convert this graph to an A2A server application.
+
+        This method creates a FastA2A server that can handle A2A requests
+        for this graph instance. It sets up the necessary Worker, Storage,
+        and Broker components automatically.
+
+        Args:
+            state: Initial state for the graph (overrides instance state)
+            storage: Custom storage backend (defaults to InMemoryStorage)
+            broker: Custom broker backend (defaults to InMemoryBroker)
+            host: Host to bind the server to
+            port: Port to bind the server to
+            reload: Enable auto-reload for development
+            workers: Number of worker processes
+            log_level: Logging level
+            name: Graph name for the A2A server
+            url: URL where the graph is hosted
+            version: API version
+            description: API description for the A2A server
+            lifespan_timeout: Timeout for lifespan events
+            **uvicorn_kwargs: Additional arguments passed to uvicorn
+
+        Returns:
+            FastA2A application instance that can be run with uvicorn
+
+        Examples:
+            Convert graph to A2A server:
+            ```python
+            class MyGraph(BaseGraph):
+                @action.start()
+                def process(self, message: str) -> str:
+                    return f"Processed: {message}"
+
+            graph = MyGraph()
+            app = graph.as_a2a(port=8080)
+
+            # Run with uvicorn
+            import uvicorn
+            uvicorn.run(app, host="0.0.0.0", port=8080)
+            ```
+
+            Or use the CLI:
+            ```bash
+            uvicorn mymodule:graph.as_a2a() --reload
+            ```
+        """
+        from ..a2a import as_a2a_app
+
+        return as_a2a_app(
+            self,
+            state=state if state is not None else self._state,
+            storage=storage,
+            broker=broker,
+            host=host,
+            port=port,
+            reload=reload,
+            workers=workers,
+            log_level=log_level,
+            name=name or self.__class__.__name__,
+            url=url,
+            version=version,
+            description=description or self.__class__.__doc__,
+            lifespan_timeout=lifespan_timeout,
+            **uvicorn_kwargs,
+        )

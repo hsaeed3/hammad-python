@@ -1,20 +1,5 @@
 """hammad._main"""
 
-from typing import TYPE_CHECKING
-from ._internal import create_getattr_importer
-
-
-if TYPE_CHECKING:
-    # ! CORE COMPONENTS
-    # ------------------------------------------------------------
-    from .cli import print, input, animate
-
-    from .genai import (
-        BaseGraph,
-        plugin,
-        action
-    )
-
 
 class to:
     """Namespace for converters that can be used to convert objects to various formats.
@@ -22,6 +7,7 @@ class to:
     The `to` class provides a collection of converters that can be used to convert objects
     to various formats, such as pydantic models, text, markdown, json, and more.
     """
+
     # ! CONVERTERS
     from .data import (
         convert_to_pydantic_field as pydantic_field,
@@ -49,29 +35,17 @@ class fn:
     methods, and classes in various ways, such as caching results, tracing function calls,
     and validating input parameters.
     """
+
     # ! DECORATORS
-    from .cache import (
-        cached,
-        auto_cached
-    )
-    from .logging import (
-        trace,
-        trace_cls,
-        trace_function,
-        trace_http
-    )
-    from .data.models import (
-        validator
-    )
+    from .cache import cached, auto_cached
+    from .logging import trace, trace_cls, trace_function, trace_http
+    from .data.models import validator
     from .runtime import (
         sequentialize_function as sequentialize,
         parallelize_function as parallelize,
-        run_with_retry as retry
+        run_with_retry as retry,
     )
-    from .service import (
-        serve,
-        serve_mcp
-    )
+    from .service import serve, serve_mcp
 
 
 class new:
@@ -90,6 +64,7 @@ class new:
         service = new.service(...)
         http_client = new.http_client(...)
     """
+
     # ! FACTORIES
     from .cache import (
         create_cache as cache,
@@ -99,9 +74,7 @@ class new:
         create_database as database,
         create_model as model,
     )
-    from .logging import (
-        create_logger as logger
-    )
+    from .logging import create_logger as logger
     from .genai import (
         create_agent as agent,
         create_embedding_model as embedding_model,
@@ -124,6 +97,7 @@ class new:
 class run:
     """Centeral namespace for 'one-off' runners, or functions that can be
     executed directly, and standalone."""
+
     # ! RUNNERS
     from .genai import (
         run_agent as agent,
@@ -149,6 +123,7 @@ class run:
 
 class read:
     """Namespace for various resource, URL or other file-type readers."""
+
     from .data.configurations import (
         read_configuration_from_dotenv as configuration_from_dotenv,
         read_configuration_from_file as configuration_from_file,
@@ -176,24 +151,23 @@ class settings:
     """Namespace class for all settings definitions within the ecosystem. This is an
     easy way to find the configuration settings for the component you are intending
     to use."""
+
     # NOTE:
     # these are attached to the 'core/builtin' extensions imported at the very top
     # hence the weird very very literal names
     from .cli import (
         CLIStyleLiveSettings as live,
         CLIStyleBackgroundSettings as bg,
-        CLIStyleRenderableSettings as style
+        CLIStyleRenderableSettings as style,
     )
-    
+
     from .data import (
         QdrantCollectionIndexSettings as qdrant,
         QdrantCollectionIndexQuerySettings as qdrant_query,
         TantivyCollectionIndexSettings as tantivy,
         TantivyCollectionIndexQuerySettings as tantivy_query,
     )
-    from .logging.logger import (
-        LoggerLevelSettings as logger_level
-    )
+    from .logging.logger import LoggerLevelSettings as logger_level
     from .genai import (
         AgentSettings as agent,
         LanguageModelSettings as language_model,
@@ -210,14 +184,33 @@ class settings:
 
 
 __all__ = (
+    # hammad.cache
+    "cached",
     # hammad.cli
     "print",
     "input",
     "animate",
-    # hammad.genai.graphs
+    # hammad.logging
+    "logger",
+    # hammad.genai
     "BaseGraph",
     "plugin",
     "action",
+    "agent",
+    "llm",
+    "tool",
+    # hammad.data.collections
+    "collection",
+    # hammad.formatting.text
+    "markdown",
+    # hammad.mcp
+    "launch_mcp_servers",
+    # hammad.service
+    "serve",
+    "serve_mcp",
+    # hammad.web
+    "web_search",
+    "web_request",
     # hammad.to
     "to",
     # hammad.fn

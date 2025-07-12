@@ -29,7 +29,7 @@ from ..types.history import History
 from ..types.base import BaseGenAIModelStream
 
 if TYPE_CHECKING:
-    from .base import BaseGraph
+    from .base import BaseGraph, SelectionStrategy
 
 __all__ = [
     "GraphState",
@@ -68,7 +68,7 @@ class ActionSettings:
     start: bool = False
     terminates: bool = False
     xml: Optional[str] = None
-    next: Optional[Union[str, List[str]]] = None
+    next: Optional[Union[str, List[str], "SelectionStrategy"]] = None
     read_history: bool = False
     persist_history: bool = False
     condition: Optional[str] = None
