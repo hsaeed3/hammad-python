@@ -1,6 +1,18 @@
 """hammad.genai.graphs.types - Types for the graph framework built on pydantic-graph"""
 
-from typing import Any, Dict, List, Optional, TypeVar, Generic, Union, Callable, Iterator, AsyncIterator, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Generic,
+    Union,
+    Callable,
+    Iterator,
+    AsyncIterator,
+    TYPE_CHECKING,
+)
 from typing_extensions import Literal
 from dataclasses import dataclass, field
 
@@ -399,7 +411,7 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
         **kwargs: Any,
     ):
         """Initialize the graph stream.
-        
+
         Args:
             graph: The BaseGraph instance
             start_node: The starting node for execution
@@ -426,18 +438,22 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
             raise ValueError("Graph not initialized")
 
         # Create the pydantic-graph iterator
-        pydantic_iter = self.graph._pydantic_graph.iter(self.start_node, state=self.state)
+        pydantic_iter = self.graph._pydantic_graph.iter(
+            self.start_node, state=self.state
+        )
         self._pydantic_iterator = pydantic_iter
-        
+
         try:
             for node_result in pydantic_iter:
                 self.current_step += 1
-                
+
                 # Extract information from the pydantic-graph result
-                node_name = getattr(node_result, "__class__", {}).get("__name__", "unknown")
+                node_name = getattr(node_result, "__class__", {}).get(
+                    "__name__", "unknown"
+                )
                 if hasattr(node_result, "action_name"):
                     node_name = node_result.action_name
-                
+
                 # Extract output from the result
                 output = None
                 content = None
@@ -450,10 +466,10 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
                 else:
                     output = str(node_result)
                     content = str(node_result)
-                
+
                 # Determine if this is the final step
                 is_final = isinstance(node_result, End)
-                
+
                 # Create and yield chunk
                 chunk = GraphResponseChunk(
                     step_number=self.current_step,
@@ -465,13 +481,13 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
                     state=self.state,
                     metadata=self.kwargs,
                 )
-                
+
                 yield chunk
-                
+
                 if is_final:
                     self.is_done = True
                     break
-                    
+
         except Exception as e:
             # Handle any errors during iteration
             error_chunk = GraphResponseChunk(
@@ -495,7 +511,7 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
         """Get the next chunk in async iteration."""
         if not self.graph._pydantic_graph:
             raise ValueError("Graph not initialized")
-            
+
         if self.is_done:
             raise StopAsyncIteration
 
@@ -504,16 +520,16 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
             self._async_pydantic_iterator = self.graph._pydantic_graph.iter(
                 self.start_node, state=self.state
             ).__aiter__()
-        
+
         try:
             node_result = await self._async_pydantic_iterator.__anext__()
             self.current_step += 1
-            
+
             # Extract information from the pydantic-graph result
             node_name = getattr(node_result, "__class__", {}).get("__name__", "unknown")
             if hasattr(node_result, "action_name"):
                 node_name = node_result.action_name
-            
+
             # Extract output from the result
             output = None
             content = None
@@ -526,10 +542,10 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
             else:
                 output = str(node_result)
                 content = str(node_result)
-            
+
             # Determine if this is the final step
             is_final = isinstance(node_result, End)
-            
+
             # Create chunk
             chunk = GraphResponseChunk(
                 step_number=self.current_step,
@@ -541,12 +557,12 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
                 state=self.state,
                 metadata=self.kwargs,
             )
-            
+
             if is_final:
                 self.is_done = True
-                
+
             return chunk
-            
+
         except StopAsyncIteration:
             self.is_done = True
             raise
@@ -569,16 +585,16 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
         """Collect all steps and return final graph response."""
         chunks = []
         final_chunk = None
-        
+
         for chunk in self:
             chunks.append(chunk)
             if chunk.is_final:
                 final_chunk = chunk
                 break
-        
+
         if final_chunk is None:
             raise RuntimeError("No final chunk generated by graph execution")
-        
+
         # Create response from final chunk
         return GraphResponse(
             type="graph",
@@ -597,16 +613,16 @@ class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphS
         """Collect all steps and return final graph response."""
         chunks = []
         final_chunk = None
-        
+
         async for chunk in self:
             chunks.append(chunk)
             if chunk.is_final:
                 final_chunk = chunk
                 break
-        
+
         if final_chunk is None:
             raise RuntimeError("No final chunk generated by graph execution")
-        
+
         # Create response from final chunk
         return GraphResponse(
             type="graph",

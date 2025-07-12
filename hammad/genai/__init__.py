@@ -43,7 +43,7 @@ if TYPE_CHECKING:
         ActionInfo,
         ActionSettings,
         action,
-        plugin
+        plugin,
     )
     from .models.embeddings import (
         Embedding,

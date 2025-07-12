@@ -9,12 +9,7 @@ if TYPE_CHECKING:
         Agent,
         create_agent,
     )
-    from .run import (
-        run_agent,
-        run_agent_iter,
-        async_run_agent,
-        async_run_agent_iter
-    )
+    from .run import run_agent, run_agent_iter, async_run_agent, async_run_agent_iter
 
     # Types
     from .types.agent_context import AgentContext
