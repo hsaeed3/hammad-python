@@ -7,6 +7,7 @@ from ..._internal import create_getattr_importer
 if TYPE_CHECKING:
     from .agent import (
         Agent,
+        AgentSettings,
         create_agent,
     )
     from .run import run_agent, run_agent_iter, async_run_agent, async_run_agent_iter
@@ -27,6 +28,7 @@ __all__ = [
     # hammad.genai.agents.agent
     "Agent",
     "create_agent",
+    "AgentSettings",
     # hammad.genai.agents.run
     "run_agent",
     "run_agent_iter",
