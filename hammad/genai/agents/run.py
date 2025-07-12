@@ -72,6 +72,9 @@ def run_agent(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -81,6 +84,8 @@ def run_agent(
     frequency_penalty: Optional[float] = None,
     seed: Optional[int] = None,
     user: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> "AgentResponse[str]": ...
 
 
@@ -111,6 +116,9 @@ def run_agent(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -120,10 +128,14 @@ def run_agent(
     frequency_penalty: Optional[float] = None,
     seed: Optional[int] = None,
     user: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> "AgentResponse[T]": ...
 
 
-def run_agent(messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any) -> "AgentResponse[Any]":
+def run_agent(
+    messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any
+) -> "AgentResponse[Any]":
     """Runs this agent and returns a final agent response or stream.
 
     You can override defaults assigned to this agent from this function directly.
@@ -228,6 +240,9 @@ async def async_run_agent(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -237,6 +252,8 @@ async def async_run_agent(
     frequency_penalty: Optional[float] = None,
     seed: Optional[int] = None,
     user: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> "AgentResponse[str]": ...
 
 
@@ -267,6 +284,9 @@ async def async_run_agent(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -276,11 +296,13 @@ async def async_run_agent(
     frequency_penalty: Optional[float] = None,
     seed: Optional[int] = None,
     user: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> "AgentResponse[T]": ...
 
 
 async def async_run_agent(
-    messages: "AgentMessages", **kwargs: Any
+    messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any
 ) -> "AgentResponse[Any]":
     """Runs this agent asynchronously and returns a final agent response.
 
@@ -380,6 +402,9 @@ def run_agent_iter(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -419,6 +444,9 @@ def run_agent_iter(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -431,7 +459,9 @@ def run_agent_iter(
 ) -> "AgentStream[T]": ...
 
 
-def run_agent_iter(messages: "AgentMessages", **kwargs: Any) -> "AgentStream[Any]":
+def run_agent_iter(
+    messages: "AgentMessages", verbose: bool = False, debug: bool = False, **kwargs: Any
+) -> "AgentStream[Any]":
     """Iterate over agent steps, yielding each step response.
 
     You can override defaults assigned to this agent from this function directly.
@@ -546,6 +576,9 @@ def async_run_agent_iter(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,
@@ -585,6 +618,9 @@ def async_run_agent_iter(
     model: Optional[Union["LanguageModel", "LanguageModelName"]] = None,
     max_steps: Optional[int] = None,
     instructor_mode: Optional["LanguageModelInstructorMode"] = None,
+    # End strategy
+    end_strategy: Optional[Literal["tool"]] = None,
+    end_tool: Optional[Callable] = None,
     # LM settings
     timeout: Optional[Union[float, str, "Timeout"]] = None,
     temperature: Optional[float] = None,

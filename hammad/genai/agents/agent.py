@@ -210,6 +210,13 @@ def _update_context_object(
         raise ValueError(f"Cannot update context of type {type(context)}")
 
 
+def mark_complete() -> None:
+    """If you feel you are ready to respond to the user, or have completed
+    the task given to you, call this function to mark your response as
+    complete."""
+    return "complete"
+
+
 class Agent(BaseGenAIModel, Generic[T]):
     """A generative AI agent that can execute tools, generate structured outputs,
     and maintain context across multiple conversation steps.
@@ -245,6 +252,11 @@ class Agent(BaseGenAIModel, Generic[T]):
         tools: Union[List[Tool], Callable, None] = None,
         settings: Optional[AgentSettings] = None,
         instructor_mode: Optional[LanguageModelInstructorMode] = None,
+        # Defaults
+        max_steps: int = 10,
+        # End Strategy
+        end_strategy: Literal["tool"] | None = None,
+        end_tool: Callable = mark_complete,
         # Context management parameters
         context_updates: Optional[
             Union[List[Literal["before", "after"]], Literal["before", "after"]]
@@ -274,6 +286,11 @@ class Agent(BaseGenAIModel, Generic[T]):
             tools: List of tools/functions the agent can call, or a single callable
             settings: AgentSettings object to customize default behavior
             instructor_mode: Mode for structured output generation
+            max_steps: Default ,aximum number of steps the agent can take before stopping
+            end_strategy: Optional alternative strategy to provide an end tool for determining agent's final
+                response.
+            end_tool: The tool the agent will call to determine if it should stop.
+                This is only used if end_strategy is set to "tool".
             context_updates: When to update context - "before", "after", or both
             context_confirm: Whether to confirm context updates with the user
             context_strategy: How to select context updates - "selective" or "all"
@@ -311,6 +328,17 @@ class Agent(BaseGenAIModel, Generic[T]):
         self.settings = settings or AgentSettings()
         self.instructor_mode = instructor_mode
 
+        # Store max_steps as instance variable (overrides settings if provided)
+        self.max_steps = max_steps if max_steps is not None else self.settings.max_steps
+
+        # Store end strategy parameters
+        self.end_strategy = end_strategy
+        self.end_tool = end_tool if end_tool is not None else mark_complete
+
+        # Add end_tool to tools if end_strategy is 'tool'
+        if self.end_strategy == "tool":
+            self.tools.append(define_tool(self.end_tool))
+
         # Process instructions
         self.instructions = _get_instructions(
             name=name,
@@ -321,18 +349,20 @@ class Agent(BaseGenAIModel, Generic[T]):
         # Store verbose/debug settings
         self.verbose = verbose
         self.debug = debug
-        
+
         # Set logger level based on verbose/debug flags
         if debug:
             logger.level = "debug"
         elif verbose:
             logger.level = "info"
-        
+
         # Initialize the language model
         if isinstance(model, LanguageModel):
             self._language_model = model
         else:
-            self._language_model = LanguageModel(model=model, verbose=verbose, debug=debug, **kwargs)
+            self._language_model = LanguageModel(
+                model=model, verbose=verbose, debug=debug, **kwargs
+            )
 
         # Context management settings
         self.context_updates = context_updates
@@ -703,6 +733,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
         context_updates: Optional[
             Union[List[Literal["before", "after"]], Literal["before", "after"]]
         ] = None,
@@ -728,6 +760,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
         context_updates: Optional[
             Union[List[Literal["before", "after"]], Literal["before", "after"]]
         ] = None,
@@ -752,6 +786,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         max_steps: Optional[int] = None,
         context: Optional[AgentContext] = None,
         output_type: Optional[Type[T]] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
         context_updates: Optional[
             Union[List[Literal["before", "after"]], Literal["before", "after"]]
         ] = None,
@@ -857,23 +893,43 @@ Please update the appropriate fields based on the conversation. Only update fiel
             logger.level = "debug"
         elif verbose or (verbose is None and self.verbose):
             logger.level = "info"
-        
+
         # Log agent execution start
         logger.info(f"Starting agent '{self.name}' execution")
-        logger.debug(f"Agent settings: max_steps={max_steps or self.settings.max_steps}, tools={len(self.tools)}")
-        
+        logger.debug(
+            f"Agent settings: max_steps={max_steps or self.max_steps}, tools={len(self.tools)}"
+        )
+
         try:
             # Use provided model or default
             if model is None:
                 working_model = self.language_model
             elif isinstance(model, str):
-                working_model = LanguageModel(model=model, verbose=verbose or self.verbose, debug=debug or self.debug)
+                working_model = LanguageModel(
+                    model=model,
+                    verbose=verbose or self.verbose,
+                    debug=debug or self.debug,
+                )
             else:
                 working_model = model
 
-            # Use provided max_steps or default
+            # Use provided max_steps or default from instance
             if max_steps is None:
-                max_steps = self.settings.max_steps
+                max_steps = self.max_steps
+
+            # Use provided end_strategy or default from instance
+            effective_end_strategy = (
+                end_strategy if end_strategy is not None else self.end_strategy
+            )
+            effective_end_tool = end_tool if end_tool is not None else self.end_tool
+
+            # Create working tools list with end_tool if needed
+            working_tools = self.tools.copy()
+            if effective_end_strategy == "tool" and effective_end_tool is not None:
+                end_tool_obj = define_tool(effective_end_tool)
+                # Only add if not already present
+                if not any(tool.name == end_tool_obj.name for tool in working_tools):
+                    working_tools.append(end_tool_obj)
 
             # Get effective context settings
             effective_context_settings = self._get_effective_context_settings(
@@ -926,22 +982,28 @@ Please update the appropriate fields based on the conversation. Only update fiel
                 # Get language model response
                 response = working_model.run(
                     messages=formatted_messages,
-                    tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
+                    tools=[tool.to_dict() for tool in working_tools]
+                    if working_tools
+                    else None,
                     **model_kwargs,
                 )
 
                 # Check if response has tool calls
                 if response.has_tool_calls():
-                    logger.info(f"Agent '{self.name}' making tool calls: {len(response.tool_calls)} tools")
+                    logger.info(
+                        f"Agent '{self.name}' making tool calls: {len(response.tool_calls)} tools"
+                    )
                     for tool_call in response.tool_calls:
-                        logger.debug(f"Tool call: {tool_call.function.name}({tool_call.function.arguments})")
-                    
+                        logger.debug(
+                            f"Tool call: {tool_call.function.name}({tool_call.function.arguments})"
+                        )
+
                     # Add response to message history (with tool calls)
                     current_messages.append(response.to_message())
 
                     # Execute tools and add their responses to messages
                     tool_responses = execute_tools_from_language_model_response(
-                        tools=self.tools, response=response
+                        tools=working_tools, response=response
                     )
                     # Add tool responses to message history
                     for tool_resp in tool_responses:
@@ -950,8 +1012,51 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     # This is not the final step, add to steps
                     steps.append(response)
                 else:
-                    # No tool calls - this is the final step
-                    logger.info(f"Agent '{self.name}' completed execution in {step + 1} steps")
+                    # No tool calls - check if this is actually the final step based on end_strategy
+                    if effective_end_strategy == "tool":
+                        # Check if the end_tool was called
+                        end_tool_called = (
+                            any(
+                                tool_call.function.name == effective_end_tool.__name__
+                                for tool_call in response.tool_calls
+                            )
+                            if response.tool_calls
+                            else False
+                        )
+
+                        if not end_tool_called:
+                            # End tool not called, continue the conversation
+                            logger.debug(
+                                f"Agent '{self.name}' step {step + 1}: No end tool called, continuing..."
+                            )
+
+                            # Add the response to history
+                            current_messages.append(response.to_message())
+
+                            # Add system message instructing agent to call the end tool
+                            current_messages.append(
+                                {
+                                    "role": "system",
+                                    "content": f"You must call the {effective_end_tool.__name__} tool to complete your response. Do not provide a final answer until you have called this tool.",
+                                }
+                            )
+
+                            # Add user message to continue
+                            current_messages.append(
+                                {"role": "user", "content": "continue"}
+                            )
+
+                            # Remove the continue message and append assistant content
+                            current_messages.pop()  # Remove "continue" message
+
+                            # This is not the final step, add to steps and continue
+                            steps.append(response)
+                            continue
+
+                    # This is the final step (either no end_strategy or end_tool was called)
+                    logger.info(
+                        f"Agent '{self.name}' completed execution in {step + 1} steps"
+                    )
                     # Now we can make the final call with the output_type if specified
                     if output_type:
                         # Make a final call with the structured output type
@@ -959,32 +1064,39 @@ Please update the appropriate fields based on the conversation. Only update fiel
                         final_model_kwargs["type"] = output_type
                         if self.instructor_mode:
                             final_model_kwargs["instructor_mode"] = self.instructor_mode
-                        
+
                         # Create a clean conversation history for structured output
                         # Include the original messages and the final response content
                         clean_messages = []
                         # Add original user messages (excluding tool calls/responses)
                         for msg in formatted_messages:
-                            if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                            if isinstance(msg, dict) and msg.get("role") not in [
+                                "tool",
+                                "assistant",
+                            ]:
                                 clean_messages.append(msg)
-                            elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                            elif hasattr(msg, "role") and msg.role not in [
+                                "tool",
+                                "assistant",
+                            ]:
                                 clean_messages.append(msg.to_dict())
-                        
+
                         # Add the final assistant response content
-                        clean_messages.append({
-                            "role": "assistant",
-                            "content": response.get_content()
-                        })
-                        
+                        clean_messages.append(
+                            {"role": "assistant", "content": response.get_content()}
+                        )
+
                         # Use the clean conversation history to generate structured output
                         final_response = working_model.run(
                             messages=clean_messages,
                             **final_model_kwargs,
                         )
-                        
+
                         # Update context after processing if configured
                         if context and self._should_update_context(
-                            context, "after", effective_context_settings["context_updates"]
+                            context,
+                            "after",
+                            effective_context_settings["context_updates"],
                         ):
                             context = self._perform_context_update(
                                 context=context,
@@ -999,7 +1111,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     else:
                         # Update context after processing if configured
                         if context and self._should_update_context(
-                            context, "after", effective_context_settings["context_updates"]
+                            context,
+                            "after",
+                            effective_context_settings["context_updates"],
                         ):
                             context = self._perform_context_update(
                                 context=context,
@@ -1021,27 +1135,32 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     final_model_kwargs["type"] = output_type
                     if self.instructor_mode:
                         final_model_kwargs["instructor_mode"] = self.instructor_mode
-                    
+
                     # Create clean messages for structured output
                     clean_messages = []
                     formatted_messages = self._format_messages_with_context(
                         messages=current_messages,
                         context=context,
                     )
-                    
+
                     # Add original user messages (excluding tool calls/responses)
                     for msg in formatted_messages:
-                        if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                        if isinstance(msg, dict) and msg.get("role") not in [
+                            "tool",
+                            "assistant",
+                        ]:
                             clean_messages.append(msg)
-                        elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                        elif hasattr(msg, "role") and msg.role not in [
+                            "tool",
+                            "assistant",
+                        ]:
                             clean_messages.append(msg.to_dict())
-                    
+
                     # Add final response content
-                    clean_messages.append({
-                        "role": "assistant",
-                        "content": final_response.get_content()
-                    })
-                    
+                    clean_messages.append(
+                        {"role": "assistant", "content": final_response.get_content()}
+                    )
+
                     final_response = working_model.run(
                         messages=clean_messages,
                         **final_model_kwargs,
@@ -1053,7 +1172,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     final_model_kwargs["type"] = output_type
                 if self.instructor_mode:
                     final_model_kwargs["instructor_mode"] = self.instructor_mode
-                
+
                 final_response = working_model.run(
                     messages=self._format_messages_with_context(
                         messages=current_messages,
@@ -1077,7 +1196,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             return _create_agent_response_from_language_model_response(
                 response=final_response, steps=steps, context=context
             )
-        
+
         finally:
             # Restore original logger level
             if debug is not None or verbose is not None:
@@ -1102,6 +1221,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
         verbose: Optional[bool] = None,
         debug: Optional[bool] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
         **kwargs: Any,
     ) -> AgentResponse[T, AgentContext]:
         """Runs this agent asynchronously and returns a final agent response.
@@ -1177,19 +1298,37 @@ Please update the appropriate fields based on the conversation. Only update fiel
             logger.level = "debug"
         elif verbose or (verbose is None and self.verbose):
             logger.level = "info"
-        
+
         try:
             # Use provided model or default
             if model is None:
                 working_model = self.language_model
             elif isinstance(model, str):
-                working_model = LanguageModel(model=model, verbose=verbose or self.verbose, debug=debug or self.debug)
+                working_model = LanguageModel(
+                    model=model,
+                    verbose=verbose or self.verbose,
+                    debug=debug or self.debug,
+                )
             else:
                 working_model = model
 
-            # Use provided max_steps or default
+            # Use provided max_steps or default from instance
             if max_steps is None:
-                max_steps = self.settings.max_steps
+                max_steps = self.max_steps
+
+            # Use provided end_strategy or default from instance
+            effective_end_strategy = (
+                end_strategy if end_strategy is not None else self.end_strategy
+            )
+            effective_end_tool = end_tool if end_tool is not None else self.end_tool
+
+            # Create working tools list with end_tool if needed
+            working_tools = self.tools.copy()
+            if effective_end_strategy == "tool" and effective_end_tool is not None:
+                end_tool_obj = define_tool(effective_end_tool)
+                # Only add if not already present
+                if not any(tool.name == end_tool_obj.name for tool in working_tools):
+                    working_tools.append(end_tool_obj)
 
             # Get effective context settings
             effective_context_settings = self._get_effective_context_settings(
@@ -1240,7 +1379,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
                 # Get language model response
                 response = await working_model.async_run(
                     messages=formatted_messages,
-                    tools=[tool.to_dict() for tool in self.tools] if self.tools else None,
+                    tools=[tool.to_dict() for tool in working_tools]
+                    if working_tools
+                    else None,
                     **model_kwargs,
                 )
 
@@ -1251,7 +1392,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
 
                     # Execute tools and add their responses to messages
                     tool_responses = execute_tools_from_language_model_response(
-                        tools=self.tools, response=response
+                        tools=working_tools, response=response
                     )
                     # Add tool responses to message history
                     for tool_resp in tool_responses:
@@ -1260,7 +1401,48 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     # This is not the final step, add to steps
                     steps.append(response)
                 else:
-                    # No tool calls - this is the final step
+                    # No tool calls - check if this is actually the final step based on end_strategy
+                    if effective_end_strategy == "tool":
+                        # Check if the end_tool was called
+                        end_tool_called = (
+                            any(
+                                tool_call.function.name == effective_end_tool.__name__
+                                for tool_call in response.tool_calls
+                            )
+                            if response.tool_calls
+                            else False
+                        )
+
+                        if not end_tool_called:
+                            # End tool not called, continue the conversation
+                            logger.debug(
+                                f"Agent '{self.name}' step {step + 1}: No end tool called, continuing..."
+                            )
+
+                            # Add the response to history
+                            current_messages.append(response.to_message())
+
+                            # Add system message instructing agent to call the end tool
+                            current_messages.append(
+                                {
+                                    "role": "system",
+                                    "content": f"You must call the {effective_end_tool.__name__} tool to complete your response. Do not provide a final answer until you have called this tool.",
+                                }
+                            )
+
+                            # Add user message to continue
+                            current_messages.append(
+                                {"role": "user", "content": "continue"}
+                            )
+
+                            # Remove the continue message and append assistant content
+                            current_messages.pop()  # Remove "continue" message
+
+                            # This is not the final step, add to steps and continue
+                            steps.append(response)
+                            continue
+
+                    # This is the final step (either no end_strategy or end_tool was called)
                     # Now we can make the final call with the output_type if specified
                     if output_type:
                         # Make a final call with the structured output type
@@ -1268,32 +1450,39 @@ Please update the appropriate fields based on the conversation. Only update fiel
                         final_model_kwargs["type"] = output_type
                         if self.instructor_mode:
                             final_model_kwargs["instructor_mode"] = self.instructor_mode
-                        
+
                         # Create a clean conversation history for structured output
                         # Include the original messages and the final response content
                         clean_messages = []
                         # Add original user messages (excluding tool calls/responses)
                         for msg in formatted_messages:
-                            if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                            if isinstance(msg, dict) and msg.get("role") not in [
+                                "tool",
+                                "assistant",
+                            ]:
                                 clean_messages.append(msg)
-                            elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                            elif hasattr(msg, "role") and msg.role not in [
+                                "tool",
+                                "assistant",
+                            ]:
                                 clean_messages.append(msg.to_dict())
-                        
+
                         # Add the final assistant response content
-                        clean_messages.append({
-                            "role": "assistant",
-                            "content": response.get_content()
-                        })
-                        
+                        clean_messages.append(
+                            {"role": "assistant", "content": response.get_content()}
+                        )
+
                         # Use the clean conversation history to generate structured output
                         final_response = await working_model.async_run(
                             messages=clean_messages,
                             **final_model_kwargs,
                         )
-                        
+
                         # Update context after processing if configured
                         if context and self._should_update_context(
-                            context, "after", effective_context_settings["context_updates"]
+                            context,
+                            "after",
+                            effective_context_settings["context_updates"],
                         ):
                             context = self._perform_context_update(
                                 context=context,
@@ -1308,7 +1497,9 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     else:
                         # Update context after processing if configured
                         if context and self._should_update_context(
-                            context, "after", effective_context_settings["context_updates"]
+                            context,
+                            "after",
+                            effective_context_settings["context_updates"],
                         ):
                             context = self._perform_context_update(
                                 context=context,
@@ -1330,27 +1521,32 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     final_model_kwargs["type"] = output_type
                     if self.instructor_mode:
                         final_model_kwargs["instructor_mode"] = self.instructor_mode
-                    
+
                     # Create clean messages for structured output
                     clean_messages = []
                     formatted_messages = self._format_messages_with_context(
                         messages=current_messages,
                         context=context,
                     )
-                    
+
                     # Add original user messages (excluding tool calls/responses)
                     for msg in formatted_messages:
-                        if isinstance(msg, dict) and msg.get("role") not in ["tool", "assistant"]:
+                        if isinstance(msg, dict) and msg.get("role") not in [
+                            "tool",
+                            "assistant",
+                        ]:
                             clean_messages.append(msg)
-                        elif hasattr(msg, "role") and msg.role not in ["tool", "assistant"]:
+                        elif hasattr(msg, "role") and msg.role not in [
+                            "tool",
+                            "assistant",
+                        ]:
                             clean_messages.append(msg.to_dict())
-                    
+
                     # Add final response content
-                    clean_messages.append({
-                        "role": "assistant",
-                        "content": final_response.get_content()
-                    })
-                    
+                    clean_messages.append(
+                        {"role": "assistant", "content": final_response.get_content()}
+                    )
+
                     final_response = await working_model.async_run(
                         messages=clean_messages,
                         **final_model_kwargs,
@@ -1362,7 +1558,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
                     final_model_kwargs["type"] = output_type
                 if self.instructor_mode:
                     final_model_kwargs["instructor_mode"] = self.instructor_mode
-                
+
                 final_response = await working_model.async_run(
                     messages=self._format_messages_with_context(
                         messages=current_messages,
@@ -1386,7 +1582,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             return _create_agent_response_from_language_model_response(
                 response=final_response, steps=steps, context=context
             )
-        
+
         finally:
             # Restore original logger level
             if debug is not None or verbose is not None:
@@ -1442,6 +1638,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
         context_selection_instructions: Optional[str] = None,
         context_update_instructions: Optional[str] = None,
         context_format: Optional[Literal["json", "python", "markdown"]] = None,
+        end_strategy: Optional[Literal["tool"]] = None,
+        end_tool: Optional[Callable] = None,
         **kwargs: Any,
     ) -> AgentStream[T, AgentContext]:
         """Iterate over agent steps, yielding each step response.
@@ -1535,6 +1733,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
             context=context,
             output_type=output_type,
             stream=True,
+            end_strategy=end_strategy,
+            end_tool=end_tool,
             **kwargs,
         )
 
