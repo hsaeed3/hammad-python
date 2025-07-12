@@ -539,10 +539,41 @@ class Logger:
         level: Union[LoggerLevelName, int],
     ) -> None:
         """Set the logging level."""
-        self._user_level = level
-        self._logger.setLevel(level)
+        # Handle integer levels by converting to string names
+        if isinstance(level, int):
+            # Map standard logging levels to their names
+            int_to_name = {
+                _logging.DEBUG: "debug",
+                _logging.INFO: "info",
+                _logging.WARNING: "warning",
+                _logging.ERROR: "error",
+                _logging.CRITICAL: "critical",
+            }
+            level_str = int_to_name.get(level, "warning")
+        else:
+            level_str = level
+
+        self._user_level = level_str
+
+        # Standard level mapping
+        level_map = {
+            "debug": _logging.DEBUG,
+            "info": _logging.INFO,
+            "warning": _logging.WARNING,
+            "error": _logging.ERROR,
+            "critical": _logging.CRITICAL,
+        }
+
+        # Check custom levels first
+        if level_str.lower() in self._custom_levels:
+            log_level = self._custom_levels[level_str.lower()]
+        else:
+            log_level = level_map.get(level_str.lower(), _logging.WARNING)
+
+        # Set the integer level on the logger and handlers
+        self._logger.setLevel(log_level)
         for handler in self._logger.handlers:
-            handler.setLevel(level)
+            handler.setLevel(log_level)
 
     def add_level(
         self, name: str, value: int, style: Optional[LoggerLevelSettings] = None
@@ -580,9 +611,23 @@ class Logger:
         return self._user_level
 
     @level.setter
-    def level(self, value: str) -> None:
+    def level(self, value: Union[str, int]) -> None:
         """Set the logging level."""
-        self._user_level = value
+        # Handle integer levels by converting to string names
+        if isinstance(value, int):
+            # Map standard logging levels to their names
+            int_to_name = {
+                _logging.DEBUG: "debug",
+                _logging.INFO: "info",
+                _logging.WARNING: "warning",
+                _logging.ERROR: "error",
+                _logging.CRITICAL: "critical",
+            }
+            value_str = int_to_name.get(value, "warning")
+        else:
+            value_str = value
+
+        self._user_level = value_str
 
         # Standard level mapping
         level_map = {
@@ -594,10 +639,10 @@ class Logger:
         }
 
         # Check custom levels
-        if value.lower() in self._custom_levels:
-            log_level = self._custom_levels[value.lower()]
+        if value_str.lower() in self._custom_levels:
+            log_level = self._custom_levels[value_str.lower()]
         else:
-            log_level = level_map.get(value.lower(), _logging.WARNING)
+            log_level = level_map.get(value_str.lower(), _logging.WARNING)
 
         # Update logger level
         self._logger.setLevel(log_level)

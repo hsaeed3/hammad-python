@@ -9,7 +9,11 @@ if TYPE_CHECKING:
         LanguageModel,
         create_language_model,
     )
-    from .run import run_language_model, async_run_language_model
+    from .run import (
+        run_language_model,
+        async_run_language_model,
+        language_model_decorator,
+    )
     from .types.language_model_instructor_mode import LanguageModelInstructorMode
     from .types.language_model_messages import LanguageModelMessages
     from .types.language_model_name import LanguageModelName
@@ -26,6 +30,7 @@ __all__ = [
     # hammad.genai.models.language.run
     "run_language_model",
     "async_run_language_model",
+    "language_model_decorator",
     # hammad.genai.models.language.types.language_model_instructor_mode
     "LanguageModelInstructorMode",
     # hammad.genai.models.language.types.language_model_messages
