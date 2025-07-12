@@ -757,6 +757,7 @@ all = [
     { name = "instructor" },
     { name = "litellm" },
     { name = "mcp" },
+    { name = "pydantic-graph" },
     { name = "qdrant-client" },
     { name = "uvicorn" },
 ]
@@ -765,8 +766,12 @@ genai = [
     { name = "instructor" },
     { name = "litellm" },
     { name = "mcp" },
+    { name = "pydantic-graph" },
     { name = "qdrant-client" },
     { name = "uvicorn" },
+]
+graph = [
+    { name = "pydantic-graph" },
 ]
 mcp = [
     { name = "mcp" },
@@ -813,6 +818,9 @@ requires-dist = [
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "pydantic-graph", marker = "extra == 'all'", specifier = ">=0.4.2" },
+    { name = "pydantic-graph", marker = "extra == 'genai'", specifier = ">=0.4.2" },
+    { name = "pydantic-graph", marker = "extra == 'graph'", specifier = ">=0.4.2" },
     { name = "qdrant-client", marker = "extra == 'ai'", specifier = ">=1.14.3" },
     { name = "qdrant-client", marker = "extra == 'all'", specifier = ">=1.14.3" },
     { name = "qdrant-client", marker = "extra == 'genai'", specifier = ">=1.14.3" },
@@ -826,7 +834,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'genai'", specifier = ">=0.34.0" },
     { name = "uvicorn", marker = "extra == 'serve'", specifier = ">=0.34.0" },
 ]
-provides-extras = ["ai", "mcp", "serve", "genai", "all"]
+provides-extras = ["ai", "mcp", "serve", "graph", "genai", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1323,6 +1331,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/25/8253bbc904d69b61806fc76e6c9c11509b4270ac201eeff6e5f95a5f2d01/litellm-1.74.1.tar.gz", hash = "sha256:0e0c83356c33885dce379cd86d38a728e870dbaaf43ae50e9d0153e29c207a85", size = 9215296, upload-time = "2025-07-10T15:31:13.968Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/3e/440c4ea5088c2c251ea711930e7bb4b1021b091fb3cbf512ca426af16f1e/litellm-1.74.1-py3-none-any.whl", hash = "sha256:72fe93ad7310db872543b51cc3ec4b13d4b0e1d7e636f20cd3940544ce2fb020", size = 8564714, upload-time = "2025-07-10T15:31:11.106Z" },
+]
+
+[[package]]
+name = "logfire-api"
+version = "3.24.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a5/68/a24f2bb16d90ebaa5333f1b2ceafbbbfb0097357bfe013a6224e6dafe60a/logfire_api-3.24.0.tar.gz", hash = "sha256:8bf2c5abceda296f869a48f477f791d3a0465d0316f3c6285eecc77be804b429", size = 50759, upload-time = "2025-07-10T14:17:59.508Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/41/dba346cc3df383fafd3047581604f2d85d3bd9193e01113aa5ff5dc61740/logfire_api-3.24.0-py3-none-any.whl", hash = "sha256:6ab1f741b99199a8ca40da82c91e77edaad5c44e161300db6f9d0b544cdbb712", size = 85351, upload-time = "2025-07-10T14:17:56.049Z" },
 ]
 
 [[package]]
@@ -2304,6 +2321,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b8/e9/1f7efbe20d0b2b10f6718944b5d8ece9152390904f29a78e68d4e7961159/pydantic_core-2.33.2-pp311-pypy311_pp73-musllinux_1_1_armv7l.whl", hash = "sha256:de4b83bb311557e439b9e186f733f6c645b9417c84e2eb8203f3f820a4b988bf", size = 2239013, upload-time = "2025-04-23T18:33:26.621Z" },
     { url = "https://files.pythonhosted.org/packages/3c/b2/5309c905a93811524a49b4e031e9851a6b00ff0fb668794472ea7746b448/pydantic_core-2.33.2-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:82f68293f055f51b51ea42fafc74b6aad03e70e191799430b90c13d643059ebb", size = 2238715, upload-time = "2025-04-23T18:33:28.656Z" },
     { url = "https://files.pythonhosted.org/packages/32/56/8a7ca5d2cd2cda1d245d34b1c9a942920a718082ae8e54e5f3e5a58b7add/pydantic_core-2.33.2-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:329467cecfb529c925cf2bbd4d60d2c509bc2fb52a20c1045bf09bb70971a9c1", size = 2066757, upload-time = "2025-04-23T18:33:30.645Z" },
+]
+
+[[package]]
+name = "pydantic-graph"
+version = "0.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "logfire-api" },
+    { name = "pydantic" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a5/31/fb922d6c0cc19ad4da3cf6ecfc8f763c6b10d86f71ac7590e4b7d5e7c8fb/pydantic_graph-0.4.2.tar.gz", hash = "sha256:81339ff4e376b6149a4d548052f76019d0b969288f19d8dd4963ba854a18201c", size = 21868, upload-time = "2025-07-10T18:53:52.873Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/70/444c5311cdcc7d6f16c0921fee0bb82c54717f7d7cc600c14d72aeac9cdf/pydantic_graph-0.4.2-py3-none-any.whl", hash = "sha256:6a89fa4a8472c468e39843ad9ce9eaef79cdc8318e6bac868baff2bc7adf09b2", size = 27494, upload-time = "2025-07-10T18:53:43.795Z" },
 ]
 
 [[package]]

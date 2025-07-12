@@ -36,6 +36,9 @@ serve = [
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
 ]
+graph = [
+    "pydantic-graph>=0.4.2",
+]
 genai = [
     "litellm>=1.73.6",
     "instructor>=1.9.0",
@@ -43,6 +46,7 @@ genai = [
     "mcp>=1.10.1",
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
+    "pydantic-graph>=0.4.2",
 ]
 all = [
     "litellm>=1.73.6",
@@ -51,6 +55,7 @@ all = [
     "mcp>=1.10.1",
     "fastapi>=0.115.6",
     "uvicorn>=0.34.0",
+    "pydantic-graph>=0.4.2",
 ]
 
 [dependency-groups]
