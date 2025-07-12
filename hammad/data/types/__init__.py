@@ -12,11 +12,30 @@ if TYPE_CHECKING:
     from .text import (
         BaseText,
         Text,
+        SimpleText,
+        CodeSection,
+        SchemaSection,
+        OutputText,
+        convert_to_simple_text,
+        convert_to_output_text,
+        convert_to_output_instructions,
+        convert_to_code_section,
+        convert_to_schema_section,
+        convert_to_base_text,
     )
-    from .file import File
+    from .file import (
+        File,
+        read_file_from_bytes,
+        read_file_from_path,
+        read_file_from_url,
+    )
     from .multimodal import (
         Audio,
         Image,
+        read_audio_from_path,
+        read_audio_from_url,
+        read_image_from_path,
+        read_image_from_url,
     )
 
 
@@ -24,11 +43,28 @@ __all__ = (
     # hammad.data.types.text
     "BaseText",
     "Text",
+    "SimpleText",
+    "CodeSection",
+    "SchemaSection",
+    "OutputText",
+    "convert_to_simple_text",
+    "convert_to_output_text",
+    "convert_to_output_instructions",
+    "convert_to_code_section",
+    "convert_to_schema_section",
+    "convert_to_base_text",
     # hammad.data.types.file
     "File",
+    "read_file_from_bytes",
+    "read_file_from_path",
+    "read_file_from_url",
     # hammad.data.types.multimodal
     "Audio",
     "Image",
+    "read_audio_from_path",
+    "read_audio_from_url",
+    "read_image_from_path",
+    "read_image_from_url",
 )
 
 

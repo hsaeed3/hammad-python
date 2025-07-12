@@ -9,7 +9,13 @@ from urllib.parse import urlparse
 from ..models.model import Model
 from ..models.fields import field
 
-__all__ = ("File", "FileSource")
+__all__ = (
+    "File",
+    "FileSource",
+    "read_file_from_path",
+    "read_file_from_url",
+    "read_file_from_bytes",
+)
 
 
 _FILE_SIGNATURES = {
@@ -356,3 +362,76 @@ class File(Model, kw_only=True, dict=True):
                 path=Path(name) if name else None,
             ),
         )
+
+
+def read_file_from_path(
+    path: str | Path,
+    *,
+    encoding: str | None = None,
+) -> File:
+    """Read a file from a filesystem path.
+
+    Args:
+        path: The path to the file to read.
+        encoding: Optional text encoding to use when reading the file.
+                 If not provided, will attempt to detect automatically.
+
+    Returns:
+        A File instance containing the file data.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        PermissionError: If the file cannot be read due to permissions.
+        IsADirectoryError: If the path points to a directory.
+    """
+    return File.from_path(path, encoding=encoding)
+
+
+def read_file_from_url(
+    url: str,
+    *,
+    encoding: str | None = None,
+    timeout: float = 30.0,
+) -> File:
+    """Read a file from a URL.
+
+    Args:
+        url: The URL to fetch the file from.
+        encoding: Optional text encoding to use when reading the response.
+                 If not provided, will attempt to detect automatically.
+        timeout: Request timeout in seconds. Defaults to 30.0.
+
+    Returns:
+        A File instance containing the downloaded data.
+
+    Raises:
+        httpx.RequestError: If the request fails.
+        httpx.HTTPStatusError: If the response has an error status code.
+    """
+    return File.from_url(url, encoding=encoding, timeout=timeout)
+
+
+def read_file_from_bytes(
+    data: bytes,
+    *,
+    type: str | None = None,
+    name: str | None = None,
+) -> File:
+    """Create a file from raw bytes data.
+
+    Args:
+        data: The bytes data to create the file from.
+        type: Optional MIME type of the data. If not provided,
+              will attempt to detect from content signatures.
+        name: Optional name for the file data.
+
+    Returns:
+        A File instance containing the bytes data.
+    """
+    return File.from_bytes(data, type=type, name=name)
+
+
+
+
+
+

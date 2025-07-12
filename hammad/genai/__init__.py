@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .agents import (
         Agent,
         AgentEvent,
+        AgentSettings,
         AgentResponse,
         AgentStream,
         AgentContext,
@@ -102,6 +103,7 @@ __all__ = [
     # hammad.genai.agents.agent
     "Agent",
     "AgentEvent",
+    "AgentSettings",
     "AgentResponse",
     "AgentStream",
     "AgentContext",

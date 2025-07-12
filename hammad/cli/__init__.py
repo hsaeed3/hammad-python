@@ -8,7 +8,6 @@ from .._internal import create_getattr_importer
 
 if TYPE_CHECKING:
     from .plugins import print, input, animate
-    from ._runner import CLIRunner
     from .styles.settings import (
         CLIStyleRenderableSettings,
         CLIStyleBackgroundSettings,
@@ -20,7 +19,6 @@ __all__ = (
     "print",
     "input",
     "animate",
-    "CLIRunner",
     "CLIStyleRenderableSettings",
     "CLIStyleBackgroundSettings",
     "CLIStyleLiveSettings",

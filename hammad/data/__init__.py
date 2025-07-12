@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         convert_to_pydantic_field,
         is_pydantic_model_class,
     )
+    from .models.utils import create_model
     from .collections import (
         Collection,
         create_collection,
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         DatabaseItemType,
         DatabaseItem,
         Database,
+        create_database
     )
     from .configurations import (
         Configuration,
@@ -58,6 +60,7 @@ __all__ = (
     "convert_to_pydantic_model",
     "convert_to_pydantic_field",
     "is_pydantic_model_class",
+    "create_model",
     # hammad.data.collections
     "Collection",
     "create_collection",
@@ -71,6 +74,7 @@ __all__ = (
     "DatabaseItemType",
     "DatabaseItem",
     "Database",
+    "create_database",
     # hammad.data.configurations
     "Configuration",
     "read_configuration_from_file",

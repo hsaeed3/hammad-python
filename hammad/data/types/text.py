@@ -1054,6 +1054,242 @@ class Text(BaseText, Generic[T]):
         return self.render(OutputFormat.ANY)
 
 
+def convert_to_simple_text(
+    obj: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "simple",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    **kwargs,
+) -> "SimpleText":
+    """Convert any object to a SimpleText instance (fully parameterized)."""
+    content = convert_to_text(obj)
+    return SimpleText(
+        content=content,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        **kwargs,
+    )
+
+
+def convert_to_output_text(
+    obj: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "output",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    output_schema: Optional[Any] = None,
+    examples: Optional[List[Any]] = None,
+    validation_rules: Optional[List[str]] = None,
+    error_cases: Optional[List[Dict[str, Any]]] = None,
+    **kwargs,
+) -> "OutputText":
+    """Convert any object to an OutputText instance (fully parameterized)."""
+    content = convert_to_text(obj)
+    return OutputText(
+        content=content,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        output_schema=output_schema,
+        examples=examples or [],
+        validation_rules=validation_rules or [],
+        error_cases=error_cases or [],
+        **kwargs,
+    )
+
+
+def convert_to_output_instructions(
+    obj: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "output",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    output_schema: Optional[Any] = None,
+    examples: Optional[List[Any]] = None,
+    validation_rules: Optional[List[str]] = None,
+    error_cases: Optional[List[Dict[str, Any]]] = None,
+    as_message: bool = False,
+    role: str = "user",
+    as_message_content: bool = False,
+    **kwargs,
+) -> Union[str, Dict[str, Any]]:
+    """
+    Convert any object to output instructions, returning either:
+      - a string (default)
+      - a chat message dict (if as_message=True)
+      - a chat message content param dict (if as_message_content=True)
+
+    Only one of as_message or as_message_content can be True.
+    """
+    if as_message and as_message_content:
+        raise ValueError("Only one of as_message or as_message_content can be True.")
+
+    content = convert_to_text(obj)
+    output_text = OutputText(
+        content=content,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        output_schema=output_schema,
+        examples=examples or [],
+        validation_rules=validation_rules or [],
+        error_cases=error_cases or [],
+        **kwargs,
+    )
+    text_str = str(output_text)
+
+    if as_message:
+        # Return a chat message dict
+        return {"role": role, "content": text_str}
+    elif as_message_content:
+        # Return a chat message content param dict
+        return {"type": "text", "text": text_str}
+    else:
+        # Return as plain string
+        return text_str
+
+
+def convert_to_code_section(
+    obj: Any,
+    *,
+    language: str = "python",
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "code",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    line_numbers: bool = False,
+    **kwargs,
+) -> "CodeSection":
+    """Convert any object to a CodeSection instance (fully parameterized)."""
+    content = convert_to_text(obj)
+    return CodeSection(
+        content=content,
+        language=language,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        line_numbers=line_numbers,
+        **kwargs,
+    )
+
+
+def convert_to_schema_section(
+    obj: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "schema",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    schema_object: Optional[Any] = None,
+    show_examples: bool = True,
+    table_format: bool = True,
+    **kwargs,
+) -> "SchemaSection":
+    """Convert any object to a SchemaSection instance (fully parameterized)."""
+    content = convert_to_text(obj)
+    return SchemaSection(
+        content=content,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        schema_object=schema_object or obj,
+        show_examples=show_examples,
+        table_format=table_format,
+        **kwargs,
+    )
+
+
+def convert_to_base_text(
+    obj: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    type: str = "base",
+    heading_level: int = 2,
+    show_in_toc: bool = True,
+    collapsible: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    sections: Optional[List["BaseText"]] = None,
+    format_config: Optional[Dict["OutputFormat", Dict[str, Any]]] = None,
+    **kwargs,
+) -> "BaseText":
+    """Convert any object to a BaseText instance (fully parameterized)."""
+    content = convert_to_text(obj)
+    return BaseText(
+        content=content,
+        title=title,
+        description=description,
+        type=type,
+        heading_level=heading_level,
+        show_in_toc=show_in_toc,
+        collapsible=collapsible,
+        metadata=metadata or {},
+        sections=sections or [],
+        format_config=format_config or {},
+        **kwargs,
+    )
+
+
 __all__ = (
     "OutputFormat",
     "HeadingStyle",
@@ -1063,4 +1299,10 @@ __all__ = (
     "SimpleText",
     "OutputText",
     "Text",
+    "convert_to_simple_text",
+    "convert_to_output_text",
+    "convert_to_output_instructions",
+    "convert_to_code_section",
+    "convert_to_schema_section",
+    "convert_to_base_text",
 )
