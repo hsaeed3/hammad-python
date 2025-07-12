@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Union,
     Dict,
+    TypeAlias,
     overload,
     TYPE_CHECKING,
 )
@@ -49,7 +50,10 @@ from .types.agent_hooks import HookManager, HookDecorator
 from .types.agent_messages import AgentMessages
 
 if TYPE_CHECKING:
-    pass
+    try:
+        from fasta2a import FastA2A
+    except ImportError:
+        FastA2A: TypeAlias = Any
 
 
 T = TypeVar("T")
@@ -1058,7 +1062,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
                         f"Agent '{self.name}' completed execution in {step + 1} steps"
                     )
                     # Now we can make the final call with the output_type if specified
-                    if output_type:
+                    # Only make structured output call for non-str types
+                    if output_type and output_type != str:
                         # Make a final call with the structured output type
                         final_model_kwargs = kwargs.copy()
                         final_model_kwargs["type"] = output_type
@@ -1129,8 +1134,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
             # Max steps reached - return last response
             if steps:
                 final_response = steps[-1]
-                # If we have an output_type, make a final structured call
-                if output_type:
+                # If we have an output_type, make a final structured call (but not for str)
+                if output_type and output_type != str:
                     final_model_kwargs = kwargs.copy()
                     final_model_kwargs["type"] = output_type
                     if self.instructor_mode:
@@ -1168,7 +1173,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             else:
                 # No steps taken, make a final call
                 final_model_kwargs = kwargs.copy()
-                if output_type:
+                if output_type and output_type != str:
                     final_model_kwargs["type"] = output_type
                 if self.instructor_mode:
                     final_model_kwargs["instructor_mode"] = self.instructor_mode
@@ -1444,7 +1449,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
 
                     # This is the final step (either no end_strategy or end_tool was called)
                     # Now we can make the final call with the output_type if specified
-                    if output_type:
+                    # Only make structured output call for non-str types
+                    if output_type and output_type != str:
                         # Make a final call with the structured output type
                         final_model_kwargs = kwargs.copy()
                         final_model_kwargs["type"] = output_type
@@ -1515,8 +1521,8 @@ Please update the appropriate fields based on the conversation. Only update fiel
             # Max steps reached - return last response
             if steps:
                 final_response = steps[-1]
-                # If we have an output_type, make a final structured call
-                if output_type:
+                # If we have an output_type, make a final structured call (but not for str)
+                if output_type and output_type != str:
                     final_model_kwargs = kwargs.copy()
                     final_model_kwargs["type"] = output_type
                     if self.instructor_mode:
@@ -1554,7 +1560,7 @@ Please update the appropriate fields based on the conversation. Only update fiel
             else:
                 # No steps taken, make a final call
                 final_model_kwargs = kwargs.copy()
-                if output_type:
+                if output_type and output_type != str:
                     final_model_kwargs["type"] = output_type
                 if self.instructor_mode:
                     final_model_kwargs["instructor_mode"] = self.instructor_mode
@@ -1619,6 +1625,106 @@ Please update the appropriate fields based on the conversation. Only update fiel
             output_type=output_type,
             stream=True,
             **kwargs,
+        )
+
+    def as_a2a(
+        self,
+        *,
+        # Worker configuration
+        context: Optional[AgentContext] = None,
+        # Storage and broker configuration
+        storage: Optional[Any] = None,
+        broker: Optional[Any] = None,
+        # Server configuration
+        host: str = "0.0.0.0",
+        port: int = 8000,
+        reload: bool = False,
+        workers: int = 1,
+        log_level: str = "info",
+        # A2A configuration
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        version: str = "1.0.0",
+        description: Optional[str] = None,
+        # Advanced configuration
+        lifespan_timeout: int = 30,
+        **uvicorn_kwargs: Any,
+    ) -> "FastA2A":  # type: ignore
+        """
+        Convert this agent to an A2A server application.
+
+        This method creates a FastA2A server that can handle A2A requests
+        for this agent instance. It sets up the necessary Worker, Storage,
+        and Broker components automatically.
+
+        Args:
+            context: Initial context for the agent
+            storage: Custom storage backend (defaults to InMemoryStorage)
+            broker: Custom broker backend (defaults to InMemoryBroker)
+            host: Host to bind the server to
+            port: Port to bind the server to
+            reload: Enable auto-reload for development
+            workers: Number of worker processes
+            log_level: Logging level
+            name: Agent name for the A2A server (defaults to agent's name)
+            url: URL where the agent is hosted
+            version: API version
+            description: API description for the A2A server (defaults to agent's description)
+            lifespan_timeout: Timeout for lifespan events
+            **uvicorn_kwargs: Additional arguments passed to uvicorn
+
+        Returns:
+            FastA2A application instance that can be run with uvicorn
+
+        Examples:
+            Convert agent to A2A server:
+            ```python
+            agent = Agent(
+                name="assistant",
+                instructions="You are a helpful assistant",
+                model="openai/gpt-4o-mini"
+            )
+
+            app = agent.as_a2a(port=8080)
+
+            # Run with uvicorn
+            import uvicorn
+            uvicorn.run(app, host="0.0.0.0", port=8080)
+            ```
+
+            Or use the CLI:
+            ```bash
+            uvicorn mymodule:agent.as_a2a() --reload
+            ```
+
+            With custom configuration:
+            ```python
+            app = agent.as_a2a(
+                name="My Assistant API",
+                description="A helpful AI assistant",
+                host="localhost",
+                port=3000
+            )
+            ```
+        """
+        from ..a2a import as_a2a_app
+
+        return as_a2a_app(
+            self,
+            context=context,
+            storage=storage,
+            broker=broker,
+            host=host,
+            port=port,
+            reload=reload,
+            workers=workers,
+            log_level=log_level,
+            name=name or self.name,
+            url=url,
+            version=version,
+            description=description or self.description,
+            lifespan_timeout=lifespan_timeout,
+            **uvicorn_kwargs,
         )
 
     def iter(
