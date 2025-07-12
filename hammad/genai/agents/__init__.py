@@ -9,6 +9,12 @@ if TYPE_CHECKING:
         Agent,
         create_agent,
     )
+    from .run import (
+        run_agent,
+        run_agent_iter,
+        async_run_agent,
+        async_run_agent_iter
+    )
 
     # Types
     from .types.agent_context import AgentContext
@@ -26,6 +32,11 @@ __all__ = [
     # hammad.genai.agents.agent
     "Agent",
     "create_agent",
+    # hammad.genai.agents.run
+    "run_agent",
+    "run_agent_iter",
+    "async_run_agent",
+    "async_run_agent_iter",
     # hammad.genai.agents.types.agent_context
     "AgentContext",
     # hammad.genai.agents.types.agent_event

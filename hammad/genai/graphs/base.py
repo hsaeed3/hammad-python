@@ -36,6 +36,8 @@ from ..models.language.types.language_model_name import LanguageModelName
 from .types import (
     GraphContext,
     GraphResponse,
+    GraphStream,
+    GraphResponseChunk,
     GraphState,
     BasePlugin,
     ActionSettings,
@@ -47,6 +49,8 @@ __all__ = [
     "action",
     "ActionNode",
     "GraphBuilder",
+    "GraphStream",
+    "GraphResponseChunk",
 ]
 
 T = TypeVar("T")
@@ -707,7 +711,7 @@ class BaseGraph(Generic[StateT, T]):
         end_strategy: Optional[Literal["tool"]] = None,
         end_tool: Optional[Callable] = None,
         **kwargs,
-    ):
+    ) -> GraphStream[T, StateT]:
         """
         Create an iterator for the graph execution.
         The signature is dynamically determined by the start action.
@@ -718,10 +722,13 @@ class BaseGraph(Generic[StateT, T]):
             history: Optional chat history in various formats (str, messages list, History object)
             verbose: Enable verbose logging
             debug: Enable debug logging
+            max_steps: Maximum number of steps to execute
+            end_strategy: Strategy for ending execution
+            end_tool: Tool to use for ending execution
             **kwargs: Additional keyword arguments for the start action and language model
 
         Returns:
-            Iterator over graph execution steps
+            GraphStream that can be iterated over to get each execution step
         """
 
         if self._start_action_name is None:
@@ -802,15 +809,21 @@ class BaseGraph(Generic[StateT, T]):
         if end_tool is not None:
             start_node._end_tool = end_tool
 
-        # Return iterator using pydantic-graph's iter functionality
-        if not self._pydantic_graph:
-            raise ValueError("Graph not initialized")
-
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
 
-        # Use pydantic-graph's iter method
-        return self._pydantic_graph.iter(start_node, state=execution_state)
+        # Create and return GraphStream
+        return GraphStream(
+            graph=self,
+            start_node=start_node,
+            state=execution_state,
+            verbose=verbose,
+            debug=debug,
+            max_steps=max_steps,
+            end_strategy=end_strategy,
+            end_tool=end_tool,
+            **language_model_kwargs,
+        )
 
     async def async_run(
         self,
@@ -963,7 +976,7 @@ class BaseGraph(Generic[StateT, T]):
         end_strategy: Optional[Literal["tool"]] = None,
         end_tool: Optional[Callable] = None,
         **kwargs,
-    ):
+    ) -> GraphStream[T, StateT]:
         """Async version of iter.
 
         Args:
@@ -972,10 +985,13 @@ class BaseGraph(Generic[StateT, T]):
             history: Optional chat history in various formats (str, messages list, History object)
             verbose: Enable verbose logging
             debug: Enable debug logging
+            max_steps: Maximum number of steps to execute
+            end_strategy: Strategy for ending execution
+            end_tool: Tool to use for ending execution
             **kwargs: Additional keyword arguments for the start action and language model
 
         Returns:
-            Async iterator over graph execution steps
+            GraphStream that can be iterated over asynchronously
         """
 
         if self._start_action_name is None:
@@ -1053,16 +1069,21 @@ class BaseGraph(Generic[StateT, T]):
         if end_tool is not None:
             start_node._end_tool = end_tool
 
-        if not self._pydantic_graph:
-            raise ValueError("Graph not initialized")
-
         # Use the provided state or the graph's state
         execution_state = state if state is not None else self._state
 
-        # Use pydantic-graph's async iter method
-        async with self._pydantic_graph.iter(start_node, state=execution_state) as run:
-            async for node in run:
-                yield node
+        # Create and return GraphStream
+        return GraphStream(
+            graph=self,
+            start_node=start_node,
+            state=execution_state,
+            verbose=verbose,
+            debug=debug,
+            max_steps=max_steps,
+            end_strategy=end_strategy,
+            end_tool=end_tool,
+            **language_model_kwargs,
+        )
 
     def visualize(self, filename: str) -> None:
         """Generate a visualization of the graph using pydantic-graph's mermaid support."""

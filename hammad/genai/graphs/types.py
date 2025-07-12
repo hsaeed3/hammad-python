@@ -1,6 +1,6 @@
 """hammad.genai.graphs.types - Types for the graph framework built on pydantic-graph"""
 
-from typing import Any, Dict, List, Optional, TypeVar, Generic, Union, Callable
+from typing import Any, Dict, List, Optional, TypeVar, Generic, Union, Callable, Iterator, AsyncIterator, TYPE_CHECKING
 from typing_extensions import Literal
 from dataclasses import dataclass, field
 
@@ -14,11 +14,17 @@ from ..agents.types.agent_response import AgentResponse
 from ..models.language.types.language_model_response import LanguageModelResponse
 from ..models.language.types.language_model_name import LanguageModelName
 from ..types.history import History
+from ..types.base import BaseGenAIModelStream
+
+if TYPE_CHECKING:
+    from .base import BaseGraph
 
 __all__ = [
     "GraphState",
     "GraphContext",
     "GraphResponse",
+    "GraphStream",
+    "GraphResponseChunk",
     "ActionSettings",
     "ActionInfo",
     "GraphEvent",
@@ -335,3 +341,282 @@ class GraphResponse(AgentResponse[T, GraphState], Generic[T, GraphState]):
             return "{" + ", ".join(items) + "}"
         except Exception:
             return str(self.state)
+
+
+class GraphResponseChunk(BaseModel, Generic[T]):
+    """A chunk from a graph response stream representing a single execution step."""
+
+    step_number: int
+    """The step number of this chunk."""
+
+    node_name: str
+    """The name of the node that was executed."""
+
+    output: T | None = None
+    """The output value from this step."""
+
+    content: str | None = None
+    """The content string from this step."""
+
+    model: str | None = None
+    """The model name used for this step."""
+
+    is_final: bool = False
+    """Whether this is the final chunk."""
+
+    state: Any = None
+    """The state after this step."""
+
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    """Additional metadata about this step."""
+
+    def __bool__(self) -> bool:
+        """Check if this chunk has meaningful content."""
+        return bool(self.output or self.content)
+
+    def __str__(self) -> str:
+        """String representation of the chunk."""
+        output = f"GraphResponseChunk(step={self.step_number}, node={self.node_name}, final={self.is_final})"
+
+        # Show content if available
+        if self.output or self.content:
+            content_preview = str(self.output if self.output else self.content)
+            if len(content_preview) > 100:
+                content_preview = content_preview[:100] + "..."
+            output += f"\nContent: {content_preview}"
+
+        return output
+
+
+class GraphStream(BaseGenAIModelStream[GraphResponseChunk[T]], Generic[T, GraphState]):
+    """Stream of graph execution steps that can be used in sync and async contexts."""
+
+    def __init__(
+        self,
+        graph: "BaseGraph[GraphState, T]",
+        start_node: Any,
+        state: Optional[GraphState] = None,
+        **kwargs: Any,
+    ):
+        """Initialize the graph stream.
+        
+        Args:
+            graph: The BaseGraph instance
+            start_node: The starting node for execution
+            state: Optional state object
+            **kwargs: Additional parameters
+        """
+        super().__init__(
+            type="graph",
+            model=graph._global_model or "openai/gpt-4o-mini",
+            stream=None,
+        )
+        self.graph = graph
+        self.start_node = start_node
+        self.state = state
+        self.kwargs = kwargs
+        self.current_step = 0
+        self.is_done = False
+        self._pydantic_iterator = None
+        self._async_pydantic_iterator = None
+
+    def __iter__(self) -> Iterator[GraphResponseChunk[T]]:
+        """Iterate over graph execution steps."""
+        if not self.graph._pydantic_graph:
+            raise ValueError("Graph not initialized")
+
+        # Create the pydantic-graph iterator
+        pydantic_iter = self.graph._pydantic_graph.iter(self.start_node, state=self.state)
+        self._pydantic_iterator = pydantic_iter
+        
+        try:
+            for node_result in pydantic_iter:
+                self.current_step += 1
+                
+                # Extract information from the pydantic-graph result
+                node_name = getattr(node_result, "__class__", {}).get("__name__", "unknown")
+                if hasattr(node_result, "action_name"):
+                    node_name = node_result.action_name
+                
+                # Extract output from the result
+                output = None
+                content = None
+                if hasattr(node_result, "data"):
+                    output = node_result.data
+                    content = str(node_result.data)
+                elif hasattr(node_result, "output"):
+                    output = node_result.output
+                    content = str(node_result.output)
+                else:
+                    output = str(node_result)
+                    content = str(node_result)
+                
+                # Determine if this is the final step
+                is_final = isinstance(node_result, End)
+                
+                # Create and yield chunk
+                chunk = GraphResponseChunk(
+                    step_number=self.current_step,
+                    node_name=node_name,
+                    output=output,
+                    content=content,
+                    model=self.model,
+                    is_final=is_final,
+                    state=self.state,
+                    metadata=self.kwargs,
+                )
+                
+                yield chunk
+                
+                if is_final:
+                    self.is_done = True
+                    break
+                    
+        except Exception as e:
+            # Handle any errors during iteration
+            error_chunk = GraphResponseChunk(
+                step_number=self.current_step + 1,
+                node_name="error",
+                output=None,
+                content=f"Error during graph execution: {str(e)}",
+                model=self.model,
+                is_final=True,
+                state=self.state,
+                metadata={"error": str(e)},
+            )
+            yield error_chunk
+            self.is_done = True
+
+    def __aiter__(self) -> AsyncIterator[GraphResponseChunk[T]]:
+        """Async iterator for graph execution."""
+        return self
+
+    async def __anext__(self) -> GraphResponseChunk[T]:
+        """Get the next chunk in async iteration."""
+        if not self.graph._pydantic_graph:
+            raise ValueError("Graph not initialized")
+            
+        if self.is_done:
+            raise StopAsyncIteration
+
+        # Initialize async iterator if not already done
+        if self._async_pydantic_iterator is None:
+            self._async_pydantic_iterator = self.graph._pydantic_graph.iter(
+                self.start_node, state=self.state
+            ).__aiter__()
+        
+        try:
+            node_result = await self._async_pydantic_iterator.__anext__()
+            self.current_step += 1
+            
+            # Extract information from the pydantic-graph result
+            node_name = getattr(node_result, "__class__", {}).get("__name__", "unknown")
+            if hasattr(node_result, "action_name"):
+                node_name = node_result.action_name
+            
+            # Extract output from the result
+            output = None
+            content = None
+            if hasattr(node_result, "data"):
+                output = node_result.data
+                content = str(node_result.data)
+            elif hasattr(node_result, "output"):
+                output = node_result.output
+                content = str(node_result.output)
+            else:
+                output = str(node_result)
+                content = str(node_result)
+            
+            # Determine if this is the final step
+            is_final = isinstance(node_result, End)
+            
+            # Create chunk
+            chunk = GraphResponseChunk(
+                step_number=self.current_step,
+                node_name=node_name,
+                output=output,
+                content=content,
+                model=self.model,
+                is_final=is_final,
+                state=self.state,
+                metadata=self.kwargs,
+            )
+            
+            if is_final:
+                self.is_done = True
+                
+            return chunk
+            
+        except StopAsyncIteration:
+            self.is_done = True
+            raise
+        except Exception as e:
+            # Handle any errors during iteration
+            error_chunk = GraphResponseChunk(
+                step_number=self.current_step + 1,
+                node_name="error",
+                output=None,
+                content=f"Error during graph execution: {str(e)}",
+                model=self.model,
+                is_final=True,
+                state=self.state,
+                metadata={"error": str(e)},
+            )
+            self.is_done = True
+            return error_chunk
+
+    def collect(self) -> GraphResponse[T, GraphState]:
+        """Collect all steps and return final graph response."""
+        chunks = []
+        final_chunk = None
+        
+        for chunk in self:
+            chunks.append(chunk)
+            if chunk.is_final:
+                final_chunk = chunk
+                break
+        
+        if final_chunk is None:
+            raise RuntimeError("No final chunk generated by graph execution")
+        
+        # Create response from final chunk
+        return GraphResponse(
+            type="graph",
+            model=self.model,
+            output=final_chunk.output,
+            content=final_chunk.content,
+            completion=None,
+            state=final_chunk.state,
+            history=[],
+            start_node=getattr(self.start_node, "action_name", "unknown"),
+            nodes_executed=[chunk.node_name for chunk in chunks],
+            metadata=final_chunk.metadata,
+        )
+
+    async def async_collect(self) -> GraphResponse[T, GraphState]:
+        """Collect all steps and return final graph response."""
+        chunks = []
+        final_chunk = None
+        
+        async for chunk in self:
+            chunks.append(chunk)
+            if chunk.is_final:
+                final_chunk = chunk
+                break
+        
+        if final_chunk is None:
+            raise RuntimeError("No final chunk generated by graph execution")
+        
+        # Create response from final chunk
+        return GraphResponse(
+            type="graph",
+            model=self.model,
+            output=final_chunk.output,
+            content=final_chunk.content,
+            completion=None,
+            state=final_chunk.state,
+            history=[],
+            start_node=getattr(self.start_node, "action_name", "unknown"),
+            nodes_executed=[chunk.node_name for chunk in chunks],
+            metadata=final_chunk.metadata,
+        )
