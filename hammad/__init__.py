@@ -49,6 +49,8 @@ if TYPE_CHECKING:
     from .genai.graphs import (
         BaseGraph,
         GraphResponse,
+        GraphStream,
+        GraphResponseChunk,
         GraphBuilder,
         action,
         plugin,
@@ -56,6 +58,7 @@ if TYPE_CHECKING:
     from .genai.agents import (
         Agent,
         AgentResponse,
+        AgentResponseChunk,
         AgentStream,
         create_agent,
         run_agent,
@@ -76,6 +79,7 @@ if TYPE_CHECKING:
         LanguageModel,
         LanguageModelRequest,
         LanguageModelResponse,
+        LanguageModelResponseChunk,
         LanguageModelStream,
         LanguageModelSettings,
         create_language_model,
@@ -192,12 +196,15 @@ __all__ = (
     # hammad.genai
     "BaseGraph",
     "GraphResponse",
+    "GraphStream",
+    "GraphResponseChunk",
     "GraphBuilder",
     "action",
     "plugin",
     # hammad.genai.agents
     "Agent",
     "AgentResponse",
+    "AgentResponseChunk",
     "AgentStream",
     "create_agent",
     "run_agent",
@@ -216,6 +223,7 @@ __all__ = (
     "LanguageModel",
     "LanguageModelRequest",
     "LanguageModelResponse",
+    "LanguageModelResponseChunk",
     "LanguageModelStream",
     "LanguageModelSettings",
     "create_language_model",

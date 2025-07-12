@@ -56,6 +56,8 @@ if TYPE_CHECKING:
         ActionInfo,
         GraphEvent,
         GraphHistoryEntry,
+        GraphStream,
+        GraphResponseChunk,
         GraphNode,
         GraphEnd,
         PydanticGraphContext,
@@ -95,6 +97,8 @@ __all__ = (
     "GraphState",
     "GraphEvent",
     "GraphHistoryEntry",
+    "GraphStream",
+    "GraphResponseChunk",
     # Re-exports from pydantic-graph
     "GraphNode",
     "GraphEnd",
