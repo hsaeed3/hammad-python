@@ -122,7 +122,7 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
         self._instructor_client = None
         self.verbose = verbose
         self.debug = debug
-        
+
         # Set logger level based on verbose/debug flags
         if debug:
             logger.setLevel("DEBUG")
@@ -372,7 +372,7 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             logger.setLevel("DEBUG")
         elif verbose or (verbose is None and self.verbose):
             logger.setLevel("INFO")
-        
+
         logger.info(f"Running LanguageModel request with model: {self.model}")
         logger.debug(f"LanguageModel request kwargs: {kwargs}")
 
@@ -624,7 +624,7 @@ class LanguageModel(BaseGenAIModel, Generic[T]):
             logger.setLevel("DEBUG")
         elif verbose or (verbose is None and self.verbose):
             logger.setLevel("INFO")
-        
+
         logger.info(f"Running async LanguageModel request with model: {self.model}")
         logger.debug(f"LanguageModel request kwargs: {kwargs}")
 

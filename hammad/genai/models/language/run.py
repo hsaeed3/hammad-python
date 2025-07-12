@@ -299,7 +299,12 @@ def run_language_model(
 
     # Forward to the instance method
     return language_model.run(
-        messages, instructions, mock_response=mock_response, verbose=verbose, debug=debug, **kwargs
+        messages,
+        instructions,
+        mock_response=mock_response,
+        verbose=verbose,
+        debug=debug,
+        **kwargs,
     )
 
 
@@ -556,5 +561,10 @@ async def async_run_language_model(
 
     # Forward to the instance method
     return await language_model.async_run(
-        messages, instructions, mock_response=mock_response, verbose=verbose, debug=debug, **kwargs
+        messages,
+        instructions,
+        mock_response=mock_response,
+        verbose=verbose,
+        debug=debug,
+        **kwargs,
     )
