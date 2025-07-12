@@ -533,7 +533,7 @@ class Logger:
                 return json.dumps(log_entry)
 
         return JSONFormatter()
-    
+
     def setLevel(
         self,
         level: Union[LoggerLevelName, int],

@@ -734,7 +734,9 @@ def input(
 
 def animate(
     renderable: "RenderableType | str",
-    type: Literal["flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"] = "pulsing",
+    type: Literal[
+        "flashing", "pulsing", "shaking", "typing", "spinning", "rainbow"
+    ] = "pulsing",
     duration: Optional[float] = None,
     # Animation parameters (defaults are handled by the specific animation classes)
     speed: Optional[float] = None,
