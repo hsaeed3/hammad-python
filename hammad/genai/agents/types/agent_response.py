@@ -1,6 +1,7 @@
 """hammad.genai.agents.types.agent_response"""
 
 from typing import List, Any, TypeVar, Literal, Generic
+from pydantic import Field
 
 from ....cache import cached
 from ....typing import get_type_description
@@ -49,7 +50,7 @@ class AgentResponse(LanguageModelResponse[T], Generic[T, AgentContext]):
     type: Literal["agent"] = "agent"
     """The type of the response. Always `agent`."""
 
-    steps: List[LanguageModelResponse[str]]
+    steps: List[LanguageModelResponse[str]] = Field(default_factory=list)
     """
     A list of steps taken by the agent **BEFORE** its final output.
 
