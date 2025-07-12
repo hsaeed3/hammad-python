@@ -75,7 +75,7 @@ def extract_tool_calls_from_response(
 ) -> List[Any]:
     """Extract tool calls from various response types."""
     # ensure type is of agent or language model
-    if response.type not in ["language_model", "agent"]:
+    if response.type not in ["language_model", "agent", "graph"]:
         raise ValueError(f"Response type {response.type} is not supported")
 
     # Handle LanguageModelResponse

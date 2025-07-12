@@ -47,7 +47,7 @@ class LanguageModelResponse(BaseGenAIModelResponse[T]):
     In many cases with tool calling, message content is not present, in these cases
     this field will **NOT** represent tool calls, and will be returned as `None`."""
 
-    completion: "litellm.ModelResponse"
+    completion: Any
     """The raw Chat Completion (`litellm.ModelResponse`) object returned by the
     language model."""
 
