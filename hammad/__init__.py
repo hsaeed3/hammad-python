@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
     from ._main import (
         to,
+        run,
         fn,
         new,
         read,
@@ -68,6 +69,7 @@ __all__ = (
     "web_search",
     "web_request",
     "to",
+    "run",
     "fn",
     "new",
     "read",

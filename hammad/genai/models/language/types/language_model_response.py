@@ -13,6 +13,7 @@ from typing import (
 )
 
 from .....cache import cached
+from .....typing import get_type_description
 
 from ...model_provider import litellm
 from ....types.base import BaseGenAIModelResponse
@@ -210,6 +211,7 @@ class LanguageModelResponse(BaseGenAIModelResponse[T]):
             output += f"\n{self.completion}"
 
         output += f"\n\n>>> Model: {self.model}"
+        output += f"\n>>> Type: {get_type_description(type(self.output))}"
         output += f"\n>>> Tool Calls: {len(self.tool_calls) if self.tool_calls else 0}"
 
         return output
