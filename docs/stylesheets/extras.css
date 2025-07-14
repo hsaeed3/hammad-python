@@ -14,47 +14,79 @@
 
 :root {
   --md-text-font: "Zed Sans";
-}
-
-:root {
   --md-code-font: "Zed Mono";
 }
 
-/* Styling for code boxes */
+/* Improved typography and spacing */
+.md-typeset {
+  line-height: 1.7; /* Increased from default 1.6 */
+  font-size: 16px; /* Ensure consistent base font size */
+}
+
+.md-typeset h1, .md-typeset h2, .md-typeset h3, .md-typeset h4, .md-typeset h5, .md-typeset h6 {
+  margin-top: 2.5em; /* More space above headings */
+  margin-bottom: 1.2em; /* More space below headings */
+  line-height: 1.3;
+}
+
+.md-typeset h1 {
+  margin-top: 0; /* Remove top margin for first heading */
+}
+
+.md-typeset p {
+  margin-bottom: 1.5em; /* More space between paragraphs */
+}
+
+/* Improved code block styling */
 .md-typeset pre {
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px; /* Slightly larger radius */
+  box-shadow: 0 4px 12px var(--md-code-shadow-color); /* Restore shadow */
+  border: none; /* Remove border completely */
+  margin: 0.02em 0; /* More vertical spacing around code blocks */
+  padding: 0.25em; /* More internal padding */
 }
 
 .md-typeset code {
-  border-radius: 3px;
-  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  padding: 0.3em 0.5em; /* Slightly more padding */
+  font-size: 0.9em; /* Slightly smaller for better readability */
+}
+
+/* Improved admonition spacing */
+.md-typeset .admonition {
+  margin: 2em 0; /* More space around admonitions */
+  padding: 1.5em; /* More internal padding */
+  border-radius: 8px;
+}
+
+.md-typeset .admonition-title {
+  margin-bottom: 1em; /* More space below title */
 }
 
 [data-md-color-scheme="home-light"] {
   --md-hue: 60deg;
 
-  --md-primary-fg-color:               #F5F5F0;  /* Soft Cream */
-  --md-primary-fg-color--light:        #E8E8E3;  /* Light Cream */
-  --md-primary-fg-color--dark:         #DCDCD7;  /* Muted Cream */
+  --md-primary-fg-color:               #F8F8F3;  /* Lighter cream for less contrast */
+  --md-primary-fg-color--light:        #EBEBЕ6;  /* Adjusted */
+  --md-primary-fg-color--dark:         #DFDFD a;  /* Adjusted */
   --md-primary-bg-color:               #2D2D2D;  /* Soft Charcoal */
   --md-primary-bg-color--light:        #3D3D3D;  /* Medium Charcoal */
 
   --md-accent-fg-color:                #89CFF0;  /* Baby Blue */
   --md-accent-fg-color--transparent:   #89CFF033;  /* Baby Blue with transparency */
 
-  --md-default-fg-color:               #2D2D2D;  /* Soft Charcoal */
-  --md-default-fg-color--light:        #3D3D3D;  /* Medium Charcoal */
-  --md-default-fg-color--lighter:      #4D4D4D;  /* Light Charcoal */
-  --md-default-fg-color--lightest:     #DCDCD7;  /* Muted Cream */
-  --md-default-bg-color:               #F5F5F0;  /* Soft Cream */
-  --md-default-bg-color--light:        #E8E8E3;  /* Light Cream */
-  --md-default-bg-color--lighter:      #DCDCD7;  /* Muted Cream */
+  --md-default-fg-color:               #333333;  /* Slightly lighter than original */
+  --md-default-fg-color--light:        #4A4A4A;  /* Adjusted */
+  --md-default-fg-color--lighter:      #666666;  /* Better contrast */
+  --md-default-fg-color--lightest:     #999999;  /* Lighter for less prominent text */
+  --md-default-bg-color:               #FAFAF5;  /* Slightly warmer background */
+  --md-default-bg-color--light:        #F0F0EB;  /* Adjusted */
+  --md-default-bg-color--lighter:      #E6E6E1;  /* Adjusted */
   --md-default-bg-color--lightest:     #E9C7B7;  /* Soft Peach */
 
   --md-code-fg-color:                  #4A4A4A;  /* Soft Black */
-  --md-code-bg-color:                  #E8E8E3;  /* Light Cream */
-  --md-code-hl-color:                  #DCDCD7;  /* Muted Cream */
+  --md-code-bg-color:                  #F0F0EB;  /* Warmer code background */
+  --md-code-hl-color:                  #E6E6E1;  /* Adjusted */
 
   --md-code-hl-number-color:           #F0A07C;  /* Soft Coral */
   --md-code-hl-special-color:          #F0CF7C;  /* Soft Yellow */
@@ -104,17 +136,17 @@
   --md-accent-fg-color:                #89CFF0;  /* Baby Blue */
   --md-accent-fg-color--transparent:   #89CFF033;  /* Baby Blue with transparency */
 
-  --md-default-fg-color:               #F5F5F0;  /* Soft Cream */
+  --md-default-fg-color:               #F5F5F0;  /* Back to original soft cream */
   --md-default-fg-color--light:        #E8E8E3;  /* Light Cream */
   --md-default-fg-color--lighter:      #DCDCD7;  /* Muted Cream */
-  --md-default-fg-color--lightest:     #1e1e1e;  /* Soft Peach */
-  --md-default-bg-color:               #2D2D2D;  /* Soft Charcoal */
+  --md-default-fg-color--lightest:     #999999;  /* Lighter for less prominent text */
+  --md-default-bg-color:               #2D2D2D;  /* Back to original soft charcoal */
   --md-default-bg-color--light:        #3D3D3D;  /* Medium Charcoal */
   --md-default-bg-color--lighter:      #4D4D4D;  /* Light Charcoal */
   --md-default-bg-color--lightest:     #5D5D5D;  /* Lighter Charcoal */
 
   --md-code-fg-color:                  #E8E8E3;  /* Light Cream */
-  --md-code-bg-color:                  #3D3D3D;  /* Medium Charcoal */
+  --md-code-bg-color:                  #3D3D3D;  /* Back to original medium charcoal */
   --md-code-hl-color:                  #4D4D4D;  /* Light Charcoal */
 
   --md-code-hl-number-color:           #FFB5A1;  /* Light Coral */
@@ -155,7 +187,8 @@
 
 /* Apply theme-specific shadow to code boxes */
 .md-typeset pre {
-  box-shadow: 0 2px 6px var(--md-code-shadow-color);
+  box-shadow: 0 4px 12px var(--md-code-shadow-color);
+  border: none; /* Ensure no border */
 }
 
 /* Ensure inline code uses theme background */
@@ -164,10 +197,33 @@
   color: var(--md-code-fg-color);
 }
 
-/* Add horizontal padding to headers */
-.md-header_inner {
-  margin-left: 20px;
-  margin-right: 20px;
+/* Standard code block syntax highlighting - ensure docstrings match regular strings */
+.highlight .c1,
+.highlight .cm,
+.highlight .cp,
+.highlight .cs {
+  color: var(--md-code-hl-comment-color) !important;
+  font-style: italic;
+}
+
+.highlight .sd,
+.highlight .s2,
+.highlight .s1,
+.highlight .s,
+.highlight .sb,
+.highlight .sc,
+.highlight .si,
+.highlight .sx,
+.highlight .sr,
+.highlight .ss {
+  color: var(--md-code-hl-string-color) !important;
+}
+
+/* Improved header spacing */
+.md-header__inner {
+  margin-left: 30px; /* Increased from 20px */
+  margin-right: 30px;
+  padding: 1rem 0; /* Add vertical padding */
 }
 
 .md-header--lifted {
@@ -178,23 +234,27 @@
 .md-tabs {
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
+  margin-top: 0.5rem; /* Add some separation */
 }
 
 .md-header--shadow {
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 30px; /* Increased from 20px */
+  margin-right: 30px;
 }
 
 .md-footer {
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 30px; /* Increased from 20px */
+  margin-right: 30px;
+  margin-top: 3rem; /* Add more space above footer */
 }
 
 .md-footer-meta {
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 30px; /* Increased from 20px */
+  margin-right: 30px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 .md-ellipsis {
@@ -214,19 +274,17 @@
 }
 
 .grid.cards {
-  border-radius: 6px;
+  border-radius: 8px; /* Slightly larger radius */
+  gap: 1.5rem; /* Add spacing between cards */
 }
 
-.md-footer-meta {
-  border-top-left-radius : 10px;
-  border-top-right-radius : 10px;
-}
-
+/* Improved navigation styling */
 .md-nav__item--section {
   font-family: var(--md-text-font);
   color: var(--md-default-fg-color);
   font-style: bold;
-  font-size: 1.2em;
+  font-size: 1.1em; /* Slightly smaller */
+  margin-bottom: 0.5rem; /* Add space below section headers */
 }
 
 .md-nav__link {
@@ -234,55 +292,51 @@
   color: var(--md-default-fg-color);
   font-style: normal;
   font-size: 0.95em;
+  padding: 0.5rem 0.75rem; /* Increase padding for better click targets */
+  border-radius: 4px; /* Subtle rounding */
+  transition: background-color 0.2s ease;
 }
 
+.md-nav__link:hover {
+  background-color: var(--md-default-bg-color--light);
+}
+
+/* Jupyter notebook improvements */
 .jp-InputArea-editor {
   background: var(--md-code-bg-color);
   border-radius: 12px;
+  padding: 1rem; /* Increased padding */
 }
 
 .highlight-ipynb {
   font-family: var(--md-code-font) !important;
-  font-size: 16px !important;
+  font-size: 15px !important; /* Slightly smaller */
+  line-height: 1.6 !important; /* Better line height */
 }
 
-/* Comments */
+/* Jupyter syntax highlighting improvements */
 .highlight-ipynb .c1 {
   color: var(--md-code-hl-comment-color) !important;
   font-style: italic;
 }
 
-.highlight-ipynb .sd {
-  color: var(--md-code-hl-comment-color) !important;
-  font-style: italic;
-}
-
-.highlight-ipynb .s2 {
-  color: var(--md-code-hl-string-color) !important;
-}
-
+.highlight-ipynb .sd,
+.highlight-ipynb .s2,
 .highlight-ipynb .s1 {
   color: var(--md-code-hl-string-color) !important;
 }
 
-/* Keywords ('import', 'def', etc.) */
-.highlight-ipynb .kn {
-  color: var(--md-code-hl-keyword-color) !important;
-  font-style: italic;
-}
-
+.highlight-ipynb .kn,
 .highlight-ipynb .k {
   color: var(--md-code-hl-keyword-color) !important;
   font-style: italic;
 }
 
-/* types */
 .highlight-ipynb .nb {
   color: var(--md-code-hl-constant-color) !important;
   font-style: italic;
 }
 
-/* Names (function names, variable names, etc.) */
 .highlight-ipynb .nn {
   color: var(--md-code-hl-function-color) !important;
 }
@@ -291,25 +345,27 @@
   color: var(--md-code-hl-name-color) !important;
 }
 
-/* Operators ('+', '-', '*', etc.) */
 .highlight-ipynb .o {
   color: var(--md-code-hl-operator-color) !important;
 }
 
-/* Parentheses */
 .highlight-ipynb .p {
   color: var(--md-code-hl-punctuation-color) !important;
 }
 
 .md-typeset blockquote {
   color: var(--md-default-fg-color--lighter) !important;
-  margin-left: 0;
-  margin-right: 0;
+  margin: 2em 0; /* More vertical spacing */
+  padding: 1.5em; /* More internal padding */
+  border-left: 4px solid var(--md-accent-fg-color);
+  background-color: var(--md-default-bg-color--light);
+  border-radius: 4px;
 }
 
+/* Improved Jupyter cell styling */
 .jp-InputPrompt {
   flex: 0 0 var(--jp-cell-prompt-width);
-  padding: 6px;
+  padding: 8px; /* Increased padding */
   font-family: var(--md-code-font);
   letter-spacing: 1px;
   line-height: 1.6;
@@ -320,12 +376,10 @@
 .CodeMirror {
   background-color: var(--md-code-bg-color) !important;
   color: var(--md-code-fg-color) !important;
+  line-height: 1.6 !important; /* Better line height */
 }
 
-.jp-CodeMirrorEditor {
-  border-radius: 12px !important;
-}
-
+.jp-CodeMirrorEditor,
 .jp-Editor {
   border-radius: 12px !important;
 }
@@ -333,7 +387,7 @@
 .jp-InputArea-editor {
   border-radius: 12px !important;
   border: none !important;
-  padding: 8px !important;
+  padding: 1rem !important; /* Increased padding */
   background-color: #1e1e1e !important;
 }
 
@@ -344,8 +398,129 @@
 .jp-OutputArea-output {
   background-color: #1e1e1e !important;
   border-radius: 12px !important;
-  padding-left: 8px !important;
-  padding-right: 8px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  padding: 1rem !important; /* Increased padding */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   font-size: 14px !important;
+  margin-top: 1rem !important; /* Add space above output */
+}
+
+.jp-RenderedText.jp-OutputArea-output pre {
+  color: var(--md-code-fg-color) !important;
+  margin: 0 !important; /* Remove default margins */
+}
+
+/* Improved Jupyter cell spacing */
+.jp-OutputArea {
+  margin-top: 1rem !important;
+  margin-bottom: 2rem !important; /* Increased bottom margin */
+}
+
+.jp-OutputArea-child {
+  background-color: #1e1e1e !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.jp-OutputArea-output[data-mime-type="text/plain"] {
+  min-height: 50px !important; /* Increased min height */
+  max-height: 350px !important; /* Increased max height */
+  overflow-y: auto !important;
+}
+
+.jp-OutputArea-output[data-mime-type="text/html"] {
+  min-height: 70px !important; /* Increased min height */
+  max-height: 450px !important; /* Increased max height */
+  overflow-y: auto !important;
+}
+
+.jp-Cell {
+  margin-bottom: 2rem !important; /* Increased cell spacing */
+}
+
+.jp-CodeCell .jp-InputArea {
+  flex: 1 1 auto !important;
+}
+
+.jp-CodeCell .jp-OutputArea {
+  flex: 1 1 auto !important;
+  margin-left: var(--jp-cell-prompt-width) !important;
+}
+
+.jp-OutputPrompt {
+  flex: 0 0 var(--jp-cell-prompt-width);
+  padding: 8px; /* Increased padding */
+  font-family: var(--md-code-font);
+  letter-spacing: 1px;
+  line-height: 1.6;
+  font-size: var(--jp-code-font-size);
+  color: var(--md-code-fg-color) !important;
+}
+
+/* Significantly improved main content spacing */
+.md-main__inner {
+  margin-left: 30px; /* Increased from 20px */
+  margin-right: 30px;
+  padding: 1rem 0; /* Reduced from 2rem */
+}
+
+.md-content {
+  padding: 1.5rem 1rem; /* Reduced from 2rem */
+}
+
+/* Improved responsive spacing */
+@media (min-width: 768px) {
+  .md-main__inner {
+    margin-left: 50px; /* Increased from 40px */
+    margin-right: 50px;
+  }
+
+  .md-content {
+    padding: 2rem 2rem; /* Reduced from 3rem */
+  }
+}
+
+@media (min-width: 1200px) {
+  .md-main__inner {
+    margin-left: 80px; /* Increased from 60px */
+    margin-right: 80px;
+  }
+
+  .md-content {
+    padding: 2.5rem 3rem; /* Reduced from 4rem */
+  }
+}
+
+/* Additional improvements for better visual hierarchy */
+.md-typeset .admonition.info {
+  border-left: 4px solid var(--md-accent-fg-color);
+  background-color: var(--md-accent-fg-color--transparent);
+}
+
+/* Better table spacing */
+.md-typeset table {
+  margin: 2rem 0; /* More space around tables */
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.md-typeset table th,
+.md-typeset table td {
+  padding: 1rem; /* Increased cell padding */
+}
+
+/* Improved list spacing */
+.md-typeset ul,
+.md-typeset ol {
+  margin: 1.5rem 0; /* More space around lists */
+  padding-left: 2rem; /* Better indentation */
+}
+
+.md-typeset li {
+  margin-bottom: 0.5rem; /* Space between list items */
+}
+
+.md-typeset li:last-child {
+  margin-bottom: 0;
 }
