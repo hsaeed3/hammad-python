@@ -222,7 +222,16 @@ def create_collection(
     distance_metric: "DistanceMetric" = "dot",
     settings: Optional["QdrantCollectionIndexSettings"] = None,
     query_settings: Optional["QdrantCollectionIndexQuerySettings"] = None,
-    embedding_function: Optional[Callable[[Any], List[float]]] = None,
+    embedding_model: Optional[
+        "EmbeddingModelName"
+    ] = "openai/text-embedding-3-small",
+    embedding_dimensions: Optional[int] = None,
+    embedding_api_key: Optional[str] = None,
+    embedding_base_url: Optional[str] = None,
+    # Rerank-specific parameters
+    rerank_model: Optional[str] = None,
+    rerank_api_key: Optional[str] = None,
+    rerank_base_url: Optional[str] = None,
 ) -> "QdrantCollectionIndex": ...
 
 
@@ -247,7 +256,16 @@ def create_collection(
     ] = None,
     # Vector/Qdrant-specific parameters
     distance_metric: "DistanceMetric" = "dot",
-    embedding_function: Optional[Callable[[Any], List[float]]] = None,
+    embedding_model: Optional[
+        "EmbeddingModelName"
+    ] = "openai/text-embedding-3-small",
+    embedding_dimensions: Optional[int] = None,
+    embedding_api_key: Optional[str] = None,
+    embedding_base_url: Optional[str] = None,
+    # Rerank-specific parameters
+    rerank_model: Optional[str] = None,
+    rerank_api_key: Optional[str] = None,
+    rerank_base_url: Optional[str] = None,
 ) -> Union["TantivyCollectionIndex", "QdrantCollectionIndex"]:
     """
     Create a data collection of the specified type. Collections are a unified
@@ -275,6 +293,11 @@ def create_collection(
         embedding_api_key: API key for the embedding service
         embedding_base_url: Base URL for the embedding service
 
+        # Rerank parameters (for vector collections):
+        rerank_model: The rerank model to use (e.g., 'cohere/rerank-english-v3.0')
+        rerank_api_key: API key for the rerank service
+        rerank_base_url: Base URL for the rerank service
+
     Returns:
         A TantivyCollectionIndex or QdrantCollectionIndex instance
     """
@@ -289,5 +312,11 @@ def create_collection(
         settings=settings,
         query_settings=query_settings,
         distance_metric=distance_metric,
-        embedding_function=embedding_function,
+        embedding_model=embedding_model,
+        embedding_dimensions=embedding_dimensions,
+        embedding_api_key=embedding_api_key,
+        embedding_base_url=embedding_base_url,
+        rerank_model=rerank_model,
+        rerank_api_key=rerank_api_key,
+        rerank_base_url=rerank_base_url,
     )
