@@ -226,7 +226,7 @@ class Agent(BaseGenAIModel, Generic[T]):
     and maintain context across multiple conversation steps.
     """
 
-    model: LanguageModelName = "openai/gpt-4o-mini"
+    model: LanguageModelName | str = "openai/gpt-4o-mini"
     """The language model to use for the agent."""
 
     name: str = "agent"
