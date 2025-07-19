@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .collections import (
         Collection,
         create_collection,
+        CollectionType,
         TantivyCollectionIndex,
         QdrantCollectionIndex,
         TantivyCollectionIndexSettings,
@@ -59,6 +60,7 @@ __all__ = (
     # hammad.data.collections
     "Collection",
     "create_collection",
+    "CollectionType",
     "TantivyCollectionIndex",
     "QdrantCollectionIndex",
     "TantivyCollectionIndexSettings",

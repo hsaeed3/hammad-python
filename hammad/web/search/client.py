@@ -188,7 +188,7 @@ class AsyncSearchClient:
             with DDGS() as ddgs:
                 raw_results = list(
                     ddgs.text(
-                        keywords=query.strip(),
+                        query.strip(),
                         region=region,
                         safesearch=safesearch,
                         timelimit=timelimit,
@@ -256,7 +256,7 @@ class AsyncSearchClient:
             with DDGS() as ddgs:
                 raw_results = list(
                     ddgs.news(
-                        keywords=query.strip(),
+                        query.strip(),
                         region=region,
                         safesearch=safesearch,
                         timelimit=timelimit,

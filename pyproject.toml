@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.27"
+version = "0.0.29"
 license = {file = "LICENSE"}
 readme = "README.md"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
@@ -41,15 +41,6 @@ graph = [
     "pydantic-graph>=0.4.2",
 ]
 genai = [
-    "litellm>=1.73.6",
-    "instructor>=1.9.0",
-    "qdrant-client>=1.14.3",
-    "mcp>=1.10.1",
-    "fastapi>=0.115.6",
-    "uvicorn>=0.34.0",
-    "pydantic-graph>=0.4.2",
-]
-all = [
     "litellm>=1.73.6",
     "instructor>=1.9.0",
     "qdrant-client>=1.14.3",

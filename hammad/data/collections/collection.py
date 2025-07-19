@@ -1,14 +1,10 @@
 """hammad.data.collections.collection"""
 
 from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
     Literal,
     Optional,
     Type,
-    TypeVar,
+    TypeAlias,
     Union,
     overload,
     TYPE_CHECKING,
@@ -37,7 +33,15 @@ else:
 __all__ = (
     "Collection",
     "VectorSearchResult",
+    "CollectionType",
 )
+
+
+CollectionType: TypeAlias = Union["TantivyCollectionIndex", "QdrantCollectionIndex"]
+"""Alias for a type of collection index.
+
+This is a union of TantivyCollectionIndex and QdrantCollectionIndex.
+"""
 
 
 class Collection:
