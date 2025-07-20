@@ -11,22 +11,6 @@ members = [
     "hammad-python-http",
 ]
 
-[manifest.dependency-groups]
-dev = [
-    { name = "ipykernel" },
-    { name = "ipython" },
-    { name = "mkdocs" },
-    { name = "mkdocs-jupyter" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-material-extensions" },
-    { name = "mkdocstrings", extras = ["python"] },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "twine", specifier = ">=6.1.0" },
-    { name = "uv" },
-]
-
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
@@ -409,12 +393,28 @@ wheels = [
 [[package]]
 name = "hammad-python"
 version = "0.0.3"
-source = { editable = "libs/hammad-python" }
+source = { editable = "." }
 dependencies = [
     { name = "hammad-python-core" },
     { name = "hammad-python-data" },
     { name = "hammad-python-genai" },
     { name = "hammad-python-http" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ipykernel" },
+    { name = "ipython" },
+    { name = "mkdocs" },
+    { name = "mkdocs-jupyter" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-material-extensions" },
+    { name = "mkdocstrings", extra = ["python"] },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "twine" },
+    { name = "uv" },
 ]
 
 [package.metadata]
@@ -423,6 +423,22 @@ requires-dist = [
     { name = "hammad-python-data", editable = "libs/hammad-python-data" },
     { name = "hammad-python-genai", editable = "libs/hammad-python-genai" },
     { name = "hammad-python-http", editable = "libs/hammad-python-http" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "ipykernel" },
+    { name = "ipython" },
+    { name = "mkdocs" },
+    { name = "mkdocs-jupyter" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-material-extensions" },
+    { name = "mkdocstrings", extras = ["python"] },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "twine", specifier = ">=6.1.0" },
+    { name = "uv" },
 ]
 
 [[package]]
