@@ -24,3 +24,90 @@ You can install any of the sub-packages, or the main package through `pip` or `u
 ```bash
 pip install hammad-python
 ```
+
+---
+
+## Quickstart
+
+### Easily Use Language Models With Various Tools & Patterns
+
+```python
+from ham.genai import Agent, LanguageModel
+from ham.http import SearchClient
+
+client = SearchClient()
+
+def search_web(query: str) -> str:
+    return client.search(query)
+
+# create your agent
+# agents have rich functionality, and use `litellm` & `instructor` under the hood
+agent = Agent(
+    instructions = "You are a helpful assistant who can search the web",
+    tools = [search_web]
+)
+
+print(agent.run("What is the weather in Tokyo?"))
+```
+
+```bash
+>>> AgentResponse:
+city='Tokyo' temperature=25.0 description='Clear sky'
+
+>>> Model: openai/gpt-4o-mini
+>>> Steps: 2
+>>> Output Type: Response
+>>> Total Tool Calls: 1
+```
+
+### Vectorized & Searchable Collections
+
+```python
+from ham.data import Collection
+
+collection = Collection(vector=True)
+
+collection.add("Rocks")
+collection.add("Cucumber")
+collection.add("Dragon")
+collection.add("Apple")
+
+# query the collection
+for result in collection.query("Fruit"):
+    print(result.item)
+```
+
+```bash
+>>> Apple
+>>> Cucumber
+>>> Dragon
+>>> Rocks
+```
+
+### HTTP & API Resources
+
+```python
+from ham.http import function_server
+
+# instantly launch a server by decorating a function
+@function_server(path="/some-endpoint", auto_start=True)
+def some_endpoint(name : str) -> str:
+    return f"Hello, {name}!"
+```
+
+Now in a separate file:
+
+```python
+import requests
+
+print(
+    requests.post(
+        "http://0.0.0.0:8000/some-endpoint",
+        json = {"name": "John"}
+    ).json()
+)
+```
+
+```bash
+>>> {'result' : 'Hello, John!'}
+```
