@@ -1,4 +1,4 @@
-"""hammad.runtime.run"""
+"""ham.core.runtime.run"""
 
 import concurrent.futures
 import itertools

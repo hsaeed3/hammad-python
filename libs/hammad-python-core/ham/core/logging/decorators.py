@@ -1,4 +1,4 @@
-"""hammad.logging.decorators"""
+"""ham.core.logging.decorators"""
 
 from functools import wraps
 from typing import (

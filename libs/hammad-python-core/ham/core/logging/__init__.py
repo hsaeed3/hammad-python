@@ -1,10 +1,17 @@
-"""hammad.logging"""
+"""ham.core.logging"""
 
 from typing import TYPE_CHECKING
-from .._internal import create_getattr_importer
+from .._internal import type_checking_importer
 
 if TYPE_CHECKING:
-    from .logger import Logger, create_logger, create_logger_level, LoggerLevelName
+    from .logger import (
+        Logger,
+        get_logger,
+        create_logger,
+        create_logger_level,
+        LoggerLevelName,
+        LoggerLevelSettings,
+    )
     from .decorators import (
         trace_function,
         trace_cls,
@@ -15,10 +22,14 @@ if TYPE_CHECKING:
 
 
 __all__ = (
+    # ham.core.logging.logger
     "Logger",
-    "LoggerLevelName",
+    "get_logger",
     "create_logger",
     "create_logger_level",
+    "LoggerLevelName",
+    "LoggerLevelSettings",
+    # ham.core.logging.decorators
     "trace_function",
     "trace_cls",
     "trace",
@@ -27,7 +38,7 @@ __all__ = (
 )
 
 
-__getattr__ = create_getattr_importer(__all__)
+__getattr__ = type_checking_importer(__all__)
 
 
 def __dir__() -> list[str]:

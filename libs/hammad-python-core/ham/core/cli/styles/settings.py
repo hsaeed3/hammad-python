@@ -1,4 +1,4 @@
-"""hammad.cli.styles.settings"""
+"""ham.core.cli.styles.settings"""
 
 from typing import Any
 from typing_extensions import TypedDict, NotRequired

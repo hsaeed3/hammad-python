@@ -20,7 +20,8 @@ if TYPE_CHECKING:
         JSONRPCError,
         JSONRPCMessage,
     )
-    from .multimodal import Image, Audio
+    from .image import Image
+    from .audio import Audio
 
 
 __all__ = (
@@ -36,8 +37,9 @@ __all__ = (
     "JSONRPCResponse",
     "JSONRPCError",
     "JSONRPCMessage",
-    # ham.core.types.multimodal
+    # ham.core.types.image
     "Image",
+    # ham.core.types.audio
     "Audio",
 )
 

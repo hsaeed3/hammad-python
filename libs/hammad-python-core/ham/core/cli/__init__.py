@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING
 from .._internal import type_checking_importer
 
 if TYPE_CHECKING:
-    from .logs import (
-        log,
-        log_iterable,
-        log_progress
-    )
+    from .logs import log, log_iterable, log_progress
     from .plugins import print, input, animate
     from .styles.settings import (
         CLIStyleRenderableSettings,

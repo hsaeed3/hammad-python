@@ -236,8 +236,10 @@ def print(
     if rich_brackets:
         import re
 
-        # Replace [text] patterns with Rich markup [bold cyan]text[/bold cyan]
-        content = re.sub(r"\[([^\[\]]+)\]", r"[bold cyan]\1[/bold cyan]", content)
+        # Skip processing if content already contains Rich markup patterns
+        if not re.search(r"\[/?[a-zA-Z][a-zA-Z0-9 _]*\]", content):
+            # Replace [text] patterns with Rich markup [bold cyan]text[/bold cyan]
+            content = re.sub(r"\[([^\[\]]+)\]", r"[bold cyan]\1[/bold cyan]", content)
 
     # Apply styling and background
     live_render, style_renderable = _get_style_utils()

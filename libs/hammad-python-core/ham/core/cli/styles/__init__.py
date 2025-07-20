@@ -1,11 +1,11 @@
-"""hammad.cli.styles
+"""ham.core.cli.styles
 
 Contains resources, types and other utilities in context of
 styling rendered content in the CLI. Most resources within this
 submodule are not meant for direct use."""
 
 from typing import TYPE_CHECKING
-from ..._internal import create_getattr_importer
+from ..._internal import type_checking_importer
 
 if TYPE_CHECKING:
     from .settings import (
@@ -48,7 +48,7 @@ __all__ = (
 )
 
 
-__getattr__ = create_getattr_importer(__all__)
+__getattr__ = type_checking_importer(__all__)
 
 
 def __dir__() -> list[str]:

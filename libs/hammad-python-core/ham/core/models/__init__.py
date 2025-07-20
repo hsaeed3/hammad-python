@@ -12,7 +12,15 @@ if TYPE_CHECKING:
         Model,
         model_settings,
     )
-    from .fields import field
+    from .fields import (
+        Field,
+        FieldInfo,
+        field,
+        int_field,
+        str_field,
+        list_field,
+        float_field,
+    )
     from .utils import (
         validator,
         is_field,
@@ -21,10 +29,18 @@ if TYPE_CHECKING:
 
 
 __all__ = (
+    # ham.core.models.model
     "Model",
     "model_settings",
+    # ham.core.models.fields
+    "Field",
+    "FieldInfo",
     "field",
-    # hammad.lib.data.models.utils
+    "int_field",
+    "str_field",
+    "list_field",
+    "float_field",
+    # ham.core.models.utils
     "validator",
     "is_field",
     "is_model",

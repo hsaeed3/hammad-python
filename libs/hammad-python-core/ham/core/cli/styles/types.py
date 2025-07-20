@@ -1,4 +1,4 @@
-"""hammad.cli.styles.types"""
+"""ham.core.cli.styles.types"""
 
 from typing import Literal, Union
 from typing_extensions import TypeAliasType

@@ -1,4 +1,4 @@
-"""hammad.runtime.decorators"""
+"""ham.core.runtime.decorators"""
 
 import functools
 from typing import (

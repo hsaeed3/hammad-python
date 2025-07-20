@@ -1,7 +1,7 @@
-"""hammad.runtime"""
+"""ham.core.runtime"""
 
 from typing import TYPE_CHECKING
-from .._internal import create_getattr_importer
+from .._internal import type_checking_importer
 
 
 if TYPE_CHECKING:
@@ -14,18 +14,18 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    # hammad.performance.decorators
+    # ham.core.runtime.decorators
     "sequentialize_function",
     "parallelize_function",
     "update_batch_type_hints",
-    # hammad.performance.run
+    # ham.core.runtime.run
     "run_sequentially",
     "run_parallel",
     "run_with_retry",
 )
 
 
-__getattr__ = create_getattr_importer(__all__)
+__getattr__ = type_checking_importer(__all__)
 
 
 def __dir__() -> list[str]:

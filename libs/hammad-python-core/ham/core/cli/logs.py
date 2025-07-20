@@ -55,13 +55,14 @@ if TYPE_CHECKING:
 # Lazy import cache
 _IMPORT_CACHE = {}
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def _get_logger_classes():
     """Lazy import for logger classes"""
     if "logger_classes" not in _IMPORT_CACHE:
         from ..logging.logger import Logger, create_logger, get_logger
+
         _IMPORT_CACHE["logger_classes"] = (Logger, create_logger, get_logger)
     return _IMPORT_CACHE["logger_classes"]
 
@@ -72,6 +73,7 @@ def _get_alive_progress():
         # Import from the alive_bar module that was shown in the docstring
         try:
             from alive_progress import alive_bar, alive_it
+
             _IMPORT_CACHE["alive_progress"] = (alive_bar, alive_it)
         except ImportError:
             # Fallback to None if alive_progress is not available
@@ -83,6 +85,7 @@ def _get_style_utils():
     """Lazy import for style utilities"""
     if "style_utils" not in _IMPORT_CACHE:
         from .styles.utils import live_render, style_renderable
+
         _IMPORT_CACHE["style_utils"] = (live_render, style_renderable)
     return _IMPORT_CACHE["style_utils"]
 
@@ -129,12 +132,12 @@ def log(
 ) -> None:
     """
     Stylized logging function that combines logger functionality with rich styling.
-    
+
     Args:
         message: The message to log
         level: The logging level to use (defaults to "info")
         logger: Existing Logger instance or logger name to use
-        
+
         # Logger configuration (used if creating new logger)
         logger_name: Name for new logger (defaults to "hammad")
         logger_level: Level for new logger (defaults to "warning")
@@ -148,7 +151,7 @@ def log(
         json_logs: Whether to output structured JSON logs
         console: Whether to log to console
         handlers: Additional custom handlers
-        
+
         # Style parameters (applied to message styling)
         style: A color or style name to apply to the content
         style_settings: A dictionary of style settings to apply to the content
@@ -173,7 +176,7 @@ def log(
         rich_brackets: Enable automatic bracket tagging
     """
     Logger, create_logger, get_logger = _get_logger_classes()
-    
+
     # Determine the logger to use
     if logger is None:
         # Create a new logger
@@ -213,16 +216,34 @@ def log(
     else:
         # Use provided logger instance
         log_instance = logger
-    
+
     # Apply styling to the message if any style parameters are provided
-    if any([
-        style, style_settings, bg, bg_settings, live, justify, overflow, no_wrap,
-        emoji, markup, highlight, width, height, border, padding, title, expand,
-        transient, rich_brackets
-    ]):
+    if any(
+        [
+            style,
+            style_settings,
+            bg,
+            bg_settings,
+            live,
+            justify,
+            overflow,
+            no_wrap,
+            emoji,
+            markup,
+            highlight,
+            width,
+            height,
+            border,
+            padding,
+            title,
+            expand,
+            transient,
+            rich_brackets,
+        ]
+    ):
         # Import print function from plugins to handle styling
         from .plugins import print as styled_print
-        
+
         # Use styled print which will display the message with styling
         styled_print(
             message,
@@ -248,7 +269,7 @@ def log(
             new_line_start=new_line_start,
             rich_brackets=rich_brackets,
         )
-    
+
     # Also log the message using the logger
     log_level = level or "info"
     log_instance.log(log_level, str(message))
@@ -312,10 +333,10 @@ def log_progress(
 ):
     """
     Context manager for progress tracking using alive_bar with integrated logging.
-    
+
     Args:
         total: Total number of steps expected
-        
+
         # alive_bar parameters
         calibrate: Maximum theoretical throughput to calibrate animation speed
         title: Always visible bar title
@@ -347,7 +368,7 @@ def log_progress(
         unit: Any text that labels your entities
         scale: The scaling to apply to units: 'SI', 'IEC', 'SI2'
         precision: How many decimals to display when scaling
-        
+
         # Logger parameters
         logger: Existing Logger instance or logger name to use
         logger_name: Name for new logger
@@ -363,33 +384,35 @@ def log_progress(
         json_logs: Whether to output structured JSON logs
         console: Whether to log to console
         handlers: Additional custom handlers
-        
+
         # Progress logging options
         log_start: Whether to log when progress starts
         log_finish: Whether to log when progress finishes
         log_start_message: Custom message for start log
         log_finish_message: Custom message for finish log
-    
+
     Yields:
         Progress bar handle for advancing progress
-        
+
     Examples:
         >>> with log_progress(100, title="Processing") as bar:
         ...     for i in range(100):
         ...         # do work
         ...         bar()
-        
+
         >>> with log_progress(title="Loading", logger="myapp") as bar:
         ...     # unknown progress
         ...     bar.text = "Still loading..."
     """
     alive_bar, _ = _get_alive_progress()
-    
+
     if alive_bar is None:
-        raise ImportError("alive_progress is required for log_progress. Install with: pip install alive-progress")
-    
+        raise ImportError(
+            "alive_progress is required for log_progress. Install with: pip install alive-progress"
+        )
+
     Logger, create_logger, get_logger = _get_logger_classes()
-    
+
     # Set up logger
     if logger is None:
         log_instance = create_logger(
@@ -425,17 +448,17 @@ def log_progress(
             )
     else:
         log_instance = logger
-    
+
     # Determine log level
     use_log_level = log_level or "info"
-    
+
     # Log start message
     if log_start:
         start_msg = log_start_message or f"Starting progress: {title or 'Processing'}"
         if total:
             start_msg += f" (total: {total})"
         log_instance.log(use_log_level, start_msg)
-    
+
     # Create alive_bar with all parameters
     with alive_bar(
         total,
@@ -475,8 +498,10 @@ def log_progress(
         finally:
             # Log finish message
             if log_finish:
-                finish_msg = log_finish_message or f"Completed progress: {title or 'Processing'}"
-                if hasattr(bar, 'current'):
+                finish_msg = (
+                    log_finish_message or f"Completed progress: {title or 'Processing'}"
+                )
+                if hasattr(bar, "current"):
                     finish_msg += f" (processed: {bar.current})"
                 log_instance.log(use_log_level, finish_msg)
 
@@ -541,12 +566,12 @@ def log_iterable(
 ) -> Iterable[T]:
     """
     Iterator adapter with progress tracking using alive_it and integrated logging.
-    
+
     Args:
         it: The input iterable to be processed
         total: Total number of items (auto-detected if None)
-        
-        # alive_it parameters  
+
+        # alive_it parameters
         finalize: Function to be called when the bar is going to finalize
         calibrate: Maximum theoretical throughput to calibrate animation speed
         title: Always visible bar title
@@ -577,7 +602,7 @@ def log_iterable(
         unit: Any text that labels your entities
         scale: The scaling to apply to units: 'SI', 'IEC', 'SI2'
         precision: How many decimals to display when scaling
-        
+
         # Logger parameters
         logger: Existing Logger instance or logger name to use
         logger_name: Name for new logger
@@ -593,7 +618,7 @@ def log_iterable(
         json_logs: Whether to output structured JSON logs
         console: Whether to log to console
         handlers: Additional custom handlers
-        
+
         # Iteration logging options
         log_start: Whether to log when iteration starts
         log_finish: Whether to log when iteration finishes
@@ -601,26 +626,28 @@ def log_iterable(
         log_finish_message: Custom message for finish log
         log_items: Whether to log each item during iteration
         log_item_level: Level to log items at (defaults to "debug")
-    
+
     Returns:
         Iterator that yields items from the original iterable
-        
+
     Examples:
         >>> items = [1, 2, 3, 4, 5]
         >>> for item in log_iterable(items, title="Processing items"):
         ...     process(item)
-        
+
         >>> data = fetch_data()
         >>> for record in log_iterable(data, logger="myapp", log_items=True):
         ...     handle_record(record)
     """
     _, alive_it = _get_alive_progress()
-    
+
     if alive_it is None:
-        raise ImportError("alive_progress is required for log_iterable. Install with: pip install alive-progress")
-    
+        raise ImportError(
+            "alive_progress is required for log_iterable. Install with: pip install alive-progress"
+        )
+
     Logger, create_logger, get_logger = _get_logger_classes()
-    
+
     # Set up logger
     if logger is None:
         log_instance = create_logger(
@@ -656,31 +683,36 @@ def log_iterable(
             )
     else:
         log_instance = logger
-    
+
     # Determine log levels
     use_log_level = log_level or "info"
     item_log_level = log_item_level or "debug"
-    
+
     # Log start message
     if log_start:
-        start_msg = log_start_message or f"Starting iteration: {title or 'Processing items'}"
+        start_msg = (
+            log_start_message or f"Starting iteration: {title or 'Processing items'}"
+        )
         if total:
             start_msg += f" (total: {total})"
-        elif hasattr(it, '__len__'):
+        elif hasattr(it, "__len__"):
             start_msg += f" (total: {len(it)})"
         log_instance.log(use_log_level, start_msg)
-    
+
     # Create custom finalize function that includes logging
     def logging_finalize(bar):
         if finalize:
             finalize(bar)
-        
+
         if log_finish:
-            finish_msg = log_finish_message or f"Completed iteration: {title or 'Processing items'}"
-            if hasattr(bar, 'current'):
+            finish_msg = (
+                log_finish_message
+                or f"Completed iteration: {title or 'Processing items'}"
+            )
+            if hasattr(bar, "current"):
                 finish_msg += f" (processed: {bar.current})"
             log_instance.log(use_log_level, finish_msg)
-    
+
     # Create alive_it with all parameters
     progress_iter = alive_it(
         it,
@@ -716,14 +748,15 @@ def log_iterable(
         scale=scale,
         precision=precision,
     )
-    
+
     # Wrap the iterator to add item logging if requested
     if log_items:
+
         def logging_wrapper():
             for i, item in enumerate(progress_iter):
                 log_instance.log(item_log_level, f"Processing item {i}: {item}")
                 yield item
-        
+
         return logging_wrapper()
     else:
         return progress_iter

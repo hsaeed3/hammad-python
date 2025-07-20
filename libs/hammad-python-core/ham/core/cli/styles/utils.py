@@ -1,4 +1,4 @@
-"""hammad.cli.styles.utils"""
+"""ham.core.cli.styles.utils"""
 
 import time
 from typing import Optional, TYPE_CHECKING

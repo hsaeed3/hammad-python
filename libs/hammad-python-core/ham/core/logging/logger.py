@@ -1,4 +1,4 @@
-"""hammad.logging.logger"""
+"""ham.core.logging.logger"""
 
 import logging as _logging
 import inspect
@@ -1029,10 +1029,10 @@ def get_logger(
 ) -> _logging.Logger:
     """
     Get a logger with zero performance overhead and full styling support.
-    
+
     This function acts like standard logging.getLogger() but with optional
     wrapping of existing loggers with rich styling and level control.
-    
+
     Args:
         name: Logger name (standard getLogger parameter)
         level: Logging level to set
@@ -1048,38 +1048,38 @@ def get_logger(
         json_logs: Whether to output structured JSON logs (when wrapping)
         console: Whether to log to console (when wrapping)
         handlers: Additional custom handlers (when wrapping)
-    
+
     Returns:
         Standard logging.Logger instance, optionally wrapped with styling
-        
+
     Examples:
         # Standard usage - zero overhead
         logger = get_logger("my.module")
-        
+
         # With wrapping and styling
         logger = get_logger("openai.custom", level="info", wrap=True)
-        
+
         # Wrap all OpenAI loggers with styling at info level
         logger = get_logger("openai", level="info", wrap=True, propagate=True)
     """
     # Get the standard logger - zero overhead when not wrapping
     logger = _logging.getLogger(name)
-    
+
     if not wrap:
         # Zero overhead path - just return the standard logger
         if level is not None:
             logger.setLevel(_get_log_level(level))
         return logger
-    
+
     # Wrapping path - apply rich styling and configuration
     if level is not None:
         log_level = _get_log_level(level)
         logger.setLevel(log_level)
-        
+
         # Apply level to propagated loggers if requested
         if propagate and name:
             _apply_level_to_children(name, log_level)
-    
+
     # Apply rich styling wrapper
     _wrap_logger_with_styling(
         logger,
@@ -1094,7 +1094,7 @@ def get_logger(
         console=console,
         handlers=handlers,
     )
-    
+
     # Apply styling to propagated loggers if requested
     if propagate and name:
         _wrap_children_with_styling(
@@ -1107,7 +1107,7 @@ def get_logger(
             json_logs=json_logs,
             console=console,
         )
-    
+
     return logger
 
 
@@ -1115,7 +1115,7 @@ def _get_log_level(level: Union[LoggerLevelName, int]) -> int:
     """Convert level to integer log level."""
     if isinstance(level, int):
         return level
-    
+
     level_map = {
         "debug": _logging.DEBUG,
         "info": _logging.INFO,
@@ -1152,7 +1152,7 @@ def _wrap_logger_with_styling(
     # Clear existing handlers to avoid duplicates
     if logger.hasHandlers():
         logger.handlers.clear()
-    
+
     # Use our Logger class setup methods
     temp_logger = Logger.__new__(Logger)  # Create without calling __init__
     temp_logger._logger = logger
@@ -1165,15 +1165,15 @@ def _wrap_logger_with_styling(
     temp_logger._json_logs = json_logs
     temp_logger._console_enabled = console
     temp_logger._rich_enabled = rich
-    
+
     # Setup handlers using existing methods
     temp_logger._setup_handlers(logger.level)
-    
+
     # Add custom handlers if provided
     if handlers:
         for handler in handlers:
             logger.addHandler(handler)
-    
+
     logger.propagate = False
 
 

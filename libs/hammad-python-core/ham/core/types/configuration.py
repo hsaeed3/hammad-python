@@ -11,53 +11,52 @@ import yaml
 from ..types.file import File, FileSource
 from ..models.fields import field
 
-__all__ = (
-    "Configuration",
-)
+__all__ = ("Configuration",)
 
 
 def _parse_dotenv_file(path: Path) -> dict[str, str | None]:
     """Parse a .env file and return key-value pairs.
-    
+
     Args:
         path: Path to the .env file
-        
+
     Returns:
         Dictionary of environment variable key-value pairs
     """
     if not path.exists():
         return {}
-    
+
     config_data = {}
-    content = path.read_text(encoding='utf-8')
-    
+    content = path.read_text(encoding="utf-8")
+
     for line_num, line in enumerate(content.splitlines(), 1):
         line = line.strip()
-        
+
         # Skip empty lines and comments
-        if not line or line.startswith('#'):
+        if not line or line.startswith("#"):
             continue
-            
+
         # Handle lines with = sign
-        if '=' not in line:
+        if "=" not in line:
             continue
-            
-        key, _, value = line.partition('=')
+
+        key, _, value = line.partition("=")
         key = key.strip()
         value = value.strip()
-        
+
         # Remove quotes if present
         if len(value) >= 2:
-            if (value.startswith('"') and value.endswith('"')) or \
-               (value.startswith("'") and value.endswith("'")):
+            if (value.startswith('"') and value.endswith('"')) or (
+                value.startswith("'") and value.endswith("'")
+            ):
                 value = value[1:-1]
-        
+
         # Handle empty values
         if not value:
             value = None
-            
+
         config_data[key] = value
-    
+
     return config_data
 
 

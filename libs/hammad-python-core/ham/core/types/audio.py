@@ -5,8 +5,8 @@ import mimetypes
 from pathlib import Path
 from typing import Self
 
-from ..file import File, FileSource, _FILE_SIGNATURES
-from ...models.fields import field
+from .file import File, FileSource, _FILE_SIGNATURES
+from ..models.fields import field
 
 
 __all__ = (
