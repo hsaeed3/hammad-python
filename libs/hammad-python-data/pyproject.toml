@@ -1,12 +1,12 @@
 [project]
 name = "hammad-python-data"
-version = "0.0.2"
+version = "0.0.3"
 description = "Core utilities for hammad-python"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
 
 dependencies = [
-    "hammad-python-core>=0.0.2",
+    "hammad-python-core>=0.0.3",
     "qdrant-client>=1.15.0",
     "tantivy>=0.24.0",
 ]

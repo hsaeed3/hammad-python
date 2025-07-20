@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python-core"
-version = "0.0.2"
+version = "0.0.3"
 description = "Core utilities for hammad-python"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
@@ -15,6 +15,7 @@ dependencies = [
     "adaptix>=3.0.0b11",
     "docstring-parser>=0.16",
     "alive-progress>=3.3.0",
+    "pydantic-extra-types>=2.10.5",
 ]
 
 [build-system]
