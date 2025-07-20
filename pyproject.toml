@@ -1,16 +1,16 @@
 [project]
 name = "hammad-python"
-version = "0.0.31"
+version = "0.0.32"
 description = "Personal Python utilities and tools"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
-    "hammad-python-core>=0.0.1",
-    "hammad-python-data>=0.0.1",
-    "hammad-python-genai>=0.0.1",
-    "hammad-python-http>=0.0.1",
+    "hammad-python-core>=0.0.2",
+    "hammad-python-data>=0.0.2",
+    "hammad-python-genai>=0.0.2",
+    "hammad-python-http>=0.0.2",
 ]
 
 [project.optional-dependencies]
