@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.3"
+version = "0.0.31"
 description = "Personal Python utilities and tools"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 readme = "README.md"
