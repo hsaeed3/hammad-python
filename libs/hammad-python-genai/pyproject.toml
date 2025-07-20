@@ -1,12 +1,18 @@
 [project]
 name = "hammad-python-genai"
-version = "0.0.1"
+version = "0.0.2"
 description = "Core utilities for hammad-python"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
 
 dependencies = [
-    "hammad-python-core>=0.0.1",
+    "fasta2a>=0.5.0",
+    "hammad-python-core>=0.0.2",
+    "hammad-python-data>=0.0.2",
+    "hammad-python-http>=0.0.2",
+    "instructor>=1.10.0",
+    "litellm>=1.74.7",
+    "pydantic-graph>=0.4.4",
 ]
 
 [build-system]
