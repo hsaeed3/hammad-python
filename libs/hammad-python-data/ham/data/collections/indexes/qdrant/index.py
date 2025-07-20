@@ -188,11 +188,11 @@ class QdrantCollectionIndex:
             model = EmbeddingModel(model=self.embedding_model)
 
             def embedding_function(item: Any) -> List[float]:
+                model.api_key = self.embedding_api_key
+                model.base_url = self.embedding_base_url
+                
                 response = model.run(
                     input=item,
-                    dimensions=self.embedding_dimensions,
-                    api_key=self.embedding_api_key,
-                    api_base=self.embedding_base_url,
                     format=True,
                 )
                 if response.data and len(response.data) > 0:

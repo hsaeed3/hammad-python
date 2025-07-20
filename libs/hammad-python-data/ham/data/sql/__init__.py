@@ -1,7 +1,11 @@
 """hammad.data.sql"""
 
 from typing import TYPE_CHECKING
-from ..._internal import create_getattr_importer
+try:
+    from ham.core._internal import type_checking_importer
+except ImportError:
+    from ..._internal import type_checking_importer # type: ignore
+
 
 if TYPE_CHECKING:
     from .types import DatabaseItemType, DatabaseItem
@@ -16,7 +20,7 @@ __all__ = (
 )
 
 
-__getattr__ = create_getattr_importer(__all__)
+__getattr__ = type_checking_importer(__all__)
 
 
 def __dir__() -> list[str]:
