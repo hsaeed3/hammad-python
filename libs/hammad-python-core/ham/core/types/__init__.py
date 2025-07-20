@@ -124,7 +124,6 @@ __all__ = (
     "Image",
     # ham.core.types.audio
     "Audio",
-
     # forwarding (pydantic)
     "AnyType",
     "Base64Bytes",
@@ -178,7 +177,6 @@ __all__ = (
     "UUID7",
     "UUID8",
     "UuidVersion",
-
     # forwarding (pydantic-extra-types)
     "Color",
     "Coordinate",
