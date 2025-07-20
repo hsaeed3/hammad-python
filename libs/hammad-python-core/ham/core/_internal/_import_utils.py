@@ -96,32 +96,47 @@ def _parse_type_checking_imports(source_code: str) -> dict[str, tuple[str, str]]
                         is_type_checking = True
 
                 if is_type_checking:
-                    # Process imports in this block
-                    for stmt in node.body:
-                        if isinstance(stmt, ast.ImportFrom) and stmt.module:
-                            # Only add '.' prefix for relative imports
-                            # If stmt.level > 0, it's already a relative import
-                            # If stmt.level == 0 and module doesn't start with '.', it's absolute
-                            if stmt.level > 0:
-                                # Already relative import
-                                module_path = "." * stmt.level + (stmt.module or "")
-                            elif stmt.module.startswith("."):
-                                # Explicit relative import
-                                module_path = stmt.module
-                            elif any(
-                                stmt.module.startswith(name)
-                                for name in ["litellm", "openai", "instructor", "httpx"]
-                            ):
-                                # Known absolute third-party imports
-                                module_path = stmt.module
-                            else:
-                                # Default to relative import for internal modules
-                                module_path = f".{stmt.module}"
+                    # Process imports in this block (recursively handle nested blocks)
+                    def process_import_statements(statements):
+                        for stmt in statements:
+                            if isinstance(stmt, ast.ImportFrom) and stmt.module:
+                                # Only add '.' prefix for relative imports
+                                # If stmt.level > 0, it's already a relative import
+                                # If stmt.level == 0 and module doesn't start with '.', it's absolute
+                                if stmt.level > 0:
+                                    # Already relative import
+                                    module_path = "." * stmt.level + (stmt.module or "")
+                                elif stmt.module.startswith("."):
+                                    # Explicit relative import
+                                    module_path = stmt.module
+                                elif any(
+                                    stmt.module.startswith(name)
+                                    for name in [
+                                        "litellm",
+                                        "openai",
+                                        "instructor",
+                                        "httpx",
+                                        "ham",
+                                    ]
+                                ):
+                                    # Known absolute imports (third-party and internal ham modules)
+                                    module_path = stmt.module
+                                else:
+                                    # Default to relative import for other internal modules
+                                    module_path = f".{stmt.module}"
 
-                            for alias in stmt.names:
-                                original_name = alias.name
-                                local_name = alias.asname or original_name
-                                imports[local_name] = (module_path, original_name)
+                                for alias in stmt.names:
+                                    original_name = alias.name
+                                    local_name = alias.asname or original_name
+                                    imports[local_name] = (module_path, original_name)
+                            elif isinstance(stmt, ast.Try):
+                                # Recursively process try blocks
+                                process_import_statements(stmt.body)
+                                # Also process except blocks
+                                for except_handler in stmt.handlers:
+                                    process_import_statements(except_handler.body)
+
+                    process_import_statements(node.body)
 
         return imports
 
