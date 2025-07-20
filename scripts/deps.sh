@@ -4,7 +4,7 @@ set -e
 
 echo "🔍 Checking dependency version consistency..."
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MAIN_PYPROJECT="$ROOT_DIR/pyproject.toml"
 
 # Colors for output

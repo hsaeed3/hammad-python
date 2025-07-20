@@ -4,27 +4,69 @@ set -e
 
 echo "🚀 Publishing updated packages..."
 
-# Function to check if package has changes since last git tag
-has_changes() {
+# Function to get current version from pyproject.toml
+get_local_version() {
+    local package_dir="$1"
+    local pyproject_file="$package_dir/pyproject.toml"
+    
+    if [[ ! -f "$pyproject_file" ]]; then
+        echo ""
+        return
+    fi
+    
+    # Extract version from pyproject.toml using awk for more reliable parsing
+    awk -F'"' '/^version[[:space:]]*=/ {print $2}' "$pyproject_file" | head -n1
+}
+
+# Function to get latest version from PyPI
+get_pypi_version() {
+    local package_name="$1"
+    
+    # Query PyPI API for package info
+    local response=$(curl -s "https://pypi.org/pypi/$package_name/json" 2>/dev/null || echo "{}")
+    
+    # Extract version using Python for reliable JSON parsing
+    echo "$response" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('info', {}).get('version', ''))
+except:
+    print('')
+"
+}
+
+# Function to check if package needs publishing based on PyPI version
+needs_publishing() {
     local package_dir="$1"
     local package_name="$2"
     
-    # Get the last tag for this package (if any)
-    local last_tag=$(git tag -l "${package_name}-*" --sort=-version:refname | head -n1)
+    # Get local version
+    local local_version=$(get_local_version "$package_dir")
     
-    if [[ -z "$last_tag" ]]; then
-        echo "No previous tag found for $package_name, treating as changed"
+    if [[ -z "$local_version" ]]; then
+        echo "❌ Could not determine local version for $package_name"
+        return 1
+    fi
+    
+    echo "📌 Local version of $package_name: $local_version"
+    
+    # Get PyPI version
+    local pypi_version=$(get_pypi_version "$package_name")
+    
+    if [[ -z "$pypi_version" ]]; then
+        echo "📤 Package $package_name not found on PyPI, needs publishing"
         return 0
     fi
     
-    # Check if there are changes since the last tag in the package directory
-    local changes=$(git diff --name-only "$last_tag"..HEAD -- "$package_dir")
+    echo "🌐 PyPI version of $package_name: $pypi_version"
     
-    if [[ -n "$changes" ]]; then
-        echo "Changes detected in $package_name since $last_tag"
+    # Compare versions
+    if [[ "$local_version" != "$pypi_version" ]]; then
+        echo "✅ Version mismatch detected, needs publishing ($pypi_version → $local_version)"
         return 0
     else
-        echo "No changes in $package_name since $last_tag"
+        echo "⏭️  Versions match, skipping"
         return 1
     fi
 }
@@ -87,11 +129,11 @@ publish_package() {
 }
 
 # Get the root directory
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Check main package
 echo "🔍 Checking main package..."
-if has_changes "$ROOT_DIR" "hammad-python"; then
+if needs_publishing "$ROOT_DIR" "hammad-python"; then
     echo "📦 Publishing main package (hammad-python)..."
     publish_package "$ROOT_DIR" "hammad-python" "false"
 else
@@ -105,7 +147,7 @@ for lib_dir in "$ROOT_DIR"/libs/*/; do
         package_name=$(basename "$lib_dir")
         echo "🔍 Checking $package_name..."
         
-        if has_changes "$lib_dir" "$package_name"; then
+        if needs_publishing "$lib_dir" "$package_name"; then
             echo "📦 Publishing $package_name..."
             publish_package "$lib_dir" "$package_name" "true"
         else
