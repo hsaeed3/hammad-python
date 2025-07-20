@@ -1,5 +1,7 @@
 # **hammad-python**
 
+> **Harmoniously Accelerated Micro-Modules (for) Application Development**
+
 ---
 
 `hammad-python` is an ecosystem of **wrappers** with the sole purpose of defining
