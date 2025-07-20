@@ -5,9 +5,7 @@ from ..._internal import create_getattr_importer
 
 
 if TYPE_CHECKING:
-    from fasta2a import (
-        FastA2A
-    )
+    from fasta2a import FastA2A
     from .workers import (
         as_a2a_app,
         GraphWorker,

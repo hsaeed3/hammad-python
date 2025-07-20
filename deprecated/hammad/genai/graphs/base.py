@@ -826,13 +826,21 @@ class ActionDecorator:
 
         def decorator(f: Callable) -> Callable:
             action_name = name or f.__name__
-            
+
             # Check if action name is reserved
             reserved_names = {
-                'run', 'async_run', 'iter', 'async_iter', 
-                'visualize', 'builder', 'as_a2a',
-                '_initialize', '_collect_state_class', '_collect_actions',
-                '_create_pydantic_graph', '_get_start_action_signature'
+                "run",
+                "async_run",
+                "iter",
+                "async_iter",
+                "visualize",
+                "builder",
+                "as_a2a",
+                "_initialize",
+                "_collect_state_class",
+                "_collect_actions",
+                "_create_pydantic_graph",
+                "_get_start_action_signature",
             }
             if action_name in reserved_names:
                 raise ValueError(
@@ -840,10 +848,10 @@ class ActionDecorator:
                     f"Reserved names include: {', '.join(sorted(reserved_names))}. "
                     "Please choose a different name for your action."
                 )
-            
+
             # Check that the action has at least one parameter besides 'self'
             sig = inspect.signature(f)
-            params = [p for p in sig.parameters if p != 'self']
+            params = [p for p in sig.parameters if p != "self"]
             if not params:
                 raise ValueError(
                     f"Action '{action_name}' must have at least one parameter besides 'self'. "
@@ -1184,7 +1192,7 @@ class BaseGraph(Generic[StateT, T]):
         # Merge global settings with provided kwargs
         merged_settings = self._global_settings.copy()
         merged_settings.update(language_model_kwargs)
-        
+
         # Include the global model if it's set and not overridden
         if self._global_model and "model" not in merged_settings:
             merged_settings["model"] = self._global_model
@@ -1357,7 +1365,7 @@ class BaseGraph(Generic[StateT, T]):
         # Merge global settings with provided kwargs
         merged_settings = self._global_settings.copy()
         merged_settings.update(language_model_kwargs)
-        
+
         # Include the global model if it's set and not overridden
         if self._global_model and "model" not in merged_settings:
             merged_settings["model"] = self._global_model
@@ -1498,7 +1506,7 @@ class BaseGraph(Generic[StateT, T]):
         # Merge global settings with provided kwargs
         merged_settings = self._global_settings.copy()
         merged_settings.update(language_model_kwargs)
-        
+
         # Include the global model if it's set and not overridden
         if self._global_model and "model" not in merged_settings:
             merged_settings["model"] = self._global_model
@@ -1670,7 +1678,7 @@ class BaseGraph(Generic[StateT, T]):
         # Merge global settings with provided kwargs
         merged_settings = self._global_settings.copy()
         merged_settings.update(language_model_kwargs)
-        
+
         # Include the global model if it's set and not overridden
         if self._global_model and "model" not in merged_settings:
             merged_settings["model"] = self._global_model

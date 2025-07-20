@@ -226,9 +226,7 @@ def create_collection(
     distance_metric: "DistanceMetric" = "dot",
     settings: Optional["QdrantCollectionIndexSettings"] = None,
     query_settings: Optional["QdrantCollectionIndexQuerySettings"] = None,
-    embedding_model: Optional[
-        "EmbeddingModelName"
-    ] = "openai/text-embedding-3-small",
+    embedding_model: Optional["EmbeddingModelName"] = "openai/text-embedding-3-small",
     embedding_dimensions: Optional[int] = None,
     embedding_api_key: Optional[str] = None,
     embedding_base_url: Optional[str] = None,
@@ -260,9 +258,7 @@ def create_collection(
     ] = None,
     # Vector/Qdrant-specific parameters
     distance_metric: "DistanceMetric" = "dot",
-    embedding_model: Optional[
-        "EmbeddingModelName"
-    ] = "openai/text-embedding-3-small",
+    embedding_model: Optional["EmbeddingModelName"] = "openai/text-embedding-3-small",
     embedding_dimensions: Optional[int] = None,
     embedding_api_key: Optional[str] = None,
     embedding_base_url: Optional[str] = None,
