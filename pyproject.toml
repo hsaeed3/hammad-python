@@ -1,0 +1,26 @@
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[tool.uv.sources]
+hammad-python-core = {workspace = true}
+hammad-python-data = {workspace = true}
+hammad-python-genai = {workspace = true}
+hammad-python-http = {workspace = true}
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "uv",
+    "pytest",
+    "pytest-asyncio",
+    "twine>=6.1.0",
+
+    "ipython",
+    "ipykernel",
+
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
+    "mkdocs-jupyter",
+]
