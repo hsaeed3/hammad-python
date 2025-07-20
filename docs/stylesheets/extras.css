@@ -39,8 +39,11 @@
 
 /* Improved code block styling */
 .md-typeset pre {
-  border-radius: 8px; /* Slightly larger radius */
-  box-shadow: 0 4px 12px var(--md-code-shadow-color); /* Restore shadow */
+  border-top: 0px; /* Slightly larger radius */
+  border-right: 0px;
+  border-left: 2px solid var(--md-code-bg-color);
+  border-bottom: 2px solid var(--md-code-bg-color);
+  box-shadow: 0 4px 0 0 var(--md-code-bg-color), -2px 0 0 0 var(--md-code-bg-color); /* Bottom and left only */
   border: none; /* Remove border completely */
   margin: 0.02em 0; /* More vertical spacing around code blocks */
   padding: 0.25em; /* More internal padding */
