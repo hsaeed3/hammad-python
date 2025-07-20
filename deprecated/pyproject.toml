@@ -6,6 +6,18 @@ readme = "README.md"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
 dependencies = [
+    "ddgs>=9.0.0",
+    "fasta2a>=0.5.0",
+    "httpx>=0.28.1",
+    "msgspec>=0.19.0",
+    "nest-asyncio>=1.6.0",
+    "pydantic>=2.11.7",
+    "rich>=14.0.0",
+    "selectolax>=0.3.31",
+    "sqlalchemy>=2.0.41",
+    "tantivy>=0.24.0",
+    "tenacity>=8.2.3",
+    "typing-inspect>=0.9.0",
 ]
 
 [build-system]
@@ -13,8 +25,29 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.optional-dependencies]
-http = [
-    "httpx>=0.28.1",
+ai = [
+    "litellm>=1.73.6",
+    "instructor>=1.9.0",
+    "qdrant-client>=1.14.3",
+]
+mcp = [
+    "mcp>=1.10.1",
+]
+serve = [
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+]
+graph = [
+    "pydantic-graph>=0.4.2",
+]
+genai = [
+    "litellm>=1.73.6",
+    "instructor>=1.9.0",
+    "qdrant-client>=1.14.3",
+    "mcp>=1.10.1",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+    "pydantic-graph>=0.4.2",
 ]
 
 [dependency-groups]
@@ -37,7 +70,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["ham"]
+packages = ["hammad"]
 exclude = [
     "/docs",
     "/.venv",
