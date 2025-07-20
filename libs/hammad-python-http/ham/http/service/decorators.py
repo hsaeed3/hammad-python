@@ -43,7 +43,7 @@ def function_server(
     timeout_keep_alive: int = 5,
     access_log: bool = True,
     use_colors: bool = True,
-    auto_start: bool = True,
+    auto_start: bool = False,
     # FastAPI
     include_in_schema: bool = True,
     dependencies: Optional[List[Callable[..., Any]]] = None,
@@ -76,7 +76,7 @@ def function_server(
     Returns:
         The original function (when used as decorator)
     """
-    from .create import create_service
+    from .create import create_fast_service
     from ..mcp.servers.launcher import find_next_free_port
 
     def decorator(
@@ -118,7 +118,7 @@ def function_server(
 
         # Create and start the service immediately if auto_start is True
         if auto_start:
-            create_service(f, **f._service_config)
+            create_fast_service(f, **f._service_config)
 
         return f
 
@@ -136,7 +136,7 @@ def function_mcp_server(
     # MCP Server configuration
     name: Optional[str] = None,
     instructions: Optional[str] = None,
-    transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
+    transport: Literal["stdio", "sse", "streamable-http"] = "sse",
     # Server settings (for sse/http transports)
     host: str = "127.0.0.1",
     port: int = 8000,

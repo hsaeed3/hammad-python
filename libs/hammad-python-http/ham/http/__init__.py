@@ -59,6 +59,23 @@ if TYPE_CHECKING:
         run_news_search,
         extract_web_page_links,
     )
+    from .mcp.client.client import (
+        convert_mcp_tool_to_openai_tool,
+        MCPClient,
+        MCPClientService,
+    )
+    from .mcp.client.settings import (
+        MCPClientStdioSettings,
+        MCPClientSseSettings,
+        MCPClientStreamableHttpSettings,
+    )
+    from .mcp.servers.launcher import (
+        launch_mcp_servers,
+        MCPServerService,
+        MCPServerStdioSettings,
+        MCPServerSseSettings,
+        MCPServerStreamableHttpSettings,
+    )
 
 
 __all__ = (
@@ -100,6 +117,18 @@ __all__ = (
     "run_web_search",
     "run_news_search",
     "extract_web_page_links",
+    # MCP
+    "convert_mcp_tool_to_openai_tool",
+    "MCPClient",
+    "MCPClientService",
+    "MCPClientStdioSettings",
+    "MCPClientSseSettings",
+    "MCPClientStreamableHttpSettings",
+    "launch_mcp_servers",
+    "MCPServerService",
+    "MCPServerStdioSettings",
+    "MCPServerSseSettings",
+    "MCPServerStreamableHttpSettings",
 )
 
 
