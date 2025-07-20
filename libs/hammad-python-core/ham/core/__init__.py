@@ -41,6 +41,7 @@ if TYPE_CHECKING:
         convert_to_model,
         convert_to_text,
         convert_type_to_text,
+        convert_to_pydantic_model,
     )
     from .logging import (
         Logger,
@@ -94,6 +95,7 @@ __all__ = (
     "convert_to_model",
     "convert_to_text",
     "convert_type_to_text",
+    "convert_to_pydantic_model",
     # ham.core.logging
     "Logger",
     "LoggerLevelName",
