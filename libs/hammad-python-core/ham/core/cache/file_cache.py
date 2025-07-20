@@ -1,4 +1,4 @@
-"""hammad.cache.file_cache"""
+"""ham.core.cache.file_cache"""
 
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, TypeAlias, Union

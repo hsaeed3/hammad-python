@@ -11,6 +11,10 @@ dependencies = [
     "tenacity>=8.2.3",
     "rich>=14.0.0",
     "msgspec>=0.19.0",
+    "typing-inspect>=0.9.0",
+    "adaptix>=3.0.0b11",
+    "docstring-parser>=0.16",
+    "alive-progress>=3.3.0",
 ]
 
 [build-system]

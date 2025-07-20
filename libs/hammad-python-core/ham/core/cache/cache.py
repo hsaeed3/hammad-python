@@ -1,4 +1,4 @@
-"""hammad.cache.cache"""
+"""ham.core.cache.cache"""
 
 from typing import (
     overload,

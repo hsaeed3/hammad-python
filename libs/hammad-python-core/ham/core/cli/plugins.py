@@ -20,7 +20,6 @@ from typing import (
     Literal,
     List,
     Union,
-    Callable,
     TYPE_CHECKING,
 )
 
@@ -162,6 +161,7 @@ def print(
     duration: Optional[float] = None,
     transient: bool = False,
     new_line_start: bool = False,
+    rich_brackets: bool = True,
 ) -> None:
     """
     Stylized print function built with `rich`. This method maintains
@@ -224,12 +224,20 @@ def print(
         and title is None
         and expand is None
         and not transient
+        and not rich_brackets
     ):
         builtins.print(*values, sep=sep, end=end, file=file, flush=flush)
         return
 
     # Convert values to string for styling
     content = sep.join(str(value) for value in values)
+
+    # Apply automatic bracket tagging if enabled
+    if rich_brackets:
+        import re
+
+        # Replace [text] patterns with Rich markup [bold cyan]text[/bold cyan]
+        content = re.sub(r"\[([^\[\]]+)\]", r"[bold cyan]\1[/bold cyan]", content)
 
     # Apply styling and background
     live_render, style_renderable = _get_style_utils()

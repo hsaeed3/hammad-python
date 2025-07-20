@@ -1,4 +1,4 @@
-"""hammad.cache.ttl_cache"""
+"""ham.core.cache.ttl_cache"""
 
 from dataclasses import dataclass
 from typing import Any, Literal, OrderedDict, Tuple

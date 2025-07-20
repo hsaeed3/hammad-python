@@ -1,11 +1,11 @@
-"""hammad.cli.animations"""
+"""ham.core.cli.animations"""
 
 import time
 import math
 import random
 import threading
 from dataclasses import dataclass, field
-from typing import Literal, Optional, List, overload, TYPE_CHECKING
+from typing import Literal, Optional, List
 
 from rich import get_console
 from rich.console import Console, ConsoleOptions, RenderResult, RenderableType

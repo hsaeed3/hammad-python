@@ -43,6 +43,7 @@ __all__ = (
     "Logger",
     "create_logger",
     "create_logger_level",
+    "get_logger",
     "LoggerConfig",
     "FileConfig",
 )
@@ -1008,6 +1009,198 @@ def create_logger(
         console=console,
         handlers=handlers,
     )
+
+
+def get_logger(
+    name: Optional[str] = None,
+    level: Optional[Union[LoggerLevelName, int]] = None,
+    wrap: bool = True,
+    propagate: bool = True,
+    rich: bool = True,
+    display_all: bool = False,
+    level_styles: Optional[Dict[str, LoggerLevelSettings]] = None,
+    file: Optional[Union[str, Path, FileConfig]] = None,
+    files: Optional[List[Union[str, Path, FileConfig]]] = None,
+    format: Optional[str] = None,
+    date_format: Optional[str] = None,
+    json_logs: bool = False,
+    console: bool = True,
+    handlers: Optional[List[_logging.Handler]] = None,
+) -> _logging.Logger:
+    """
+    Get a logger with zero performance overhead and full styling support.
+    
+    This function acts like standard logging.getLogger() but with optional
+    wrapping of existing loggers with rich styling and level control.
+    
+    Args:
+        name: Logger name (standard getLogger parameter)
+        level: Logging level to set
+        wrap: If True, wraps the logger and propagated loggers with rich styling
+        propagate: If True, applies level/styling to propagated child loggers
+        rich: Whether to use rich formatting (when wrapping)
+        display_all: If True, shows all log levels (when wrapping)
+        level_styles: Custom level styles (when wrapping)
+        file: Single file configuration (when wrapping)
+        files: Multiple file configurations (when wrapping)
+        format: Custom log format string (when wrapping)
+        date_format: Date format for timestamps (when wrapping)
+        json_logs: Whether to output structured JSON logs (when wrapping)
+        console: Whether to log to console (when wrapping)
+        handlers: Additional custom handlers (when wrapping)
+    
+    Returns:
+        Standard logging.Logger instance, optionally wrapped with styling
+        
+    Examples:
+        # Standard usage - zero overhead
+        logger = get_logger("my.module")
+        
+        # With wrapping and styling
+        logger = get_logger("openai.custom", level="info", wrap=True)
+        
+        # Wrap all OpenAI loggers with styling at info level
+        logger = get_logger("openai", level="info", wrap=True, propagate=True)
+    """
+    # Get the standard logger - zero overhead when not wrapping
+    logger = _logging.getLogger(name)
+    
+    if not wrap:
+        # Zero overhead path - just return the standard logger
+        if level is not None:
+            logger.setLevel(_get_log_level(level))
+        return logger
+    
+    # Wrapping path - apply rich styling and configuration
+    if level is not None:
+        log_level = _get_log_level(level)
+        logger.setLevel(log_level)
+        
+        # Apply level to propagated loggers if requested
+        if propagate and name:
+            _apply_level_to_children(name, log_level)
+    
+    # Apply rich styling wrapper
+    _wrap_logger_with_styling(
+        logger,
+        rich=rich,
+        display_all=display_all,
+        level_styles=level_styles or DEFAULT_LEVEL_STYLES,
+        file=file,
+        files=files or [],
+        format=format,
+        date_format=date_format,
+        json_logs=json_logs,
+        console=console,
+        handlers=handlers,
+    )
+    
+    # Apply styling to propagated loggers if requested
+    if propagate and name:
+        _wrap_children_with_styling(
+            name,
+            rich=rich,
+            display_all=display_all,
+            level_styles=level_styles or DEFAULT_LEVEL_STYLES,
+            format=format,
+            date_format=date_format,
+            json_logs=json_logs,
+            console=console,
+        )
+    
+    return logger
+
+
+def _get_log_level(level: Union[LoggerLevelName, int]) -> int:
+    """Convert level to integer log level."""
+    if isinstance(level, int):
+        return level
+    
+    level_map = {
+        "debug": _logging.DEBUG,
+        "info": _logging.INFO,
+        "warning": _logging.WARNING,
+        "error": _logging.ERROR,
+        "critical": _logging.CRITICAL,
+    }
+    return level_map.get(level.lower(), _logging.WARNING)
+
+
+def _apply_level_to_children(parent_name: str, level: int) -> None:
+    """Apply logging level to all child loggers."""
+    # Get all existing loggers that are children of parent_name
+    for logger_name in _logging.Logger.manager.loggerDict:
+        if logger_name.startswith(parent_name + "."):
+            child_logger = _logging.getLogger(logger_name)
+            child_logger.setLevel(level)
+
+
+def _wrap_logger_with_styling(
+    logger: _logging.Logger,
+    rich: bool = True,
+    display_all: bool = False,
+    level_styles: Optional[Dict[str, LoggerLevelSettings]] = None,
+    file: Optional[Union[str, Path, FileConfig]] = None,
+    files: Optional[List[Union[str, Path, FileConfig]]] = None,
+    format: Optional[str] = None,
+    date_format: Optional[str] = None,
+    json_logs: bool = False,
+    console: bool = True,
+    handlers: Optional[List[_logging.Handler]] = None,
+) -> None:
+    """Apply rich styling wrapper to an existing logger."""
+    # Clear existing handlers to avoid duplicates
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    
+    # Use our Logger class setup methods
+    temp_logger = Logger.__new__(Logger)  # Create without calling __init__
+    temp_logger._logger = logger
+    temp_logger._level_styles = level_styles or DEFAULT_LEVEL_STYLES
+    temp_logger._custom_levels = {}
+    temp_logger._file_config = file
+    temp_logger._files_config = files or []
+    temp_logger._format = format
+    temp_logger._date_format = date_format
+    temp_logger._json_logs = json_logs
+    temp_logger._console_enabled = console
+    temp_logger._rich_enabled = rich
+    
+    # Setup handlers using existing methods
+    temp_logger._setup_handlers(logger.level)
+    
+    # Add custom handlers if provided
+    if handlers:
+        for handler in handlers:
+            logger.addHandler(handler)
+    
+    logger.propagate = False
+
+
+def _wrap_children_with_styling(
+    parent_name: str,
+    rich: bool = True,
+    display_all: bool = False,
+    level_styles: Optional[Dict[str, LoggerLevelSettings]] = None,
+    format: Optional[str] = None,
+    date_format: Optional[str] = None,
+    json_logs: bool = False,
+    console: bool = True,
+) -> None:
+    """Apply styling to all child loggers of parent_name."""
+    for logger_name in _logging.Logger.manager.loggerDict:
+        if logger_name.startswith(parent_name + "."):
+            child_logger = _logging.getLogger(logger_name)
+            _wrap_logger_with_styling(
+                child_logger,
+                rich=rich,
+                display_all=display_all,
+                level_styles=level_styles,
+                format=format,
+                date_format=date_format,
+                json_logs=json_logs,
+                console=console,
+            )
 
 
 # internal logger and helper

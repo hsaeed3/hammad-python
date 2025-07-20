@@ -1,4 +1,4 @@
-"""hammad.cache.base_cache"""
+"""ham.core.cache.base_cache"""
 
 from dataclasses import dataclass
 import hashlib

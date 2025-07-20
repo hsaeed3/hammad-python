@@ -1,7 +1,7 @@
-"""hammad.cache"""
+"""ham.core.cache"""
 
 from typing import TYPE_CHECKING
-from .._internal import create_getattr_importer
+from .._internal import type_checking_importer
 
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ __all__ = (
 )
 
 
-__getattr__ = create_getattr_importer(__all__)
+__getattr__ = type_checking_importer(__all__)
 
 
 def __dir__() -> list[str]:

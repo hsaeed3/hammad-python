@@ -1,4 +1,4 @@
-"""hammad.cache.decorators"""
+"""ham.core.cache.decorators"""
 
 from typing import Callable, Optional, Tuple, Union, overload, TYPE_CHECKING
 import inspect
