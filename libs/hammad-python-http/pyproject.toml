@@ -1,0 +1,24 @@
+[project]
+name = "hammad-python-http"
+version = "0.0.3"
+description = "Core utilities for hammad-python"
+authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
+requires-python = ">=3.11"
+
+dependencies = [
+    "ddgs>=9.3.1",
+    "fastapi>=0.116.1",
+    "hammad-python-core>=0.0.3",
+    "httpx>=0.28.1",
+    "mcp>=1.12.0",
+    "selectolax>=0.3.32",
+    "strawberry-graphql>=0.278.0",
+    "uvicorn>=0.35.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ham"]

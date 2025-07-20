@@ -1,7 +1,5 @@
 # **hammad-python**
 
-> **Harmoniously Accelerated Micro-Modules (for) Application Development**
-
 ---
 
 `hammad-python` is an ecosystem of **wrappers** with the sole purpose of defining
@@ -24,3 +22,14 @@ You can install any of the sub-packages, or the main package through `pip` or `u
 ```bash
 pip install hammad-python
 ```
+
+---
+
+## Documentation
+
+Currently, I don't have any any plans for releasing a full API documentation for
+this package, as the direct documentation for the resources that the packages depend
+on are much more comprehensive.
+
+However, you can view a bunch of example patterns within the `cookbooks` 
+section of this documentation.

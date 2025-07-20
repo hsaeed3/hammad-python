@@ -1,54 +1,49 @@
 [project]
 name = "hammad-python"
-version = "0.0.30"
-license = {file = "LICENSE"}
-readme = "README.md"
+version = "0.0.35"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
-    "ddgs>=9.0.0",
-    "fasta2a>=0.5.0",
-    "httpx>=0.28.1",
-    "msgspec>=0.19.0",
-    "nest-asyncio>=1.6.0",
-    "pydantic>=2.11.7",
-    "rich>=14.0.0",
-    "selectolax>=0.3.31",
-    "sqlalchemy>=2.0.41",
-    "tantivy>=0.24.0",
-    "tenacity>=8.2.3",
-    "typing-inspect>=0.9.0",
+    "hammad-python-core>=0.0.3",
+    "hammad-python-data>=0.0.3",
+    "hammad-python-genai>=0.0.3",
+    "hammad-python-http>=0.0.3",
 ]
+
+[project.optional-dependencies]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[project.optional-dependencies]
-ai = [
-    "litellm>=1.73.6",
-    "instructor>=1.9.0",
-    "qdrant-client>=1.14.3",
+[tool.hatch.build.targets.wheel]
+packages = ["ham"]
+exclude = [
+    "/docs",
+    "/.venv",
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+    "Thumbs.db",
+    "/libs",
+    "/scripts",
+    "/deprecated",
+    "/tests"
 ]
-mcp = [
-    "mcp>=1.10.1",
-]
-serve = [
-    "fastapi>=0.115.6",
-    "uvicorn>=0.34.0",
-]
-graph = [
-    "pydantic-graph>=0.4.2",
-]
-genai = [
-    "litellm>=1.73.6",
-    "instructor>=1.9.0",
-    "qdrant-client>=1.14.3",
-    "mcp>=1.10.1",
-    "fastapi>=0.115.6",
-    "uvicorn>=0.34.0",
-    "pydantic-graph>=0.4.2",
-]
+
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[tool.uv.sources]
+hammad-python-core = {workspace = true}
+hammad-python-data = {workspace = true}
+hammad-python-genai = {workspace = true}
+hammad-python-http = {workspace = true}
 
 [dependency-groups]
 dev = [
@@ -60,27 +55,12 @@ dev = [
 
     "ipython",
     "ipykernel",
-    "fastapi",
-    "uvicorn",
+
     "mkdocs",
     "mkdocstrings[python]",
     "mkdocs-material",
     "mkdocs-material-extensions",
     "mkdocs-jupyter",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["hammad"]
-exclude = [
-    "/docs",
-    "/.venv",
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.pyd",
-    ".DS_Store",
-    "Thumbs.db",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -94,7 +74,3 @@ exclude = [
     "*.pyd",
     ".DS_Store",
 ]
-
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
