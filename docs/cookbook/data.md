@@ -1,3 +1,0 @@
-# Cookbook - `hammad-python-data`
-
----
