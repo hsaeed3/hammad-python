@@ -793,7 +793,7 @@ wheels = [
 
 [[package]]
 name = "hammad-python"
-version = "0.0.35"
+version = "0.0.38"
 source = { editable = "." }
 dependencies = [
     { name = "hammad-python-core" },
@@ -844,7 +844,7 @@ dev = [
 
 [[package]]
 name = "hammad-python-core"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "libs/hammad-python-core" }
 dependencies = [
     { name = "adaptix" },
@@ -875,7 +875,7 @@ requires-dist = [
 
 [[package]]
 name = "hammad-python-data"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "libs/hammad-python-data" }
 dependencies = [
     { name = "hammad-python-core" },
@@ -894,7 +894,7 @@ requires-dist = [
 
 [[package]]
 name = "hammad-python-genai"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "libs/hammad-python-genai" }
 dependencies = [
     { name = "fasta2a" },
@@ -919,7 +919,7 @@ requires-dist = [
 
 [[package]]
 name = "hammad-python-http"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "libs/hammad-python-http" }
 dependencies = [
     { name = "ddgs" },
