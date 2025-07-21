@@ -269,10 +269,10 @@ def log(
             new_line_start=new_line_start,
             rich_brackets=rich_brackets,
         )
-
-    # Also log the message using the logger
-    log_level = level or "info"
-    log_instance.log(log_level, str(message))
+    else:
+        # Only log via the logger if no styling is applied
+        log_level = level or "info"
+        log_instance.log(log_level, str(message))
 
 
 @contextmanager
