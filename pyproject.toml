@@ -1,6 +1,8 @@
 [project]
 name = "hammad-python"
 version = "0.0.39"
+# flit requires descriptions
+description = "Harmoniously Accelerated Micro-Modules for Application Development"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -9,32 +11,18 @@ dependencies = [
     "hammad-python-core>=0.0.5",
 ]
 
+# NOTE:
+# - build system switched from hatchling to use flit
+# - flit allows us to define namespace with
+#   much more granular control
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["flit_core >=3.8,<4"]
+build-backend = "flit_core.buildapi"
 
-[tool.hatch.build.targets.wheel]
-packages = ["ham"]
-
-exclude = [
-    # NOTE: update to exclude sub-package content
-    # directly
-    "/libs/hammad-python-core/ham/core/**",
-
-    "/docs",
-    "/.venv",
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo", 
-    "*.pyd",
-    ".DS_Store",
-    "Thumbs.db",
-    "/libs",
-    "/scripts",
-    "/deprecated",
-    "/tests"
-]
+[tool.flit.module]
+# central namespace def - using implicit namespace packages (PEP 420)
+# now changed from `hammad` -> `ham`
+name = 'ham'
 
 [tool.uv.workspace]
 members = ["libs/*"]
@@ -56,16 +44,4 @@ dev = [
     "mkdocs-material",
     "mkdocs-material-extensions",
     "mkdocs-jupyter",
-]
-
-[tool.hatch.build.targets.sdist]
-exclude = [
-    "/docs",
-    "/.venv", 
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.pyd",
-    ".DS_Store",
 ]
