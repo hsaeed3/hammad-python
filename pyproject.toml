@@ -1,0 +1,71 @@
+[project]
+name = "hammad-python"
+version = "0.0.39"
+authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.11"
+dependencies = [
+    "hammad-python-core>=0.0.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ham"]
+
+exclude = [
+    # NOTE: update to exclude sub-package content
+    # directly
+    "/libs/hammad-python-core/ham/core/**",
+
+    "/docs",
+    "/.venv",
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo", 
+    "*.pyd",
+    ".DS_Store",
+    "Thumbs.db",
+    "/libs",
+    "/scripts",
+    "/deprecated",
+    "/tests"
+]
+
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[tool.uv.sources]
+hammad-python-core = {workspace = true}
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "uv",
+    "pytest",
+    "pytest-asyncio", 
+    "twine>=6.1.0",
+    "ipython",
+    "ipykernel",
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
+    "mkdocs-jupyter",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/docs",
+    "/.venv", 
+    "/.pytest_cache",
+    "/__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+]
