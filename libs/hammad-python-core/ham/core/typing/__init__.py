@@ -53,6 +53,7 @@ from typing_inspection.introspection import (
     inspect_annotation,
     get_literal_values,
 )
+
 # NOTE: imported here just for the `is_..` function namespace
 # to be cleanly available all within `ham.core.typing`
 from dataclasses import is_dataclass
@@ -239,14 +240,26 @@ class TypingError(Exception):
 
 def is_builtin_type(t: "Any") -> bool:
     """Checks if an object is a builtin type.
-    
+
     Args:
         t: The object to check.
 
     Returns:
         True if the object is a builtin type, False otherwise.
     """
-    return t in (str, int, float, bool, list, dict, tuple, set, frozenset, bytes, bytearray) or (isinstance(t, type) and t.__module__ == "builtins")
+    return t in (
+        str,
+        int,
+        float,
+        bool,
+        list,
+        dict,
+        tuple,
+        set,
+        frozenset,
+        bytes,
+        bytearray,
+    ) or (isinstance(t, type) and t.__module__ == "builtins")
 
 
 def is_abstract(t: "Any") -> bool:
@@ -318,7 +331,7 @@ def is_async_function(t: "Any") -> bool:
 
 def is_module(t: "Any") -> bool:
     """Checks if an object is a module. (ex: `functools`, `pathlib`, ...)
-    
+
     This function uses duck typing to identify modules by checking
     for the presence of characteristic attributes (`__name__` and `__file__`)
     without requiring direct imports of the module.
@@ -400,7 +413,7 @@ def is_pydantic_basemodel_instance(t: "Any") -> bool:
 
 def is_pydantic_basemodel_class(t: "Any") -> bool:
     """Check if an object is a Pydantic BaseModel class using duck typing.
-    
+
     This function uses duck typing to identify Pydantic BaseModel classes by checking
     for the presence of characteristic attributes (`model_fields` and `model_dump`)
     without requiring direct imports of Pydantic. This specifically checks for classes,
@@ -461,18 +474,18 @@ def is_msgspec_struct(t: "Any") -> bool:
 
 def is_generator(t: "Any") -> bool:
     """Check if an object is a generator function or generator instance.
-    
+
     This function identifies both generator functions (functions defined with yield)
     and generator instances (objects returned when calling a generator function).
     It uses duck typing to check for characteristic attributes without requiring
     direct imports.
 
     Args:
-        t: The object to check. Can be a generator function, generator instance, 
+        t: The object to check. Can be a generator function, generator instance,
            or any other type.
 
     Returns:
-        True if the object is a generator function or generator instance, 
+        True if the object is a generator function or generator instance,
         False otherwise.
 
     Example:
@@ -488,9 +501,14 @@ def is_generator(t: "Any") -> bool:
         False
     """
     # Check for generator instance (has __next__ and send methods)
-    if hasattr(t, "__next__") and hasattr(t, "send") and hasattr(t, "throw") and hasattr(t, "close"):
+    if (
+        hasattr(t, "__next__")
+        and hasattr(t, "send")
+        and hasattr(t, "throw")
+        and hasattr(t, "close")
+    ):
         return True
-    
+
     # Check for generator function (has gi_frame attribute when called)
     if callable(t):
         try:
@@ -498,20 +516,20 @@ def is_generator(t: "Any") -> bool:
             return hasattr(t, "__code__") and (t.__code__.co_flags & 0x20) != 0
         except AttributeError:
             return False
-    
+
     return False
 
 
 def is_async_generator(t: "Any") -> bool:
     """Check if an object is an async generator function or async generator instance.
-    
-    This function identifies both async generator functions (async functions defined 
-    with yield) and async generator instances (objects returned when calling an async 
-    generator function). It uses duck typing to check for characteristic attributes 
+
+    This function identifies both async generator functions (async functions defined
+    with yield) and async generator instances (objects returned when calling an async
+    generator function). It uses duck typing to check for characteristic attributes
     without requiring direct imports.
 
     Args:
-        t: The object to check. Can be an async generator function, async generator 
+        t: The object to check. Can be an async generator function, async generator
            instance, or any other type.
 
     Returns:
@@ -531,9 +549,14 @@ def is_async_generator(t: "Any") -> bool:
         False
     """
     # Check for async generator instance (has __anext__ and asend methods)
-    if hasattr(t, "__anext__") and hasattr(t, "asend") and hasattr(t, "athrow") and hasattr(t, "aclose"):
+    if (
+        hasattr(t, "__anext__")
+        and hasattr(t, "asend")
+        and hasattr(t, "athrow")
+        and hasattr(t, "aclose")
+    ):
         return True
-    
+
     # Check for async generator function (has ag_frame attribute when called)
     if callable(t):
         try:
@@ -541,7 +564,7 @@ def is_async_generator(t: "Any") -> bool:
             return hasattr(t, "__code__") and (t.__code__.co_flags & 0x200) != 0
         except AttributeError:
             return False
-    
+
     return False
 
 

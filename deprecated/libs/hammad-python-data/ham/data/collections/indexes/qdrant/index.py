@@ -190,7 +190,7 @@ class QdrantCollectionIndex:
             def embedding_function(item: Any) -> List[float]:
                 model.api_key = self.embedding_api_key
                 model.base_url = self.embedding_base_url
-                
+
                 response = model.run(
                     input=item,
                     format=True,
