@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python"
-version = "0.0.39"
+dynamic = ["version"]
 # flit requires descriptions
 description = "Harmoniously Accelerated Micro-Modules for Application Development"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
@@ -8,21 +8,23 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
-    "hammad-python-core>=0.0.5",
+    "hammad-python-core",
 ]
 
-# NOTE:
-# - build system switched from hatchling to use flit
-# - flit allows us to define namespace with
-#   much more granular control
 [build-system]
-requires = ["flit_core >=3.8,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.flit.module]
-# central namespace def - using implicit namespace packages (PEP 420)
-# now changed from `hammad` -> `ham`
-name = 'ham'
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["libs/hammad-python/ham"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
 
 [tool.uv.workspace]
 members = ["libs/*"]

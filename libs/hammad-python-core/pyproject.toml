@@ -1,6 +1,6 @@
 [project]
 name = "hammad-python-core"
-version = "0.0.5"
+dynamic = ["version"]
 description = "Core utilities for hammad-python"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
@@ -13,9 +13,16 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["flit_core >=3.8,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.flit.module]
-name = "ham.core"
-include = ["py.typed"]
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ham.core"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
