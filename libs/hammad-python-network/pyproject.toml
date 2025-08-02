@@ -14,14 +14,17 @@ style = "pep440"
 bump = true
 
 [project]
-name = "hammad-python-core"
+name = "hammad-python-network"
 dynamic = ["version"]
+description = "Core utilities for hammad-python"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
 requires-python = ">=3.11"
 
 dependencies = [
-    "pydantic>=2.11.7",
-    "rich>=14.0.0",
-    "adaptix>=3.0.0b11",
-    "typing-inspect>=0.9.0",
+    "fastapi>=0.116.1",
+    "sse-starlette>=3.0.2",
+    "uvicorn>=0.35.0",
+    # NOTE: dynamic versioning
+    "hammad-python-core",
+    "bs4>=0.0.2",
 ]
