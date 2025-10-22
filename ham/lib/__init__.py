@@ -6,5 +6,5 @@ of the various components within the library. Most of these resources cannot
 be categorized directly under a specific top level module.
 
 The items within this submodule are grouped by their 'origin' or data type, rather
-than their use case. 
+than their use case.
 """

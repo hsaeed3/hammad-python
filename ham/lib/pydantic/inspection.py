@@ -125,4 +125,4 @@ def get_pydantic_model_cls(model: BaseModel) -> type[BaseModel]:
     if not is_pydantic_basemodel_instance(model):
         raise TypeError("Provided object is not a Pydantic BaseModel instance.")
 
-    return model.__class__()
+    return model.__class__

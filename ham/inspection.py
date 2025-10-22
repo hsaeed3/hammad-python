@@ -3,7 +3,7 @@
 from .lib.utils.import_utils import (
     TYPE_CHECKING,
     type_checking_dir_fn,
-    type_checking_getattr_fn
+    type_checking_getattr_fn,
 )
 
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
         is_union_type,
         is_literal_type,
         is_optional_type,
-        get_typeddict_field_names
+        get_typeddict_field_names,
     )
 
     # ham.lib.pydantic.inspection
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
         is_pydantic_basemodel,
         is_pydantic_basemodel_instance,
         get_pydantic_model_field_names,
-        get_pydantic_model_cls
+        get_pydantic_model_cls,
     )
 
     # ham.lib.dataclasses.inspection
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         is_dataclass,
         is_dataclass_instance,
         get_dataclass_cls,
-        get_dataclass_field_names
+        get_dataclass_field_names,
     )
 
 
@@ -61,13 +61,11 @@ __all__ = (
     "is_literal_type",
     "is_optional_type",
     "get_typeddict_field_names",
-
     # ham.lib.pydantic.inspection
     "is_pydantic_basemodel",
     "is_pydantic_basemodel_instance",
     "get_pydantic_model_field_names",
     "get_pydantic_model_cls",
-
     # ham.lib.dataclasses.inspection
     "is_dataclass",
     "is_dataclass_instance",
