@@ -4,10 +4,11 @@
 .cursorignore
 .cursorindexingignore
 .cursorrules
-.claude/
 .dev/
 .__old__/
 dev/
+.vscode/
+.idea/
 # For Dev
 tester.py
 .z/
