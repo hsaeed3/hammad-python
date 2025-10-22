@@ -7,7 +7,7 @@ import uuid
 try:
     from ham.core.cache import cached
 except ImportError:
-    from .....cache import cached # type: ignore
+    from .....cache import cached  # type: ignore
 
 from .settings import (
     QdrantCollectionIndexSettings,

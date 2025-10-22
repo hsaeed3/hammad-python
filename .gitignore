@@ -11,6 +11,8 @@ dev/
 # For Dev
 tester.py
 .z/
+# what is this?
+inner-wilds/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

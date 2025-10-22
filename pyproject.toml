@@ -15,9 +15,6 @@ bump = true
 
 [project]
 name = "hammad-python"
-# NOTE:
-# - `hammad-python` uses dynamic versioning & monorepo
-#   structure
 dynamic = ["version"]
 description = "Harmoniously Accelerated Micro-Modules for Application Development"
 authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
@@ -25,6 +22,8 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
+    "instructor>=1.11.3",
+    "typing-inspect>=0.9.0",
 ]
 
 [dependency-groups]
@@ -44,4 +43,7 @@ dev = [
     "mkdocs-material",
     "mkdocs-material-extensions",
     "mkdocstrings[python]",
+
+    # what could this be for?
+    "pygame"
 ]

@@ -1,18 +1,25 @@
-"""ham.utils
+"""ham.functions.utils
 
-General purpose utility functions and classes. Includes thing such as 
-logging, caching, and other assorted helpers.
+Uncategorized utility functions and resources."""
 
-NOTE: Most public utilities within this framework are submodule-specific or categorized,
-and live within their respective submodules."""
+from .import_utils import type_checking_dir_fn, type_checking_getattr_fn, TYPE_CHECKING
 
 
-# NOTE: this is publically namespaced, but it's aliased only in this specific module
-# to avoid circular import issues.
-from .type_checking_getattr_fn import (
-    type_checking_getattr_fn as _type_checking_getattr_fn,
-    type_checking_dir_fn as _type_checking_dir_fn
+if TYPE_CHECKING:
+    from .cache import cached, clear_cache
+
+
+__all__ = (
+    # NOTE:
+    # this is the one place 'type_checking_getattr_fn' and
+    # 'type_checking_dir_fn' are considered exports
+    "type_checking_getattr_fn",
+    "type_checking_dir_fn",
+    # ham.functions.utils.cache
+    "cached",
+    "clear_cache",
 )
-from typing import TYPE_CHECKING
 
 
+__getattr__ = type_checking_getattr_fn(__all__)
+__dir__ = type_checking_dir_fn(__all__)

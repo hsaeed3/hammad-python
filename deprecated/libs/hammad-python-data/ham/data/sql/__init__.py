@@ -1,10 +1,11 @@
 """hammad.data.sql"""
 
 from typing import TYPE_CHECKING
+
 try:
     from ham.core._internal import type_checking_importer
 except ImportError:
-    from ..._internal import type_checking_importer # type: ignore
+    from ..._internal import type_checking_importer  # type: ignore
 
 
 if TYPE_CHECKING:

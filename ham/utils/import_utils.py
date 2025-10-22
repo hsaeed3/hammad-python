@@ -1,4 +1,4 @@
-"""ham.utils.type_checking_getattr_fn
+"""ham.functions.utils.import_utils
 
 Provides an incredibly simple `type_checking_getattr_fn` function that auto-generates a `__getattr__`
 function for a module based on predefined `TYPE_CHECKING` and `__all__` attributes, this enables quick and
@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     FrozenSet,
     OrderedDict,
+    TYPE_CHECKING,
 )
 from importlib import import_module
 import inspect
@@ -27,6 +28,7 @@ __all__ = (
     "type_checking_dir_fn",
     "GetAttrFunctionError",
     "GetAttrFunctionWarning",
+    "TYPE_CHECKING",
 )
 
 
@@ -40,7 +42,7 @@ class GetAttrFunctionError(AttributeError):
 
 class GetAttrFunctionWarning(Warning):
     """
-    Warning raised by the `type_checking_getattr_fn` function for 
+    Warning raised by the `type_checking_getattr_fn` function for
     non-critical issues.
     """
 
@@ -194,20 +196,20 @@ def _get_loader_functions(
         frame = inspect.currentframe()
         if frame is None:
             raise RuntimeError("Cannot determine calling module's frame.")
-        
+
         # Walk up the stack to find the first frame outside this module
         current_module = __name__
         caller_frame = frame.f_back
-        
+
         while caller_frame is not None:
             frame_globals = caller_frame.f_globals
             frame_module = frame_globals.get("__name__")
-            
+
             # Found a frame from a different module - this is our caller
             if frame_module != current_module:
                 caller_globals = frame_globals
                 break
-            
+
             caller_frame = caller_frame.f_back
         else:
             raise RuntimeError("Cannot determine calling module's frame.")
@@ -216,10 +218,10 @@ def _get_loader_functions(
 
     package = caller_globals.get("__package__")
     filename = caller_globals.get("__file__")
-    
+
     if not filename:
         raise RuntimeError("Cannot find source file for the calling module.")
-    
+
     cache_key = _CACHE_VERSION + filename
     if cache_key in _loader_cache:
         return _loader_cache[cache_key]
@@ -233,16 +235,7 @@ def _get_loader_functions(
     import_map = _parse_type_checking_imports(source)
     all_set = frozenset(all_list)
 
-    filtered_map = {
-        name: info for name, info in import_map.items() if name in all_set
-    }
-    
-    # DEBUG
-    print(f"DEBUG: filename={filename}")
-    print(f"DEBUG: package={package}")
-    print(f"DEBUG: all_set={all_set}")
-    print(f"DEBUG: import_map={import_map}")
-    print(f"DEBUG: filtered_map={filtered_map}")
+    filtered_map = {name: info for name, info in import_map.items() if name in all_set}
 
     loader_tuple = _create_lazy_loaders(filtered_map, package, all_set)
     _loader_cache[cache_key] = loader_tuple
