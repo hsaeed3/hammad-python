@@ -26,6 +26,9 @@ dependencies = [
     "typing-inspect>=0.9.0",
 ]
 
+[project.optional-dependencies]
+litellm = ["litellm"]
+
 [dependency-groups]
 dev = [
     "logfire",
@@ -43,7 +46,4 @@ dev = [
     "mkdocs-material",
     "mkdocs-material-extensions",
     "mkdocstrings[python]",
-
-    # what could this be for?
-    "pygame"
 ]
