@@ -1,76 +1,122 @@
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv]
+managed = true
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "ham"
+package = true
+
 [project]
 name = "hammad-python"
-version = "0.0.38"
-authors = [{name = "Hammad Saeed", email = "hammadaidev@gmail.com"}]
+version = "1.0.5"
+authors = [{ name = "Hammad Saeed", email = "hammad@supportvectors.com" }]
+description = "Harmoniously Accelerated Mega Modules (for) Application Development"
 readme = "README.md"
-license = {file = "LICENSE"}
-requires-python = ">=3.11"
+license = {"file" = "LICENSE"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
 dependencies = [
-    "hammad-python-core>=0.0.4",
-    "hammad-python-data>=0.0.4",
-    "hammad-python-genai>=0.0.4",
-    "hammad-python-http>=0.0.4",
+    "pydantic>=2.13.4",
+    "xnano>=1.0.11",
 ]
 
-[project.optional-dependencies]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["ham"]
-exclude = [
-    "/docs",
-    "/.venv",
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.pyd",
-    ".DS_Store",
-    "Thumbs.db",
-    "/libs",
-    "/scripts",
-    "/deprecated",
-    "/tests"
-]
-
-[tool.uv.workspace]
-members = ["libs/*"]
-
-[tool.uv.sources]
-hammad-python-core = {workspace = true}
-hammad-python-data = {workspace = true}
-hammad-python-genai = {workspace = true}
-hammad-python-http = {workspace = true}
+[project.scripts]
+xnano = "xnano.__main__:main"
 
 [dependency-groups]
 dev = [
+    "maturin>=1.9.4,<2.0",
+    "prek",
+    "logfire",
+    "black",
+    # SORT!
+    "isort",
     "ruff",
     "uv",
     "pytest",
     "pytest-asyncio",
+    "pytest-benchmark>=5.1.0",
+    "pytest-cov",
     "twine>=6.1.0",
-
-    "ipython",
-    "ipykernel",
-
-    "mkdocs",
-    "mkdocstrings[python]",
+    # type checking!
+    # another banger from astral.sh
+    "ty",
+    # all examples use marimo in favor of jupyter because marimo
+    # is very good :)
+    "marimo",
+    # docs (zensical is a project by the mkdocs-material team, that
+    # aims to be the successor to mkdocs-material and mkdocs itself)
+    "zensical>=0.0.50",
+    "termynal>=0.14.0",
+    "griffe-typingdoc",
     "mkdocs-material",
-    "mkdocs-material-extensions",
-    "mkdocs-jupyter",
+    "mkdocs-click",
+    "mkdocstrings-python",
+    "markdown-exec[ansi]",
 ]
 
-[tool.hatch.build.targets.sdist]
-exclude = [
-    "/docs",
-    "/.venv",
-    "/.pytest_cache",
-    "/__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.pyd",
-    ".DS_Store",
+[tool.pytest.ini_options]
+pythonpath = ["tests"]
+# Skip experimental beta suite during default discovery.
+# Run explicitly: uv run pytest tests/beta
+norecursedirs = [
+    ".*",
+    "build",
+    "dist",
+    "CVS",
+    "_darcs",
+    "{arch}",
+    "*.egg",
+    "venv",
+    "beta",
+]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["ham", "xnano"]
+known-third-party = [
+    "pydantic"
+]
+# Automatic spacing (-1):
+# - 1 blank line between the last runtime import and `if TYPE_CHECKING:`
+# - 2 blank lines after the import / TYPE_CHECKING block before top-level
+#   content (class / function / assignment)
+# Forced `2` incorrectly puts two blanks *before* TYPE_CHECKING as well.
+lines-after-imports = -1
+no-lines-before = ["local-folder"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint]
+preview = true
+select = [
+    "E301",
+    "E302",
+    "E303",
+    "E305",
+    "F401",
+    "I",
+    "TID252",
 ]
